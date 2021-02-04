@@ -59,6 +59,9 @@ F:,:FLOOR:12
 # Object 10 levels out of depth
 F:O:FLOOR:8:0:*10
 
+# Restore Mana potion
+F:*:FLOOR:8:0:266
+
 # Dungeon layout
 D:XXXXXXXXXXXXXXXXX
 D:XOOO%!O!%!O!%OOOX
@@ -74,6 +77,9 @@ D:X               X
 D:XDD%%%%%%%%%%%DDX
 D:X               X
 D:X       <       X
+D:XXXXXXXXDXXXXXXXX
+D:X***************X
+D:X***************X
 D:XXXXXXXXXXXXXXXXX
 
 # Starting position
