@@ -58,9 +58,12 @@ F: :FLOOR:8
 # Trees
 F:T:TREE:1
 
+# HEALING potion
+F:!:FLOOR:8:0:242
+
 # Dungeon layout
 D:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-D:XTTTTTTTTTTTTTTTT             X
+D:XTTTTTTTTTTTTTTTT!!!!!!!!!!!!!X
 D:XT         Y  TTT TTHTTTTTTTT X
 D:XT H    H     TTTY        r T X
 D:XT            TTTTTTTTTTTTT T X
