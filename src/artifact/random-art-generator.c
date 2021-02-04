@@ -323,10 +323,10 @@ static int decide_random_art_power_level(object_type *o_ptr, const bool a_cursed
         if (a_cursed)
             return 0;
 
-        if (total_flags < 20000)
+        if (total_flags < 10000)/* #mod 20000 -> 10000 */
             return 1;
 
-        if (total_flags < 45000)
+        if (total_flags < 20000)/* #mod 45000 -> 20000 */
             return 2;
 
         return 3;
@@ -335,10 +335,10 @@ static int decide_random_art_power_level(object_type *o_ptr, const bool a_cursed
     if (a_cursed)
         return 0;
 
-    if (total_flags < 15000)
+    if (total_flags < 7500)/* #mod 15000 -> 7500 */
         return 1;
 
-    if (total_flags < 35000)
+    if (total_flags < 15000)/* #mod 35000 -> 15000 */
         return 2;
 
     return 3;
