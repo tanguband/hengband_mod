@@ -817,6 +817,7 @@ static void save_prefs(void)
     strcpy(buf, use_bg ? "1" : "0");
     WritePrivateProfileString("Angband", "BackGround", buf, ini_file);
     WritePrivateProfileString("Angband", "BackGroundBitmap", bg_bitmap_file[0] != '\0' ? bg_bitmap_file : "bg.bmp", ini_file);
+    WritePrivateProfileString("Angband", "SaveFile", savefile, ini_file);
 
     for (int i = 0; i < MAX_TERM_DATA; ++i) {
         save_prefs_aux(i);
@@ -892,6 +893,7 @@ static void load_prefs(void)
     arg_music = (GetPrivateProfileInt("Angband", "Music", 0, ini_file) != 0);
     use_bg = GetPrivateProfileInt("Angband", "BackGround", 0, ini_file);
     GetPrivateProfileString("Angband", "BackGroundBitmap", "bg.bmp", bg_bitmap_file, 1023, ini_file);
+    GetPrivateProfileString("Angband", "SaveFile", "", savefile, 1023, ini_file);
     for (int i = 0; i < MAX_TERM_DATA; ++i) {
         load_prefs_aux(i);
     }
@@ -945,15 +947,17 @@ static void load_sound_prefs(void)
     char wav_path[1024];
     char *zz[SAMPLE_SOUND_MAX];
 
-    path_build(ini_path, 1024, ANGBAND_DIR_XTRA_SOUND, "sound.cfg");
+    path_build(ini_path, 1024, ANGBAND_DIR_XTRA_SOUND, "sound_debug.cfg");
+    if (GetPrivateProfileString("Device", "type", "", mci_device_type, 256, ini_path) == 0) {
+        path_build(ini_path, 1024, ANGBAND_DIR_XTRA_SOUND, "sound.cfg");
+        GetPrivateProfileString("Device", "type", "", mci_device_type, 256, ini_path);
+    }
+
     for (int i = 0; i < SOUND_MAX; i++) {
         GetPrivateProfileString("Sound", angband_sound_name[i], "", tmp, 1024, ini_path);
         int num = tokenize_whitespace(tmp, SAMPLE_SOUND_MAX, zz);
         for (int j = 0; j < num; j++) {
-            /* Access the sound */
             path_build(wav_path, 1024, ANGBAND_DIR_XTRA_SOUND, zz[j]);
-
-            /* Save the sound filename, if it exists */
             if (check_file(wav_path))
                 sound_file[i][j] = string_make(zz[j]);
         }
@@ -2293,6 +2297,7 @@ static void process_menus(player_type *player_ptr, WORD wCmd)
         } else {
             game_in_progress = TRUE;
             term_flush();
+            strcpy(savefile, "");
             play_game(player_ptr, TRUE, FALSE);
             quit(NULL);
         }
