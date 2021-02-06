@@ -56,7 +56,7 @@ AC_ARG_ENABLE(fontset,
 AC_ARG_ENABLE([xft],
 	AS_HELP_STRING([--enable-xft], [Enable xft support]))
 AC_ARG_ENABLE(worldscore,
-[  --disable-worldscore    disable worldscore support], ,AC_DEFINE(WORLD_SCORE, 1, [Allow the game to send scores to the score server]))
+[  --disable-worldscore    disable worldscore support], worldscore=no, AC_DEFINE(WORLD_SCORE, 1, [Allow the game to send scores to the score server]))
 AC_ARG_ENABLE(chuukei,
 [  --enable-chuukei        enable internet chuukei support], AC_DEFINE(CHUUKEI, 1, [Chuukei mode]))
 AC_ARG_ENABLE([cocoa],
@@ -96,13 +96,18 @@ AC_CHECK_LIB(iconv, iconv_open)
 
 AC_CHECK_FILE(/dev/urandom, AC_DEFINE(RNG_DEVICE, "/dev/urandom", [Random Number Generation device file]))
 
+AS_IF([test "$worldscore" != no], [
+  PKG_CHECK_MODULES([libcurl], [libcurl], [true], [
+    AC_SEARCH_LIBS([curl_global_init], [curl curl-gnutls curl-nss], [true], [AC_MSG_ERROR([libcurl is necessary for posting scores])])])
+])
+
 dnl Checks for header files.
 dnl AC_PATH_XTRA has side effects on CPP which are beneficial on Mac OS X.
 dnl Removing it or conditionally executing it will likely lead to warnings
 dnl on that platform about the preprocessor disagreeing with the compiler on
 dnl the tests in AC_CHECK_HEADERS.
 AC_PATH_XTRA
-if test "$have_x" = yes && test x"$enable_cocoa" != xyes ; then
+AS_IF([test "$have_x" = yes && test x"$enable_cocoa" != xyes], [
   LIBS="$LIBS -lX11"
   AC_DEFINE(USE_X11, 1, [Allow -mX11 environment])
   CFLAGS="$X_CFLAGS $CFLAGS"
@@ -133,7 +138,7 @@ if test "$have_x" = yes && test x"$enable_cocoa" != xyes ; then
     PKG_CHECK_MODULES(XFT, [xft],
       [AC_DEFINE([USE_XFT], [1], [Use XFT])])
   ])
-fi
+])
 
 if test "$use_japanese" != no; then
   AC_CHECK_PROG(NKF, nkf, yes)

@@ -27,9 +27,13 @@
 #include "system/system-variables.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
+#include "time.h"
 #include "util/angband-files.h"
 #include "util/string-processor.h"
 #include "world/world.h"
+#ifndef WINDOWS
+#include <dirent.h>
+#endif
 
 char *file_read__buf;
 char *file_read__swp;
@@ -68,8 +72,9 @@ void init_file_paths(concptr libpath, concptr varpath)
 {
 #ifdef PRIVATE_USER_PATH
     char base[1024];
-    char buf[1024];
 #endif
+    char buf[1024];
+
     string_free(ANGBAND_DIR);
     string_free(ANGBAND_DIR_APEX);
     string_free(ANGBAND_DIR_BONE);
@@ -80,6 +85,7 @@ void init_file_paths(concptr libpath, concptr varpath)
     string_free(ANGBAND_DIR_HELP);
     string_free(ANGBAND_DIR_INFO);
     string_free(ANGBAND_DIR_SAVE);
+    string_free(ANGBAND_DIR_DEBUG_SAVE);
     string_free(ANGBAND_DIR_USER);
     string_free(ANGBAND_DIR_XTRA);
 
@@ -95,6 +101,8 @@ void init_file_paths(concptr libpath, concptr varpath)
     ANGBAND_DIR_INFO = string_make(format("%sinfo", libpath));
     ANGBAND_DIR_PREF = string_make(format("%spref", libpath));
     ANGBAND_DIR_SAVE = string_make(format("%ssave", varpath));
+    path_build(buf, sizeof(buf), ANGBAND_DIR_SAVE, "log");
+    ANGBAND_DIR_DEBUG_SAVE = string_make(buf);
 
 #ifdef PRIVATE_USER_PATH
     path_parse(base, sizeof(base), PRIVATE_USER_PATH);
@@ -104,6 +112,56 @@ void init_file_paths(concptr libpath, concptr varpath)
     ANGBAND_DIR_USER = string_make(format("%suser", varpath));
 #endif
     ANGBAND_DIR_XTRA = string_make(format("%sxtra", libpath));
+
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    char tmp[128];
+    strftime(tmp, sizeof(tmp), "%Y-%m-%d-%H-%M-%S", t);
+    path_build(debug_savefile, sizeof(debug_savefile), ANGBAND_DIR_DEBUG_SAVE, tmp);
+
+#ifdef WINDOWS
+    struct _finddata_t c_file;
+    intptr_t hFile;
+    char log_file_expr[1024];
+    path_build(log_file_expr, sizeof(log_file_expr), ANGBAND_DIR_DEBUG_SAVE, "*-*");
+
+    if ((hFile = _findfirst(log_file_expr, &c_file)) != -1L) {
+        do {
+            if (((t->tm_yday + 365 - localtime(&c_file.time_write)->tm_yday) % 365) > 7) {
+                char c_file_fullpath[1024];
+                path_build(c_file_fullpath, sizeof(c_file_fullpath), ANGBAND_DIR_DEBUG_SAVE, c_file.name);
+                remove(c_file_fullpath);
+            }
+        } while (_findnext(hFile, &c_file) == 0);
+        _findclose(hFile);
+    }
+#else
+    {
+        DIR *saves_dir = opendir(ANGBAND_DIR_DEBUG_SAVE);
+
+        if (saves_dir) {
+            struct dirent *next_entry;
+
+            while ((next_entry = readdir(saves_dir))) {
+                if (angband_strchr(next_entry->d_name, '-')) {
+                    char path[1024];
+                    struct stat next_stat;
+
+                    path_build(path, sizeof(path), ANGBAND_DIR_DEBUG_SAVE, next_entry->d_name);
+                    /*
+                     * Remove if modified more than a week ago,
+                     * 7*24*60*60 seconds.
+                     */
+                    if (stat(path, &next_stat) == 0 &&
+                            difftime(now, next_stat.st_mtime) > 604800) {
+                        remove(path);
+                    }
+                }
+            }
+            closedir(saves_dir);
+        }
+    }
+#endif
 }
 
 /*
@@ -206,6 +264,9 @@ void create_needed_dirs(void)
 
 #ifndef PRIVATE_USER_PATH
     path_build(dirpath, sizeof(dirpath), ANGBAND_DIR_SAVE, "");
+    if (!dir_create(dirpath)) quit_fmt("Cannot create '%s'", dirpath);
+
+    path_build(dirpath, sizeof(dirpath), ANGBAND_DIR_DEBUG_SAVE, "");
     if (!dir_create(dirpath)) quit_fmt("Cannot create '%s'", dirpath);
 
     path_build(dirpath, sizeof(dirpath), ANGBAND_DIR_APEX, "");
