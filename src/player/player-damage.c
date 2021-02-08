@@ -20,7 +20,6 @@
 #include "game-option/special-options.h"
 #include "inventory/inventory-damage.h"
 #include "inventory/inventory-slot-types.h"
-#include "io/files-util.h"
 #include "io/input-key-acceptor.h"
 #include "io/report.h"
 #include "io/write-diary.h"

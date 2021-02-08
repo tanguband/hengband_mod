@@ -1,5 +1,0 @@
-CFBundleDisplayName = "$BUNDLE_DISPLAY_NAME$";
-CFBundleName = "$BUNDLE_NAME$";
-CFBundleShortVersionString = "$VERSION$";
-NSHumanReadableCopyright = "$COPYRIGHT$";
-

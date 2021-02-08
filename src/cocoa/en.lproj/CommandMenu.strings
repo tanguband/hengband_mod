@@ -1,8 +1,0 @@
-/* Knowledge; Angband command "~" */
-"Knowledge" = "Knowledge";
-
-/* Inscribe; Angband command "{" */
-"Inscribe" = "Inscribe";
-
-/* Uninscribe; Angband command "}" */
-"Uninscribe" = "Uninscribe"; 

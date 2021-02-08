@@ -465,6 +465,4 @@ errr report_score(player_type *creature_ptr, void (*update_playtime)(void), disp
 
     return succeeded ? 0 : 1;
 }
-#else
-concptr screen_dump = NULL;
 #endif /* WORLD_SCORE */
