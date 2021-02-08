@@ -147,12 +147,12 @@ concptr do_daemon_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mod
 
     case 5:
         if (name)
-            return _("地獄の矢", "Nether Bolt");
+            return _("ファイア・ボルト", "Fire Bolt");
         if (desc)
-            return _("地獄のボルトもしくはビームを放つ。", "Fires a bolt or beam of nether.");
+            return _("炎のボルトもしくはビームを放つ。", "Fires a bolt or beam of fire.");
 
         {
-            DICE_NUMBER dice = 6 + (plev - 5) / 4;
+            DICE_NUMBER dice = 8 + (plev - 5) / 4;
             DICE_SID sides = 8;
 
             if (info)
@@ -162,7 +162,7 @@ concptr do_daemon_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mod
                 if (!get_aim_dir(caster_ptr, &dir))
                     return NULL;
 
-                fire_bolt_or_beam(caster_ptr, beam_chance(caster_ptr), GF_NETHER, dir, damroll(dice, sides));
+                fire_bolt_or_beam(caster_ptr, beam_chance(caster_ptr), GF_FIRE, dir, damroll(dice, sides));
             }
         }
         break;
@@ -297,7 +297,7 @@ concptr do_daemon_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mod
             return _("炎の球を放つ。", "Fires a ball of fire.");
 
         {
-            HIT_POINT dam = plev + 55;
+            HIT_POINT dam = plev + 80;
             POSITION rad = 2;
 
             if (info)
