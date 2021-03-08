@@ -951,7 +951,7 @@ BUNDLE_IDENTIFIER = jp.osdn.hengband
 BUNDLE_VERSION = $(PACKAGE_VERSION)
 BUNDLE_DISPLAY_NAME = $(APPNAME)
 BUNDLE_NAME = $(BUNDLE_DISPLAY_NAME)
-BUNDLE_DISPLAY_NAME_JA = 変愚蛮怒
+BUNDLE_DISPLAY_NAME_JA = 変愚蛮怒(改)
 BUNDLE_NAME_JA = $(BUNDLE_DISPLAY_NAME_JA)
 # Be careful with characters (like '&') in the copyright that have special
 # meanings to sed.

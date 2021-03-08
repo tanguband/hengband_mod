@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#define VERSION_NAME "Hengband" /*!< バリアント名称 / Name of the version/variant */
+#define VERSION_NAME "Hengband_MOD" /*!< バリアント名称 / Name of the version/variant */
 
 /*!
  * @brief ゲームのバージョン番号定義 / "Program Version Number" of the game
