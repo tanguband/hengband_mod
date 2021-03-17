@@ -964,8 +964,8 @@ hengband_SOURCES += \
 	system/grafmode.cpp \
 	cocoa/AppDelegate.h
 AM_CFLAGS = -mmacosx-version-min=10.8 -Wunguarded-availability
-AM_OBJCXXFLAGS = -std=c++11 -fobjc-arc -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
-AM_CXXFLAGS = -std=c++11 -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
+AM_OBJCXXFLAGS = -std=c++14 -fobjc-arc -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
+AM_CXXFLAGS = -std=c++14 -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
 hengband_LDFLAGS = -framework cocoa $(AM_LDFLAGS)
 hengband_LINK = MACOSX_DEPLOYMENT_TARGET=10.8 $(OBJCXXLINK) $(hengband_LDFLAGS) $(LDFLAGS) -o $@
 APPNAME = $(PACKAGE_NAME)
@@ -1014,7 +1014,7 @@ COMPILE = $(srcdir)/gcc-wrap $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 OBJCXXCOMPILE = $(srcdir)/gcc-wrap $(OBJCXX) $(DEFS) $(DEFAULT_INCLUDES) \
 	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCXXFLAGS) $(OBJCXXFLAGS)
 CXXCOMPILE = $(srcdir)/gcc-wrap $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(AM_CXXFLAGS) $(CFLAGS)
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CFLAGS)
 
 install-exec-hook:
 if SET_GID
