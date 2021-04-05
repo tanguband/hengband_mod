@@ -345,7 +345,7 @@ bool make_attack_spell(player_type *target_ptr, MONSTER_IDX m_idx)
         return FALSE;
     }
 
-    if (((msa_ptr->m_ptr->mflag & MFLAG_PREVENT_MAGIC) != 0) || !is_hostile(msa_ptr->m_ptr)
+    if (msa_ptr->m_ptr->mflag.has(MFLAG::PREVENT_MAGIC) || !is_hostile(msa_ptr->m_ptr)
         || ((msa_ptr->m_ptr->cdis > get_max_range(target_ptr)) && !msa_ptr->m_ptr->target_y))
         return FALSE;
 
@@ -374,6 +374,7 @@ bool make_attack_spell(player_type *target_ptr, MONSTER_IDX m_idx)
     if (!monspell_res.valid)
         return FALSE;
 
+    msa_ptr->dam = monspell_res.dam;
     check_mspell_imitation(target_ptr, msa_ptr);
     remember_mspell(msa_ptr);
     if (target_ptr->is_dead && (msa_ptr->r_ptr->r_deaths < MAX_SHORT) && !target_ptr->current_floor_ptr->inside_arena)

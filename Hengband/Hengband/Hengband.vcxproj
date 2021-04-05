@@ -121,7 +121,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>winmm.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Debug\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;gdiplus.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Debug\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ShowProgress>LinkVerbose</ShowProgress>
       <SubSystem>Windows</SubSystem>
     </Link>
@@ -154,7 +154,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <TargetMachine>MachineX86</TargetMachine>
       <ShowProgress>LinkVerbose</ShowProgress>
-      <AdditionalDependencies>winmm.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Debug\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;gdiplus.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Debug\libcurl_a_debug.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <SubSystem>Windows</SubSystem>
     </Link>
   </ItemDefinitionGroup>
@@ -177,7 +177,7 @@
     </ClCompile>
     <Link>
       <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>winmm.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Release\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;gdiplus.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Release\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseFastLinkTimeCodeGeneration</LinkTimeCodeGeneration>
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
@@ -210,7 +210,7 @@
       <ForcedIncludeFiles>stdafx.h</ForcedIncludeFiles>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>winmm.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Release\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>winmm.lib;gdiplus.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;Normaliz.lib;curl\x86 Release\libcurl_a.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
@@ -349,6 +349,7 @@
     <ClCompile Include="..\..\src\io\store-key-processor.cpp" />
     <ClCompile Include="..\..\src\load\info-loader.cpp" />
     <ClCompile Include="..\..\src\locale\utf-8.cpp" />
+    <ClCompile Include="..\..\src\main-win\main-win-cfg-reader.cpp" />
     <ClCompile Include="..\..\src\main-win\main-win-file-utils.cpp" />
     <ClCompile Include="..\..\src\main-win\main-win-mci.cpp" />
     <ClCompile Include="..\..\src\main-win\main-win-music.cpp" />
@@ -359,6 +360,7 @@
     <ClCompile Include="..\..\src\main\info-initializer.cpp" />
     <ClCompile Include="..\..\src\main\init-error-messages-table.cpp" />
     <ClCompile Include="..\..\src\main-win\main-win-bg.cpp" />
+    <ClCompile Include="..\..\src\main\scene-table.cpp" />
     <ClCompile Include="..\..\src\market\building-initializer.cpp" />
     <ClCompile Include="..\..\src\melee\melee-spell-flags-checker.cpp" />
     <ClCompile Include="..\..\src\melee\melee-spell-util.cpp" />
@@ -514,6 +516,12 @@
     <ClCompile Include="..\..\src\status\sight-setter.cpp" />
     <ClCompile Include="..\..\src\status\experience.cpp" />
     <ClCompile Include="..\..\src\status\temporary-resistance.cpp" />
+    <ClCompile Include="..\..\src\stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='English-Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='English-Debug|Win32'">Create</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\..\src\store\home.cpp" />
     <ClCompile Include="..\..\src\store\museum.cpp" />
     <ClCompile Include="..\..\src\store\owner-insults.cpp" />
@@ -666,7 +674,6 @@
     <ClCompile Include="..\..\src\core\hp-mp-processor.cpp" />
     <ClCompile Include="..\..\src\core\hp-mp-regenerator.cpp" />
     <ClCompile Include="..\..\src\core\magic-effects-timeout-reducer.cpp" />
-    <ClCompile Include="..\..\src\core\output-updater.cpp" />
     <ClCompile Include="..\..\src\core\stuff-handler.cpp" />
     <ClCompile Include="..\..\src\core\turn-compensator.cpp" />
     <ClCompile Include="..\..\src\effect\effect-feature.cpp" />
@@ -870,12 +877,6 @@
     <ClCompile Include="..\..\src\load\quest-loader.cpp" />
     <ClCompile Include="..\..\src\view\display-store.cpp" />
     <ClCompile Include="..\..\src\action\throw-util.cpp" />
-    <ClCompile Include="stdafx.cpp">
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='English-Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='English-Debug|Win32'">Create</PrecompiledHeader>
-    </ClCompile>
     <ClInclude Include="..\..\src\action\action-limited.h" />
     <ClInclude Include="..\..\src\action\activation-execution.h" />
     <ClInclude Include="..\..\src\action\mutation-execution.h" />
@@ -1022,6 +1023,7 @@
     <ClInclude Include="..\..\src\load\info-loader.h" />
     <ClInclude Include="..\..\src\locale\language-switcher.h" />
     <ClInclude Include="..\..\src\locale\utf-8.h" />
+    <ClInclude Include="..\..\src\main-win\main-win-cfg-reader.h" />
     <ClInclude Include="..\..\src\main-win\main-win-file-utils.h" />
     <ClInclude Include="..\..\src\main-win\main-win-mci.h" />
     <ClInclude Include="..\..\src\main-win\main-win-mmsystem.h" />
@@ -1035,6 +1037,7 @@
     <ClInclude Include="..\..\src\main\init-error-messages-table.h" />
     <ClInclude Include="..\..\src\main-win\main-win-bg.h" />
     <ClInclude Include="..\..\src\main-win\main-win-windows.h" />
+    <ClInclude Include="..\..\src\main\scene-table.h" />
     <ClInclude Include="..\..\src\market\building-initializer.h" />
     <ClInclude Include="..\..\src\melee\melee-spell-flags-checker.h" />
     <ClInclude Include="..\..\src\melee\melee-spell-util.h" />
@@ -1207,6 +1210,7 @@
     <ClInclude Include="..\..\src\status\sight-setter.h" />
     <ClInclude Include="..\..\src\status\experience.h" />
     <ClInclude Include="..\..\src\status\temporary-resistance.h" />
+    <ClInclude Include="..\..\src\stdafx.h" />
     <ClInclude Include="..\..\src\store\home.h" />
     <ClInclude Include="..\..\src\store\museum.h" />
     <ClInclude Include="..\..\src\store\owner-insults.h" />
@@ -1229,6 +1233,7 @@
     <ClInclude Include="..\..\src\util\buffer-shaper.h" />
     <ClInclude Include="..\..\src\util\flag-group.h" />
     <ClInclude Include="..\..\src\util\int-char-converter.h" />
+    <ClInclude Include="..\..\src\util\point-2d.h" />
     <ClInclude Include="..\..\src\util\quarks.h" />
     <ClInclude Include="..\..\src\lore\combat-types-setter.h" />
     <ClInclude Include="..\..\src\lore\magic-types-setter.h" />
@@ -1435,7 +1440,6 @@
     <ClInclude Include="..\..\src\core\hp-mp-processor.h" />
     <ClInclude Include="..\..\src\core\hp-mp-regenerator.h" />
     <ClInclude Include="..\..\src\core\magic-effects-timeout-reducer.h" />
-    <ClInclude Include="..\..\src\core\output-updater.h" />
     <ClInclude Include="..\..\src\core\special-internal-keys.h" />
     <ClInclude Include="..\..\src\core\stuff-handler.h" />
     <ClInclude Include="..\..\src\mspell\mspell-bolt.h" />
@@ -1735,7 +1739,6 @@
     <ClInclude Include="..\..\src\wizard\tval-descriptions-table.h" />
     <ClInclude Include="..\..\src\load\quest-loader.h" />
     <ClInclude Include="..\..\src\view\display-store.h" />
-    <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\system\angband.h" />

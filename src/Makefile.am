@@ -153,7 +153,6 @@ hengband_SOURCES = \
 	core/hp-mp-regenerator.cpp core/hp-mp-regenerator.h \
 	core/magic-effects-timeout-reducer.cpp core/magic-effects-timeout-reducer.h \
 	core/object-compressor.cpp core/object-compressor.h \
-	core/output-updater.cpp core/output-updater.h \
 	core/player-processor.cpp core/player-processor.h \
 	core/player-redraw-types.h \
 	core/player-update-types.h \
@@ -379,6 +378,7 @@ hengband_SOURCES = \
 	main/info-initializer.cpp main/info-initializer.h \
 	main/init-error-messages-table.cpp main/init-error-messages-table.h \
 	main/music-definitions-table.cpp main/music-definitions-table.h \
+	main/scene-table.cpp main/scene-table.h \
 	main/sound-definitions-table.cpp main/sound-definitions-table.h \
 	main/sound-of-music.cpp main/sound-of-music.h \
 	main/x11-gamma-builder.cpp main/x11-gamma-builder.h \
@@ -859,6 +859,7 @@ hengband_SOURCES = \
 	util/flag-group.h \
 	util/int-char-converter.h \
 	util/object-sort.cpp util/object-sort.h \
+	util/point-2d.h \
 	util/probability-table.h \
 	util/quarks.cpp util/quarks.h \
 	util/sort.cpp util/sort.h \
@@ -920,9 +921,9 @@ hengband_SOURCES = \
 	world/world-turn-processor.cpp world/world-turn-processor.h
 
 EXTRA_hengband_SOURCES = \
-	angband.ico angband.rc ang_eng.rc maid-x11.cpp main-win.cpp \
 	angband.ico angband.rc ang_eng.rc ang_jp.rc maid-x11.cpp main-win.cpp \
 	main-win/main-win-bg.cpp main-win/main-win-bg.h \
+	main-win/main-win-cfg-reader.cpp main-win/main-win-cfg-reader.h \
 	main-win/main-win-define.h \
 	main-win/main-win-file-utils.cpp main-win/main-win-file-utils.h \
 	main-win/main-win-mci.cpp main-win/main-win-mci.h \
@@ -932,7 +933,8 @@ EXTRA_hengband_SOURCES = \
 	main-win/main-win-tokenizer.cpp main-win/main-win-tokenizer.h \
 	main-win/main-win-windows.h \
 	main-cap.cpp main-xaw.cpp \
-	makefile.bcc makefile.std term/readdib.cpp term/readdib.h wall.bmp
+	makefile.bcc makefile.std term/readdib.cpp term/readdib.h wall.bmp \
+	stdafx.cpp stdafx.h
 
 cocoa_xcode_files = \
 	cocoa/AppDelegate.m \
@@ -1012,10 +1014,12 @@ appen_DATA = $(cocoa_en_strings_files)
 appendir = $(APPRES)/en.lproj
 appja_DATA = $(cocoa_ja_strings_files)
 appjadir = $(APPRES)/ja.lproj
+MD5SUM=md5
 else
 EXTRA_hengband_SOURCES += main-cocoa.mm system/grafmode.h system/grafmode.cpp \
 	cocoa/AppDelegate.h
 hengband_LINK = $(CXXLINK)
+MD5SUM=md5sum
 endif
 
 DEFAULT_INCLUDES = -I$(srcdir) -I$(top_builddir)/src
@@ -1027,6 +1031,18 @@ OBJCXXCOMPILE = $(srcdir)/gcc-wrap $(OBJCXX) $(DEFS) $(DEFAULT_INCLUDES) \
 	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCXXFLAGS) $(OBJCXXFLAGS)
 CXXCOMPILE = $(srcdir)/gcc-wrap $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+if PCH
+CXXCOMPILE += -include stdafx.h
+endif
+
+if PCH
+stdafx.h.gch: stdafx.h stdafx.cpp Makefile
+	$(CXX) -x c++-header $(CXXFLAGS) $(AM_CXXFLAGS) $(srcdir)/stdafx.cpp -o $@
+	rm -f stdafx.h.gch.sum
+	$(MD5SUM) $@ > stdafx.h.gch.sum
+
+$(hengband_SOURCES:.cpp=.$(OBJEXT)): stdafx.h.gch
+endif
 
 install-exec-hook:
 if SET_GID
@@ -1038,6 +1054,7 @@ if COCOA
 # Suppress the warnings from the EUC-JP encoded strings used when building
 # the Japanese version.
 AM_CFLAGS += -Wno-invalid-source-encoding
+AM_CXXFLAGS += -Wno-invalid-source-encoding
 AM_OBJCXXFLAGS += -Wno-invalid-source-encoding
 
 # Create lib/info within the application bundle since not currently
@@ -1080,3 +1097,6 @@ distclean-local:
 	-rm -r -f $(DEPDIR) */$(DEPDIR)
 
 endif
+
+clean-local:
+	-rm stdafx.h.gch stdafx.h.gch.sum

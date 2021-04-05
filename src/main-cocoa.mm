@@ -1992,14 +1992,14 @@ static void draw_image_tile(
 u32b AngbandMaskForValidSubwindowFlags(void)
 {
     int windowFlagBits = sizeof(*(window_flag)) * CHAR_BIT;
-    int maxBits = MIN( 16, windowFlagBits );
+    int maxBits = MIN( 32, windowFlagBits );
     u32b mask = 0;
 
     for( int i = 0; i < maxBits; i++ )
     {
         if( window_flag_desc[i] != NULL )
         {
-            mask |= (1 << i);
+            mask |= (1U << i);
         }
     }
 
@@ -2018,6 +2018,7 @@ static void AngbandUpdateWindowVisibility(void)
      * It doesn't change between calls, as the flags themselves are hardcoded
      */
     static u32b validWindowFlagsMask = 0;
+    BOOL anyChanged = NO;
 
     if( validWindowFlagsMask == 0 )
     {
@@ -2053,11 +2054,13 @@ static void AngbandUpdateWindowVisibility(void)
             {
                 [angbandContext.primaryWindow orderFront: nil];
                 angbandContext.windowVisibilityChecked = YES;
+                anyChanged = YES;
             }
-            else
+            else if ([angbandContext.primaryWindow isVisible])
             {
                 [angbandContext.primaryWindow close];
                 angbandContext.windowVisibilityChecked = NO;
+                anyChanged = YES;
             }
         }
         else
@@ -2069,20 +2072,24 @@ static void AngbandUpdateWindowVisibility(void)
                 [angbandContext.primaryWindow close];
                 angbandContext.hasSubwindowFlags = NO;
                 [angbandContext saveWindowVisibleToDefaults: NO];
+                anyChanged = YES;
             }
             else if( !angbandContext.hasSubwindowFlags && termHasSubwindowFlags )
             {
                 [angbandContext.primaryWindow orderFront: nil];
                 angbandContext.hasSubwindowFlags = YES;
                 [angbandContext saveWindowVisibleToDefaults: YES];
+                anyChanged = YES;
             }
         }
     }
 
     /* Make the main window key so that user events go to the right spot */
-    AngbandContext *mainWindow =
-	(__bridge AngbandContext*) (angband_term[0]->data);
-    [mainWindow.primaryWindow makeKeyAndOrderFront: nil];
+    if (anyChanged) {
+        AngbandContext *mainWindow =
+            (__bridge AngbandContext*) (angband_term[0]->data);
+        [mainWindow.primaryWindow makeKeyAndOrderFront: nil];
+    }
 }
 
 /**
@@ -2357,10 +2364,15 @@ static int compare_advances(const void *ap, const void *bp)
     }
 
     /*
-     * Record the tile size.  Round both values up to have tile boundaries
-     * match pixel boundaries.
+     * Record the tile size.  Round the values (height rounded up; width to
+     * nearest unless that would be zero) to have tile boundaries match pixel
+     * boundaries.
      */
-    self->_tileSize.width = ceil(medianAdvance);
+    if (medianAdvance < 1.0) {
+	self->_tileSize.width = 1.0;
+    } else {
+	self->_tileSize.width = floor(medianAdvance + 0.5);
+    }
     self->_tileSize.height = ceil(self.fontAscender - self.fontDescender);
 
     /*
@@ -5576,28 +5588,28 @@ static void load_prefs(void)
 
 	switch (i) {
 	case 0:
-	    columns = 129;
-	    rows = 32;
+	    columns = 100;
+	    rows = _(28, 30);
 	    break;
 	case 1:
-	    columns = 84;
-	    rows = 20;
+	    columns = 66;
+	    rows = _(9, 10);
 	    break;
 	case 2:
-	    columns = 42;
+	    columns = 38;
 	    rows = 24;
 	    break;
 	case 3:
-	    columns = 42;
-	    rows = 20;
+	    columns = 38;
+	    rows = _(9, 10);
 	    break;
 	case 4:
-	    columns = 42;
-	    rows = 16;
+	    columns = 38;
+	    rows = _(13, 15);
 	    break;
 	case 5:
-	    columns = 84;
-	    rows = 20;
+	    columns = 66;
+	    rows = _(9, 10);
 	    break;
 	default:
 	    columns = 80;
