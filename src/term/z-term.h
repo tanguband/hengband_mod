@@ -129,11 +129,13 @@ typedef struct term_type {
 #define TERM_XTRA_ALIVE 11 /* Change the "hard" level (optional) */
 #define TERM_XTRA_LEVEL 12 /* Change the "soft" level (optional) */
 #define TERM_XTRA_DELAY 13 /* Delay some milliseconds (optional) */
-#define TERM_XTRA_MUSIC_BASIC 14 /* Play a music(basic)   (optional) */
+#define TERM_XTRA_MUSIC_BASIC 14 /* Play a music(basic) (optional) */
 #define TERM_XTRA_MUSIC_DUNGEON 15 /* Play a music(dungeon) (optional) */
-#define TERM_XTRA_MUSIC_QUEST 16 /* Play a music(quest)   (optional) */
-#define TERM_XTRA_MUSIC_TOWN 17 /* Play a music(floor)   (optional) */
-#define TERM_XTRA_MUSIC_MUTE 18
+#define TERM_XTRA_MUSIC_QUEST 16 /* Play a music(quest) (optional) */
+#define TERM_XTRA_MUSIC_TOWN 17 /* Play a music(floor) (optional) */
+#define TERM_XTRA_MUSIC_MONSTER 18 /* Play a music(monster) (optional) */
+#define TERM_XTRA_MUSIC_MUTE 19
+#define TERM_XTRA_SCENE 20 /* React to scene changes (optional) */
 
 /**** Available Variables ****/
 extern term_type *Term;
@@ -145,7 +147,6 @@ errr term_xtra(int n, int v);
 void term_queue_char(TERM_LEN x, TERM_LEN y, TERM_COLOR a, char c, TERM_COLOR ta, char tc);
 void term_queue_bigchar(TERM_LEN x, TERM_LEN y, TERM_COLOR a, char c, TERM_COLOR ta, char tc);
 void term_queue_line(TERM_LEN x, TERM_LEN y, int n, TERM_COLOR *a, char *c, TERM_COLOR *ta, char *tc);
-bool macro_running(void);
 
 errr term_fresh(void);
 errr term_fresh_force(void);

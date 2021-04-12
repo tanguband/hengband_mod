@@ -5,9 +5,9 @@
 #include "cmd-io/cmd-save.h"
 #include "core/asking-player.h"
 #include "core/disturbance.h"
-#include "core/output-updater.h"
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
+#include "core/stuff-handler.h"
 #include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "floor/cave.h"
@@ -224,7 +224,7 @@ void do_cmd_go_down(player_type *creature_ptr)
         }
 
         if (!max_dlv[target_dungeon]) {
-            msg_format(_("ここには%sの入り口(%d階相当)があります", "There is the entrance of %s (Danger level: %d)"), d_name + d_info[target_dungeon].name,
+            msg_format(_("ここには%sの入り口(%d階相当)があります", "There is the entrance of %s (Danger level: %d)"), d_info[target_dungeon].name.c_str(),
                 d_info[target_dungeon].mindepth);
             if (!get_check(_("本当にこのダンジョンに入りますか？", "Do you really get in this dungeon? ")))
                 return;
@@ -261,7 +261,7 @@ void do_cmd_go_down(player_type *creature_ptr)
         msg_print(_("わざと落とし戸に落ちた。", "You deliberately jump through the trap door."));
     } else {
         if (target_dungeon) {
-            msg_format(_("%sへ入った。", "You entered %s."), d_text + d_info[creature_ptr->dungeon_idx].text);
+            msg_format(_("%sへ入った。", "You entered %s."), d_info[creature_ptr->dungeon_idx].text.c_str());
         } else {
             if (is_echizen(creature_ptr))
                 msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
@@ -429,8 +429,7 @@ void do_cmd_rest(player_type *creature_ptr)
     creature_ptr->resting = command_arg;
     creature_ptr->action = ACTION_REST;
     creature_ptr->update |= PU_BONUS;
-    update_creature(creature_ptr);
     creature_ptr->redraw |= (PR_STATE);
-    update_output(creature_ptr);
+    handle_stuff(creature_ptr);
     term_fresh();
 }

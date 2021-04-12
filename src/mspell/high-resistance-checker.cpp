@@ -1,7 +1,4 @@
 ﻿#include "mspell/high-resistance-checker.h"
-#include "monster-race/race-flags-ability1.h"
-#include "monster-race/race-flags-ability2.h"
-#include "monster-race/race-flags4.h"
 #include "monster/smart-learn-types.h"
 #include "mspell/smart-mspell-util.h"
 #include "player/player-race.h"
@@ -11,167 +8,167 @@
 void add_cheat_remove_flags_others(player_type *target_ptr, msr_type *msr_ptr)
 {
     if (has_resist_neth(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_NETH);
+        msr_ptr->smart.set(SM::RES_NETH);
 
     if (has_resist_lite(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_LITE);
+        msr_ptr->smart.set(SM::RES_LITE);
 
     if (has_resist_dark(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_DARK);
+        msr_ptr->smart.set(SM::RES_DARK);
 
     if (has_resist_fear(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_FEAR);
+        msr_ptr->smart.set(SM::RES_FEAR);
 
     if (has_resist_conf(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_CONF);
+        msr_ptr->smart.set(SM::RES_CONF);
 
     if (has_resist_chaos(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_CHAOS);
+        msr_ptr->smart.set(SM::RES_CHAOS);
 
     if (has_resist_disen(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_DISEN);
+        msr_ptr->smart.set(SM::RES_DISEN);
 
     if (has_resist_blind(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_BLIND);
+        msr_ptr->smart.set(SM::RES_BLIND);
 
     if (has_resist_nexus(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_NEXUS);
+        msr_ptr->smart.set(SM::RES_NEXUS);
 
     if (has_resist_sound(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_SOUND);
+        msr_ptr->smart.set(SM::RES_SOUND);
 
     if (has_resist_shard(target_ptr))
-        set_bits(msr_ptr->smart, SM_RES_SHARD);
+        msr_ptr->smart.set(SM::RES_SHARD);
 
     if (has_reflect(target_ptr))
-        set_bits(msr_ptr->smart, SM_IMM_REFLECT);
+        msr_ptr->smart.set(SM::IMM_REFLECT);
 
     if (target_ptr->free_act)
-        set_bits(msr_ptr->smart, SM_IMM_FREE);
+        msr_ptr->smart.set(SM::IMM_FREE);
 
     if (!target_ptr->msp)
-        set_bits(msr_ptr->smart, SM_IMM_MANA);
+        msr_ptr->smart.set(SM::IMM_MANA);
 }
 
 static void check_nether_resistance(player_type *target_ptr, msr_type *msr_ptr)
 {
-    if (none_bits(msr_ptr->smart, SM_RES_NETH))
+    if (msr_ptr->smart.has_not(SM::RES_NETH))
         return;
 
     if (is_specific_player_race(target_ptr, RACE_SPECTRE)) {
-        reset_bits(msr_ptr->f4, RF4_BR_NETH);
-        reset_bits(msr_ptr->f5, RF5_BA_NETH);
-        reset_bits(msr_ptr->f5, RF5_BO_NETH);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_NETH);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BA_NETH);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_NETH);
         return;
     }
 
     if (int_outof(msr_ptr->r_ptr, 20))
-        reset_bits(msr_ptr->f4, RF4_BR_NETH);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_NETH);
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f5, RF5_BA_NETH);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BA_NETH);
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f5, RF5_BO_NETH);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_NETH);
 }
 
 static void check_lite_resistance(msr_type *msr_ptr)
 {
-    if (none_bits(msr_ptr->smart, SM_RES_LITE))
+    if (msr_ptr->smart.has_not(SM::RES_LITE))
         return;
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f4, RF4_BR_LITE);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_LITE);
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f5, RF5_BA_LITE);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BA_LITE);
 }
 
 static void check_dark_resistance(player_type *target_ptr, msr_type *msr_ptr)
 {
-    if (none_bits(msr_ptr->smart, SM_RES_DARK))
+    if (msr_ptr->smart.has_not(SM::RES_DARK))
         return;
 
     if (is_specific_player_race(target_ptr, RACE_VAMPIRE)) {
-        reset_bits(msr_ptr->f4, RF4_BR_DARK);
-        reset_bits(msr_ptr->f5, RF5_BA_DARK);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_DARK);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BA_DARK);
         return;
     }
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f4, RF4_BR_DARK);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_DARK);
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f5, RF5_BA_DARK);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BA_DARK);
 }
 
 static void check_conf_resistance(msr_type *msr_ptr)
 {
-    if (none_bits(msr_ptr->smart, SM_RES_CONF))
+    if (msr_ptr->smart.has_not(SM::RES_CONF))
         return;
 
-    reset_bits(msr_ptr->f5, RF5_CONF);
+    msr_ptr->ability_flags.reset(RF_ABILITY::CONF);
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f4, RF4_BR_CONF);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_CONF);
 }
 
 static void check_chaos_resistance(msr_type *msr_ptr)
 {
-    if (none_bits(msr_ptr->smart, SM_RES_CHAOS))
+    if (msr_ptr->smart.has_not(SM::RES_CHAOS))
         return;
 
     if (int_outof(msr_ptr->r_ptr, 20))
-        reset_bits(msr_ptr->f4, RF4_BR_CHAO);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_CHAO);
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f4, RF4_BA_CHAO);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BA_CHAO);
 }
 
 static void check_nexus_resistance(msr_type *msr_ptr)
 {
-    if (none_bits(msr_ptr->smart, SM_RES_NEXUS))
+    if (msr_ptr->smart.has_not(SM::RES_NEXUS))
         return;
 
     if (int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f4, RF4_BR_NEXU);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_NEXU);
 
-    reset_bits(msr_ptr->f6, RF6_TELE_LEVEL);
+    msr_ptr->ability_flags.reset(RF_ABILITY::TELE_LEVEL);
 }
 
 static void check_reflection(msr_type *msr_ptr)
 {
-    if (none_bits(msr_ptr->smart, SM_IMM_REFLECT))
+    if (msr_ptr->smart.has_not(SM::IMM_REFLECT))
         return;
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_COLD);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_COLD);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_FIRE);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_FIRE);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_ACID);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_ACID);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_ELEC);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_ELEC);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_NETH);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_NETH);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_WATE);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_WATE);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_MANA);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_MANA);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_PLAS);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_PLAS);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_BO_ICEE);
+        msr_ptr->ability_flags.reset(RF_ABILITY::BO_ICEE);
 
     if (int_outof(msr_ptr->r_ptr, 150))
-        reset_bits(msr_ptr->f5, RF5_MISSILE);
+        msr_ptr->ability_flags.reset(RF_ABILITY::MISSILE);
 }
 
 void check_high_resistances(player_type *target_ptr, msr_type *msr_ptr)
@@ -179,30 +176,30 @@ void check_high_resistances(player_type *target_ptr, msr_type *msr_ptr)
     check_nether_resistance(target_ptr, msr_ptr);
     check_lite_resistance(msr_ptr);
     check_dark_resistance(target_ptr, msr_ptr);
-    if (any_bits(msr_ptr->smart, SM_RES_FEAR))
-        reset_bits(msr_ptr->f5, RF5_SCARE);
+    if (msr_ptr->smart.has(SM::RES_FEAR))
+        msr_ptr->ability_flags.reset(RF_ABILITY::SCARE);
 
     check_conf_resistance(msr_ptr);
     check_chaos_resistance(msr_ptr);
-    if (any_bits(msr_ptr->smart, SM_RES_DISEN) && int_outof(msr_ptr->r_ptr, 40))
-        reset_bits(msr_ptr->f4, RF4_BR_DISE);
+    if (msr_ptr->smart.has(SM::RES_DISEN) && int_outof(msr_ptr->r_ptr, 40))
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_DISE);
 
-    if (any_bits(msr_ptr->smart, SM_RES_BLIND))
-        reset_bits(msr_ptr->f5, RF5_BLIND);
+    if (msr_ptr->smart.has(SM::RES_BLIND))
+        msr_ptr->ability_flags.reset(RF_ABILITY::BLIND);
 
     check_nexus_resistance(msr_ptr);
-    if (any_bits(msr_ptr->smart, SM_RES_SOUND) && int_outof(msr_ptr->r_ptr, 50))
-        reset_bits(msr_ptr->f4, RF4_BR_SOUN);
+    if (msr_ptr->smart.has(SM::RES_SOUND) && int_outof(msr_ptr->r_ptr, 50))
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_SOUN);
 
-    if (any_bits(msr_ptr->smart, SM_RES_SHARD) && int_outof(msr_ptr->r_ptr, 40))
-        reset_bits(msr_ptr->f4, RF4_BR_SHAR);
+    if (msr_ptr->smart.has(SM::RES_SHARD) && int_outof(msr_ptr->r_ptr, 40))
+        msr_ptr->ability_flags.reset(RF_ABILITY::BR_SHAR);
 
     check_reflection(msr_ptr);
-    if (any_bits(msr_ptr->smart, SM_IMM_FREE)) {
-        reset_bits(msr_ptr->f5, RF5_HOLD);
-        reset_bits(msr_ptr->f5, RF5_SLOW);
+    if (msr_ptr->smart.has(SM::IMM_FREE)) {
+        msr_ptr->ability_flags.reset(RF_ABILITY::HOLD);
+        msr_ptr->ability_flags.reset(RF_ABILITY::SLOW);
     }
 
-    if (any_bits(msr_ptr->smart, SM_IMM_MANA))
-        reset_bits(msr_ptr->f5, RF5_DRAIN_MANA);
+    if (msr_ptr->smart.has(SM::IMM_MANA))
+        msr_ptr->ability_flags.reset(RF_ABILITY::DRAIN_MANA);
 }

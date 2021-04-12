@@ -17,9 +17,7 @@
 /*** Terrain feature variables ***/
 
 /* The terrain feature arrays */
-feature_type *f_info;
-char *f_name;
-char *f_tag;
+std::vector<feature_type> f_info;
 
 /* Nothing */
 FEAT_IDX feat_none;

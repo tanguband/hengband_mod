@@ -1,7 +1,7 @@
 ﻿#include "io/input-key-requester.h"
 #include "cmd-io/cmd-menu-content-table.h"
 #include "cmd-io/macro-util.h"
-#include "core/asking-player.h" // todo 相互依存している、後で何とかする.
+#include "core/asking-player.h" //!< @todo 相互依存している、後で何とかする.
 #include "core/player-processor.h"
 #include "core/stuff-handler.h"
 #include "core/window-redrawer.h"
@@ -13,9 +13,9 @@
 #include "io/input-key-acceptor.h"
 #include "main/sound-of-music.h"
 #include "save/save.h"
-#include "system/floor-type-definition.h" // todo 違和感、後で調査する.
+#include "system/floor-type-definition.h" //!< @todo 違和感、後で調査する.
 #include "system/object-type-definition.h"
-#include "term/screen-processor.h" // todo 相互依存している、後で何とかする.
+#include "term/screen-processor.h" //!< @todo 相互依存している、後で何とかする.
 #include "util/int-char-converter.h"
 #include "util/quarks.h"
 #include "util/string-processor.h"
@@ -211,12 +211,8 @@ void request_command(player_type *player_ptr, int shopping)
         if (!macro_running() && !command_new && auto_debug_save && (!inkey_next || *inkey_next == '\0')) {
             save_player(player_ptr, SAVE_TYPE_DEBUG);
         }
-        if (macro_running() && fresh_once) {
+        if (fresh_once && macro_running()) {
             stop_term_fresh();
-        } else {
-            start_term_fresh();
-            player_ptr->window_flags |= PW_MONSTER_LIST;
-            handle_stuff(player_ptr);
         }
 
         if (command_new) {

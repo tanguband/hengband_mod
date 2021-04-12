@@ -8,6 +8,7 @@
 #include "main/angband-headers.h"
 #include "util/string-processor.h"
 #include "view/display-messages.h"
+#include <string>
 
 /*!
  * @brief テキストトークンを走査してフラグを一つ得る(ダンジョン用) /
@@ -68,13 +69,7 @@ static errr grab_one_basic_monster_flag(dungeon_type *d_ptr, concptr what)
  */
 static errr grab_one_spell_monster_flag(dungeon_type *d_ptr, concptr what)
 {
-    if (grab_one_flag(&d_ptr->mflags4, r_info_flags4, what) == 0)
-        return 0;
-
-    if (grab_one_flag(&d_ptr->m_a_ability_flags1, r_a_ability_flags1, what) == 0)
-        return 0;
-
-    if (grab_one_flag(&d_ptr->m_a_ability_flags2, r_a_ability_flags2, what) == 0)
+    if (FlagGroup<RF_ABILITY>::grab_one_flag(d_ptr->m_ability_flags, r_info_ability_flags, what))
         return 0;
 
     msg_format(_("未知のモンスター・フラグ '%s'。", "Unknown monster flag '%s'."), what);
@@ -112,8 +107,7 @@ errr parse_d_info(char *buf, angband_header *head)
         error_idx = i;
         d_ptr = &d_info[i];
 #ifdef JP
-        if (!add_name(&d_ptr->name, head, s))
-            return 7;
+        d_ptr->name = std::string(s);
 #endif
     }
 #ifdef JP
@@ -125,8 +119,7 @@ errr parse_d_info(char *buf, angband_header *head)
         s = buf + 2;
 
         /* Store the name */
-        if (!add_name(&d_ptr->name, head, s))
-            return 7;
+        d_ptr->name = std::string(s);
     }
 #endif
     else if (buf[0] == 'D') {
@@ -139,8 +132,7 @@ errr parse_d_info(char *buf, angband_header *head)
             return 0;
         s = buf + 3;
 #endif
-        if (!add_text(&d_ptr->text, head, s, TRUE))
-            return 7;
+        d_ptr->text.append(s);
     } else if (buf[0] == 'W') {
         int min_lev, max_lev;
         int min_plev, mode;

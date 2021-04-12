@@ -25,10 +25,10 @@
 #include "world/world.h"
 
 /*!
- * todo ここにplayer_type を追加するとz-termに影響が行くので保留
  * @brief コンソールを再描画する /
  * Redraw a term when it is resized
  * @return なし
+ * @todo ここにplayer_type を追加するとz-termに影響が行くので保留
  */
 void redraw_window(void)
 {
@@ -256,10 +256,9 @@ void window_stuff(player_type *player_ptr)
         fix_player(player_ptr);
     }
 
-    if (window_flags & (PW_MONSTER_LIST)) {
-        player_ptr->window_flags &= ~(PW_MONSTER_LIST);
-        fix_monster_list(player_ptr);
-    }
+    // Always call without PW_MONSTER_LIST flag
+    player_ptr->window_flags &= ~(PW_MONSTER_LIST);
+    fix_monster_list(player_ptr);
 
     if (window_flags & (PW_MESSAGE)) {
         player_ptr->window_flags &= ~(PW_MESSAGE);

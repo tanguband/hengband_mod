@@ -13,8 +13,6 @@
 #include "market/building-util.h"
 #include "monster-race/monster-race-hook.h"
 #include "monster-race/monster-race.h"
-#include "monster-race/race-flags-ability1.h"
-#include "monster-race/race-flags-ability2.h"
 #include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags1.h"
 #include "monster-race/race-flags7.h"
@@ -127,7 +125,7 @@ static void see_arena_poster(player_type *player_ptr)
 
     monster_race *r_ptr;
     r_ptr = &r_info[arena_info[player_ptr->arena_number].r_idx];
-    concptr name = (r_name + r_ptr->name);
+    concptr name = r_ptr->name.c_str();
     msg_format(_("%s に挑戦するものはいないか？", "Do I hear any challenges against: %s"), name);
 
     player_ptr->monster_race_idx = arena_info[player_ptr->arena_number].r_idx;
@@ -234,11 +232,11 @@ void update_gambling_monsters(player_type *player_ptr)
                 power[i] = power[i] * (r_ptr->speed - 20) / 100;
             if (num_taisei > 2)
                 power[i] = power[i] * (num_taisei * 2 + 5) / 10;
-            else if (r_ptr->a_ability_flags2 & RF6_INVULNER)
+            else if (r_ptr->ability_flags.has(RF_ABILITY::INVULNER))
                 power[i] = power[i] * 4 / 3;
-            else if (r_ptr->a_ability_flags2 & RF6_HEAL)
+            else if (r_ptr->ability_flags.has(RF_ABILITY::HEAL))
                 power[i] = power[i] * 4 / 3;
-            else if (r_ptr->a_ability_flags1 & RF5_DRAIN_MANA)
+            else if (r_ptr->ability_flags.has(RF_ABILITY::DRAIN_MANA))
                 power[i] = power[i] * 11 / 10;
             if (r_ptr->flags1 & RF1_RAND_25)
                 power[i] = power[i] * 9 / 10;
@@ -304,8 +302,8 @@ bool monster_arena_comm(player_type *player_ptr)
         monster_race *r_ptr = &r_info[battle_mon[i]];
 
         sprintf(buf, _("%d) %-58s  %4ld.%02ld倍", "%d) %-58s  %4ld.%02ld"), i + 1,
-            _(format("%s%s", r_name + r_ptr->name, (r_ptr->flags1 & RF1_UNIQUE) ? "もどき" : "      "),
-                format("%s%s", (r_ptr->flags1 & RF1_UNIQUE) ? "Fake " : "", r_name + r_ptr->name)),
+            _(format("%s%s", r_ptr->name.c_str(), (r_ptr->flags1 & RF1_UNIQUE) ? "もどき" : "      "),
+                format("%s%s", (r_ptr->flags1 & RF1_UNIQUE) ? "Fake " : "", r_ptr->name.c_str())),
             (long int)mon_odds[i] / 100, (long int)mon_odds[i] % 100);
         prt(buf, 5 + i, 1);
     }

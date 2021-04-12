@@ -6,6 +6,8 @@
 #include "util/bit-flags-calculator.h"
 #include "util/string-processor.h"
 #include "view/display-messages.h"
+#include <string>
+#include <utility>
 
 /*!
  * @brief テキストトークンを走査してフラグを一つ得る(エゴ用) /
@@ -29,6 +31,25 @@ static bool grab_one_ego_item_flag(ego_item_type *e_ptr, concptr what)
     msg_format(_("未知の名のあるアイテム・フラグ '%s'。", "Unknown ego-item flag '%s'."), what);
     return 1;
 }
+
+static bool grab_ego_generate_flags(ego_generate_type &xtra, concptr what)
+{
+    for (int i = 0; i < TR_FLAG_MAX; i++) {
+        if (streq(what, k_info_flags[i])) {
+            xtra.tr_flags.push_back(static_cast<tr_type>(i));
+            return false;
+        }
+    }
+
+    auto it = k_info_gen_flags.find(what);
+    if (it != k_info_gen_flags.end()) {
+        xtra.trg_flags.push_back(it->second);
+        return false;
+    }
+
+    return true;
+}
+
 
 /*!
  * @brief アイテムエゴ情報(e_info)のパース関数 /
@@ -62,8 +83,7 @@ errr parse_e_info(char *buf, angband_header *head)
         error_idx = i;
         e_ptr = &e_info[i];
 #ifdef JP
-        if (!add_name(&e_ptr->name, head, s))
-            return 7;
+        e_ptr->name = std::string(s);
 #endif
     } else if (!e_ptr) {
         return 3;
@@ -77,8 +97,7 @@ errr parse_e_info(char *buf, angband_header *head)
 #else
     else if (buf[0] == 'E') {
         s = buf + 2;
-        if (!add_name(&e_ptr->name, head, s))
-            return 7;
+        e_ptr->name = std::string(s);
     }
 #endif
     else if (buf[0] == 'X') {
@@ -133,6 +152,35 @@ errr parse_e_info(char *buf, angband_header *head)
 
             s = t;
         }
+    } else if (buf[0] == 'G') {
+        ego_generate_type xtra;
+
+        s = angband_strstr(buf + 2, ":");
+        if (!s)
+            return 1;
+
+        *s++ = '\0';
+
+        if (2 != sscanf(buf + 2, "%d/%d", &xtra.mul, &xtra.dev))
+            return 1;
+
+        for (; *s;) {
+            for (t = s; *t && (*t != ' ') && (*t != '|'); ++t)
+                ;
+
+            if (*t) {
+                *t++ = '\0';
+                while ((*t == ' ') || (*t == '|'))
+                    t++;
+            }
+
+            if (grab_ego_generate_flags(xtra, s))
+                return 5;
+
+            s = t;
+        }
+
+        e_ptr->xtra_flags.push_back(std::move(xtra));
     } else {
         return 6;
     }

@@ -10,6 +10,7 @@
 #include "inventory/inventory-describer.h"
 #include "inventory/inventory-slot-types.h"
 #include "inventory/inventory-util.h"
+#include "main/sound-of-music.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
 #include "monster/monster-flag-types.h"
@@ -39,6 +40,7 @@
 #include "world/world.h"
 #include <string>
 #include <sstream>
+#include <mutex>
 
 /*!
  * @brief サブウィンドウに所持品一覧を表示する / Hack -- display inventory in sub-windows
@@ -106,7 +108,7 @@ static void print_monster_line(TERM_LEN x, TERM_LEN y, monster_type *m_ptr, int 
     term_addstr(-1, TERM_WHITE, " ");
     term_add_bigch(r_ptr->x_attr, r_ptr->x_char);
 
-    if (r_ptr->r_tkills && !(m_ptr->mflag2 & MFLAG2_KAGE)) {
+    if (r_ptr->r_tkills && m_ptr->mflag2.has_not(MFLAG2::KAGE)) {
         sprintf(buf, " %2d", (int)r_ptr->level);
     } else {
         strcpy(buf, " ??");
@@ -114,7 +116,7 @@ static void print_monster_line(TERM_LEN x, TERM_LEN y, monster_type *m_ptr, int 
 
     term_addstr(-1, TERM_WHITE, buf);
 
-    sprintf(buf, " %s ", r_name + r_ptr->name);
+    sprintf(buf, " %s ", r_ptr->name.c_str());
     term_addstr(-1, TERM_WHITE, buf);
 }
 
@@ -182,6 +184,7 @@ void print_monster_list(floor_type *floor_ptr, const std::vector<MONSTER_IDX> &m
 void fix_monster_list(player_type *player_ptr)
 {
     static std::vector<MONSTER_IDX> monster_list;
+    std::once_flag once;
 
     for (int j = 0; j < 8; j++) {
         term_type *old = Term;
@@ -195,10 +198,15 @@ void fix_monster_list(player_type *player_ptr)
         term_activate(angband_term[j]);
         int w, h;
         term_get_size(&w, &h);
-        target_sensing_monsters_prepare(player_ptr, monster_list);
+        std::call_once(once, target_sensing_monsters_prepare, player_ptr, monster_list);
         print_monster_list(player_ptr->current_floor_ptr, monster_list, 0, 0, h);
         term_fresh();
         term_activate(old);
+    }
+
+    if (use_music && has_monster_music) {
+        std::call_once(once, target_sensing_monsters_prepare, player_ptr, monster_list);
+        select_monster_music(player_ptr, monster_list);
     }
 }
 
@@ -368,6 +376,11 @@ void fix_overhead(player_type *player_ptr)
     }
 }
 
+/*!
+ * @brief 自分の周辺の地形をTermに表示する
+ * @param プレイヤー情報への参照ポインタ
+ * @return なし
+ */
 static void display_dungeon(player_type *player_ptr)
 {
     TERM_COLOR ta = 0;
@@ -402,8 +415,7 @@ static void display_dungeon(player_type *player_ptr)
 }
 
 /*!
- * @brief ダンジョンの地形をサブウィンドウに表示する /
- * Hack -- display dungeon view in sub-windows
+ * @brief 自分の周辺のダンジョンの地形をサブウィンドウに表示する / display dungeon view around player in a sub window
  * @param player_ptr プレーヤーへの参照ポインタ
  * @return なし
  */
@@ -502,11 +514,11 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
             sprintf(line, _("(X:%03d Y:%03d) 奇妙な物体の足元のアイテム一覧", "Items at (%03d,%03d) under an odd object"), x, y);
         else {
             const monster_race *const r_ptr = &r_info[m_ptr->r_idx];
-            sprintf(line, _("(X:%03d Y:%03d) %sの足元の発見済みアイテム一覧", "Found items at (%03d,%03d) under %s"), x, y, (r_name + r_ptr->name));
+            sprintf(line, _("(X:%03d Y:%03d) %sの足元の発見済みアイテム一覧", "Found items at (%03d,%03d) under %s"), x, y, r_ptr->name.c_str());
         }
     } else {
         const feature_type *const f_ptr = &f_info[g_ptr->feat];
-        concptr fn = f_name + f_ptr->name;
+        concptr fn = f_ptr->name.c_str();
         char buf[512];
 
         if (has_flag(f_ptr->flags, FF_STORE) || (has_flag(f_ptr->flags, FF_BLDG) && !floor_ptr->inside_arena))

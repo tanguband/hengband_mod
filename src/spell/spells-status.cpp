@@ -276,6 +276,7 @@ bool life_stream(player_type *creature_ptr, bool message, bool virtue_change)
     (void)set_image(creature_ptr, 0);
     (void)set_stun(creature_ptr, 0);
     (void)set_cut(creature_ptr, 0);
+    (void)set_paralyzed(creature_ptr, 0);
     (void)restore_all_status(creature_ptr);
     (void)set_shero(creature_ptr, 0, TRUE);
     handle_stuff(creature_ptr);
@@ -565,7 +566,7 @@ void status_shuffle(player_type *creature_ptr)
     int i = randint0(A_MAX);
     int j;
 
-    // todo ここのループは一体何をしている？
+    //!< @todo ここのループは一体何をしている？
     for (j = i; j == i; j = randint0(A_MAX)) /* loop */
         ;
 

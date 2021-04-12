@@ -397,10 +397,10 @@ concptr make_screen_dump(player_type *creature_ptr, void (*process_autopick_file
 }
 
 /*!
- * todo メッセージは言語選択の関数マクロで何とかならんか？
  * @brief スコア転送処理のメインルーチン
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @return 正常終了の時0、異常があったら1
+ * @todo メッセージは言語選択の関数マクロで何とかならんか？
  */
 errr report_score(player_type *creature_ptr, void (*update_playtime)(void), display_player_pf display_player)
 {
@@ -418,7 +418,7 @@ errr report_score(player_type *creature_ptr, void (*update_playtime)(void), disp
 #endif
 
     if (creature_ptr->pclass == CLASS_ELEMENTALIST)
-        realm1_name = get_element_title(creature_ptr->realm1);
+        realm1_name = get_element_title(creature_ptr->element);
     else
         realm1_name = realm_names[creature_ptr->realm1];
 

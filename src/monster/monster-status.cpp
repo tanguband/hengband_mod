@@ -26,12 +26,11 @@
 #include "monster-floor/place-monster-types.h"
 #include "monster-race/monster-race-hook.h"
 #include "monster-race/monster-race.h"
-#include "monster-race/race-flags-ability2.h"
+#include "monster-race/race-ability-mask.h"
 #include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags1.h"
 #include "monster-race/race-flags2.h"
 #include "monster-race/race-flags3.h"
-#include "monster-race/race-flags4.h"
 #include "monster-race/race-flags7.h"
 #include "monster-race/race-flags8.h"
 #include "monster-race/race-indice-types.h"
@@ -40,10 +39,9 @@
 #include "monster/monster-flag-types.h"
 #include "monster/monster-info.h"
 #include "monster/monster-list.h"
-#include "monster/monster-status-setter.h" // todo 相互依存. 後で何とかする.
+#include "monster/monster-status-setter.h" //!< @todo 相互依存. 後で何とかする.
 #include "monster/monster-update.h"
 #include "monster/smart-learn-types.h"
-#include "mspell/mspell-mask-definitions.h"
 #include "object-enchant/object-curse.h"
 #include "player-info/avatar.h"
 #include "player/player-personalities-types.h"
@@ -145,7 +143,7 @@ static void get_exp_from_mon(player_type *target_ptr, HIT_POINT dam, monster_typ
         return;
 
     /*!
-     * todo 変数宣言と代入を同時に実行するとコンパイル警告が出る
+     * @todo 変数宣言と代入を同時に実行するとコンパイル警告が出る
      * ここの整形は実施せず保留
      */
     s32b new_exp;
@@ -536,7 +534,7 @@ void monster_gain_exp(player_type *target_ptr, MONSTER_IDX m_idx, MONRACE_IDX s_
     if (!floor_ptr->dun_level)
         new_exp /= 5;
     m_ptr->exp += new_exp;
-    if (m_ptr->mflag2 & MFLAG2_CHAMELEON)
+    if (m_ptr->mflag2.has(MFLAG2::CHAMELEON))
         return;
 
     if (m_ptr->exp < r_ptr->next_exp) {
@@ -602,10 +600,10 @@ void monster_gain_exp(player_type *target_ptr, MONSTER_IDX m_idx, MONRACE_IDX s_
 
                 do {
                     hallu_race = &r_info[randint1(max_r_idx - 1)];
-                } while (!hallu_race->name || (hallu_race->flags1 & RF1_UNIQUE));
-                msg_format(_("%sは%sに進化した。", "%^s evolved into %s."), m_name, r_name + hallu_race->name);
+                } while (hallu_race->name.empty() || (hallu_race->flags1 & RF1_UNIQUE));
+                msg_format(_("%sは%sに進化した。", "%^s evolved into %s."), m_name, hallu_race->name.c_str());
             } else {
-                msg_format(_("%sは%sに進化した。", "%^s evolved into %s."), m_name, r_name + r_ptr->name);
+                msg_format(_("%sは%sに進化した。", "%^s evolved into %s."), m_name, r_ptr->name.c_str());
             }
         }
 
@@ -712,14 +710,14 @@ bool mon_take_hit(player_type *target_ptr, MONSTER_IDX m_idx, HIT_POINT dam, boo
                 r_ptr->r_sights++;
         }
 
-        if (m_ptr->mflag2 & MFLAG2_CHAMELEON) {
+        if (m_ptr->mflag2.has(MFLAG2::CHAMELEON)) {
             /* You might have unmasked Chameleon first time */
             r_ptr = real_r_ptr(m_ptr);
             if (r_ptr->r_sights < MAX_SHORT)
                 r_ptr->r_sights++;
         }
 
-        if (!(m_ptr->smart & SM_CLONED)) {
+        if (m_ptr->mflag2.has_not(MFLAG2::CLONED)) {
             /* When the player kills a Unique, it stays dead */
             if (r_ptr->flags1 & RF1_UNIQUE) {
                 r_ptr->max_num = 0;
@@ -757,13 +755,13 @@ bool mon_take_hit(player_type *target_ptr, MONSTER_IDX m_idx, HIT_POINT dam, boo
         /* Recall even invisible uniques or winners */
         if ((m_ptr->ml && !target_ptr->image) || (r_ptr->flags1 & RF1_UNIQUE)) {
             /* Count kills this life */
-            if ((m_ptr->mflag2 & MFLAG2_KAGE) && (r_info[MON_KAGE].r_pkills < MAX_SHORT))
+            if (m_ptr->mflag2.has(MFLAG2::KAGE) && (r_info[MON_KAGE].r_pkills < MAX_SHORT))
                 r_info[MON_KAGE].r_pkills++;
             else if (r_ptr->r_pkills < MAX_SHORT)
                 r_ptr->r_pkills++;
 
             /* Count kills in all lives */
-            if ((m_ptr->mflag2 & MFLAG2_KAGE) && (r_info[MON_KAGE].r_tkills < MAX_SHORT))
+            if (m_ptr->mflag2.has(MFLAG2::KAGE) && (r_info[MON_KAGE].r_tkills < MAX_SHORT))
                 r_info[MON_KAGE].r_tkills++;
             else if (r_ptr->r_tkills < MAX_SHORT)
                 r_ptr->r_tkills++;
@@ -887,15 +885,16 @@ bool mon_take_hit(player_type *target_ptr, MONSTER_IDX m_idx, HIT_POINT dam, boo
             chg_virtue(target_ptr, V_JUSTICE, -1);
         }
 
-        if ((r_ptr->flags3 & RF3_ANIMAL) && !(r_ptr->flags3 & RF3_EVIL) && !(r_ptr->flags4 & ~(RF4_NOMAGIC_MASK))
-            && !(r_ptr->a_ability_flags1 & ~(RF5_NOMAGIC_MASK)) && !(r_ptr->a_ability_flags2 & ~(RF6_NOMAGIC_MASK))) {
+        auto magic_ability_flags = r_ptr->ability_flags;
+        magic_ability_flags.reset(RF_ABILITY_NOMAGIC_MASK);
+        if ((r_ptr->flags3 & RF3_ANIMAL) && !(r_ptr->flags3 & RF3_EVIL) && magic_ability_flags.none()) {
             if (one_in_(4))
                 chg_virtue(target_ptr, V_NATURE, -1);
         }
 
         if ((r_ptr->flags1 & RF1_UNIQUE) && record_destroy_uniq) {
             char note_buf[160];
-            sprintf(note_buf, "%s%s", r_name + r_ptr->name, (m_ptr->smart & SM_CLONED) ? _("(クローン)", "(Clone)") : "");
+            sprintf(note_buf, "%s%s", r_ptr->name.c_str(), m_ptr->mflag2.has(MFLAG2::CLONED) ? _("(クローン)", "(Clone)") : "");
             exe_write_diary(target_ptr, DIARY_UNIQUE, 0, note_buf);
         }
 
@@ -955,9 +954,9 @@ bool mon_take_hit(player_type *target_ptr, MONSTER_IDX m_idx, HIT_POINT dam, boo
             msg_format("You have slain %s.", m_name);
 #endif
         }
-        if ((r_ptr->flags1 & RF1_UNIQUE) && !(m_ptr->smart & SM_CLONED) && !vanilla_town) {
+        if ((r_ptr->flags1 & RF1_UNIQUE) && m_ptr->mflag2.has_not(MFLAG2::CLONED) && !vanilla_town) {
             for (i = 0; i < MAX_BOUNTY; i++) {
-                if ((current_world_ptr->bounty_r_idx[i] == m_ptr->r_idx) && !(m_ptr->mflag2 & MFLAG2_CHAMELEON)) {
+                if ((current_world_ptr->bounty_r_idx[i] == m_ptr->r_idx) && m_ptr->mflag2.has_not(MFLAG2::CHAMELEON)) {
                     msg_format(_("%sの首には賞金がかかっている。", "There is a price on %s's head."), m_name);
                     break;
                 }

@@ -44,11 +44,11 @@ static void check_item_selection_mode(item_selection_type *item_selection_ptr)
 }
 
 /*!
- * todo 適切な関数名をどうしても付けられなかったので暫定でauxとした
  * @brief アイテムへにタグ付けがされているかの調査処理 (のはず)
  * @param owner_ptr プレーヤーへの参照ポインタ
  * @param item_selection_ptr アイテムへの参照ポインタ
  * @return プレイヤーによりアイテムが選択されたならTRUEを返す
+ * @todo 適切な関数名をどうしても付けられなかったので暫定でauxとした
  */
 static bool check_item_tag_aux(player_type *owner_ptr, item_selection_type *item_selection_ptr)
 {
@@ -541,40 +541,33 @@ bool get_item(player_type *owner_ptr, OBJECT_IDX *cp, concptr pmt, concptr str, 
         }
             /* Fall through */
         default: {
-            int ver;
-            bool not_found = FALSE;
+            bool tag_not_found = FALSE;
+
             if (!get_tag(owner_ptr, &item_selection_ptr->k, item_selection_ptr->which, command_wrk ? USE_EQUIP : USE_INVEN, item_selection_ptr->tval)) {
-                not_found = TRUE;
+                tag_not_found = TRUE;
             } else if ((item_selection_ptr->k < INVEN_MAIN_HAND) ? !item_selection_ptr->inven : !item_selection_ptr->equip) {
-                not_found = TRUE;
-            } else if (!get_item_okay(owner_ptr, item_selection_ptr->k, item_selection_ptr->tval)) {
-                not_found = TRUE;
+                tag_not_found = TRUE;
             }
 
-            if (!not_found) {
-                *item_selection_ptr->cp = item_selection_ptr->k;
-                item_selection_ptr->item = TRUE;
-                item_selection_ptr->done = TRUE;
+            if (!tag_not_found)
                 item_selection_ptr->cur_tag = item_selection_ptr->which;
-                break;
-            }
-
-            ver = isupper(item_selection_ptr->which);
-            item_selection_ptr->which = (char)tolower(item_selection_ptr->which);
-            if (!command_wrk) {
-                if (item_selection_ptr->which == '(')
-                    item_selection_ptr->k = item_selection_ptr->i1;
-                else if (item_selection_ptr->which == ')')
-                    item_selection_ptr->k = item_selection_ptr->i2;
-                else
-                    item_selection_ptr->k = label_to_inventory(owner_ptr, item_selection_ptr->which);
-            } else {
-                if (item_selection_ptr->which == '(')
-                    item_selection_ptr->k = item_selection_ptr->e1;
-                else if (item_selection_ptr->which == ')')
-                    item_selection_ptr->k = item_selection_ptr->e2;
-                else
-                    item_selection_ptr->k = label_to_equipment(owner_ptr, item_selection_ptr->which);
+            else {
+                item_selection_ptr->which = (char)tolower(item_selection_ptr->which);
+                if (!command_wrk) {
+                    if (item_selection_ptr->which == '(')
+                        item_selection_ptr->k = item_selection_ptr->i1;
+                    else if (item_selection_ptr->which == ')')
+                        item_selection_ptr->k = item_selection_ptr->i2;
+                    else
+                        item_selection_ptr->k = label_to_inventory(owner_ptr, item_selection_ptr->which);
+                } else {
+                    if (item_selection_ptr->which == '(')
+                        item_selection_ptr->k = item_selection_ptr->e1;
+                    else if (item_selection_ptr->which == ')')
+                        item_selection_ptr->k = item_selection_ptr->e2;
+                    else
+                        item_selection_ptr->k = label_to_equipment(owner_ptr, item_selection_ptr->which);
+                }
             }
 
             if (!get_item_okay(owner_ptr, item_selection_ptr->k, item_selection_ptr->tval)) {
@@ -582,6 +575,7 @@ bool get_item(player_type *owner_ptr, OBJECT_IDX *cp, concptr pmt, concptr str, 
                 break;
             }
 
+            int ver = isupper(item_selection_ptr->which);
             if (ver && !verify(owner_ptr, _("本当に", "Try"), item_selection_ptr->k)) {
                 item_selection_ptr->done = TRUE;
                 break;
