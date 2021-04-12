@@ -21,6 +21,7 @@
 #include "floor/floor-save.h"
 #include "floor/floor-util.h"
 #include "game-option/birth-options.h"
+#include "game-option/text-display-options.h"
 #include "grid/feature.h"
 #include "inventory/inventory-object.h"
 #include "inventory/inventory-slot-types.h"
@@ -150,11 +151,11 @@ player_type p_body;
 player_type *p_ptr = &p_body;
 
 /*!
- * @brief クリーチャーの抽象的善悪アライメントの表記を返す。 / Return alignment title
+ * @brief クリーチャーの抽象的善悪アライメントの表記名のみを返す。 / Return only alignment title
  * @param creature_ptr 算出するクリーチャーの参照ポインタ。
- * @return アライメントの表記を返す。
+ * @return アライメントの表記名
  */
-concptr your_alignment(player_type *creature_ptr)
+concptr alignment_label(player_type *creature_ptr)
 {
     if (creature_ptr->align > 150)
         return _("大善", "Lawful");
@@ -170,6 +171,20 @@ concptr your_alignment(player_type *creature_ptr)
         return _("中悪", "Evil");
     else
         return _("大悪", "Chaotic");
+}
+
+/*!
+ * @brief クリーチャーの抽象的善悪アライメントの表記を返す。 / Return alignment title
+ * @param creature_ptr 算出するクリーチャーの参照ポインタ。
+ * @return アライメントの表記を返す。
+ */
+concptr your_alignment(player_type *creature_ptr, bool with_value)
+{
+    auto s = alignment_label(creature_ptr);
+    if (with_value || show_actual_value)
+        return format(_("%s(%ld)", "%s (%ld)"), s, static_cast<long>(creature_ptr->align));
+
+    return s;
 }
 
 /*!
@@ -1186,7 +1201,7 @@ static ACTION_SKILL_POWER calc_intra_vision(player_type *creature_ptr)
 
     pow = tmp_rp_ptr->infra;
 
-    if (any_bits(creature_ptr->muta3, MUT3_INFRAVIS)) {
+    if (creature_ptr->muta.has(MUTA::INFRAVIS)) {
         pow += 3;
     }
 
@@ -1312,7 +1327,7 @@ static ACTION_SKILL_POWER calc_saving_throw(player_type *creature_ptr)
     pow = tmp_rp_ptr->r_sav + c_ptr->c_sav + a_ptr->a_sav;
     pow += ((cp_ptr->x_sav * creature_ptr->lev / 10) + (ap_ptr->a_sav * creature_ptr->lev / 50));
 
-    if (any_bits(creature_ptr->muta3, MUT3_MAGIC_RES))
+    if (creature_ptr->muta.has(MUTA::MAGIC_RES))
         pow += (15 + (creature_ptr->lev / 5));
 
     pow += adj_wis_sav[creature_ptr->stat_index[A_WIS]];
@@ -1372,7 +1387,7 @@ static ACTION_SKILL_POWER calc_search(player_type *creature_ptr)
             pow += (o_ptr->pval * 5);
     }
 
-    if (any_bits(creature_ptr->muta3, MUT3_XTRA_EYES)) {
+    if (creature_ptr->muta.has(MUTA::XTRA_EYES)) {
         pow += 15;
     }
 
@@ -1424,7 +1439,7 @@ static ACTION_SKILL_POWER calc_search_freq(player_type *creature_ptr)
         pow -= 15;
     }
 
-    if (any_bits(creature_ptr->muta3, MUT3_XTRA_EYES)) {
+    if (creature_ptr->muta.has(MUTA::XTRA_EYES)) {
         pow += 15;
     }
 
@@ -1715,7 +1730,7 @@ static s16b calc_num_blow(player_type *creature_ptr, int i)
  * * 性格きれものなら減算(-3)
  * * 性格ちからじまんとがまんづよいなら加算(+1)
  * * 性格チャージマンなら加算(+5)
- * * 装備品にTRC_LOW_MAGICがあるなら加算(軽い呪いなら+3/重い呪いなら+10)
+ * * 装備品にTRC_HARD_SPELLがあるなら加算(軽い呪いなら+3/重い呪いなら+10)
  */
 static s16b calc_to_magic_chance(player_type *creature_ptr)
 {
@@ -1737,7 +1752,7 @@ static s16b calc_to_magic_chance(player_type *creature_ptr)
         if (!o_ptr->k_idx)
             continue;
         object_flags(creature_ptr, o_ptr, flgs);
-        if (any_bits(o_ptr->curse_flags, TRC_LOW_MAGIC)) {
+        if (any_bits(o_ptr->curse_flags, TRC_HARD_SPELL)) {
             if (any_bits(o_ptr->curse_flags, TRC_HEAVY_CURSE)) {
                 chance += 10;
             } else {
@@ -1840,15 +1855,15 @@ static ARMOUR_CLASS calc_to_ac(player_type *creature_ptr, bool is_real_value)
         ac += 5;
     }
 
-    if (any_bits(creature_ptr->muta3, MUT3_WART_SKIN)) {
+    if (creature_ptr->muta.has(MUTA::WART_SKIN)) {
         ac += 5;
     }
 
-    if (any_bits(creature_ptr->muta3, MUT3_SCALES)) {
+    if (creature_ptr->muta.has(MUTA::SCALES)) {
         ac += 10;
     }
 
-    if (any_bits(creature_ptr->muta3, MUT3_IRON_SKIN)) {
+    if (creature_ptr->muta.has(MUTA::IRON_SKIN)) {
         ac += 25;
     }
 
@@ -2973,7 +2988,7 @@ void check_experience(player_type *creature_ptr)
         if (creature_ptr->lev > creature_ptr->max_plv) {
             creature_ptr->max_plv = creature_ptr->lev;
 
-            if ((creature_ptr->pclass == CLASS_CHAOS_WARRIOR) || any_bits(creature_ptr->muta2, MUT2_CHAOS_GIFT)) {
+            if ((creature_ptr->pclass == CLASS_CHAOS_WARRIOR) || creature_ptr->muta.has(MUTA::CHAOS_GIFT)) {
                 level_reward = TRUE;
             }
             if (creature_ptr->prace == RACE_BEASTMAN) {

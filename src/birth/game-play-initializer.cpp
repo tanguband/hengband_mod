@@ -22,10 +22,12 @@
 /*!
  * @brief ベースアイテム構造体の鑑定済みフラグをリセットする。
  * @return なし
+ * @details
+ * 不具合対策で0からリセットする(セーブは0から)
  */
 static void k_info_reset(void)
 {
-    for (int i = 1; i < max_k_idx; i++) {
+    for (int i = 0; i < max_k_idx; i++) {
         object_kind *k_ptr = &k_info[i];
         k_ptr->tried = FALSE;
         k_ptr->aware = FALSE;
@@ -123,6 +125,7 @@ void player_wipe_without_name(player_type *creature_ptr)
     cheat_save = FALSE;
     cheat_diary_output = FALSE;
     cheat_turn = FALSE;
+    cheat_immortal = FALSE;
 
     current_world_ptr->total_winner = FALSE;
     creature_ptr->timewalk = FALSE;
@@ -150,7 +153,7 @@ void player_wipe_without_name(player_type *creature_ptr)
     creature_ptr->current_floor_ptr->inside_arena = FALSE;
     creature_ptr->current_floor_ptr->inside_quest = 0;
     for (int i = 0; i < MAX_MANE; i++) {
-        creature_ptr->mane_spell[i] = -1;
+        creature_ptr->mane_spell[i] = RF_ABILITY::MAX;
         creature_ptr->mane_dam[i] = 0;
     }
 
@@ -158,9 +161,7 @@ void player_wipe_without_name(player_type *creature_ptr)
     creature_ptr->exit_bldg = TRUE;
     creature_ptr->today_mon = 0;
     update_gambling_monsters(creature_ptr);
-    creature_ptr->muta1 = 0;
-    creature_ptr->muta2 = 0;
-    creature_ptr->muta3 = 0;
+    creature_ptr->muta.clear();
 
     for (int i = 0; i < 8; i++)
         creature_ptr->virtues[i] = 0;

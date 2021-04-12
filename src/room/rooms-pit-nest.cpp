@@ -14,7 +14,6 @@
 #include "monster-race/race-flags1.h"
 #include "monster-race/race-flags2.h"
 #include "monster-race/race-flags3.h"
-#include "monster-race/race-flags4.h"
 #include "monster-race/race-flags7.h"
 #include "monster/monster-info.h"
 #include "monster/monster-list.h"
@@ -67,7 +66,7 @@ static concptr pit_subtype_string(int type, bool nest)
     if (nest) {
         switch (type) {
         case NEST_TYPE_CLONE:
-            sprintf(inner_buf, "(%s)", r_name + r_info[vault_aux_race].name);
+            sprintf(inner_buf, "(%s)", r_info[vault_aux_race].name.c_str());
             break;
         case NEST_TYPE_SYMBOL_GOOD:
         case NEST_TYPE_SYMBOL_EVIL:
@@ -85,28 +84,20 @@ static concptr pit_subtype_string(int type, bool nest)
         sprintf(inner_buf, "(%c)", vault_aux_char);
         break;
     case PIT_TYPE_DRAGON:
-        switch (vault_aux_dragon_mask4) {
-        case RF4_BR_ACID:
-            strcpy(inner_buf, _("(酸)", "(acid)"));
-            break;
-        case RF4_BR_ELEC:
-            strcpy(inner_buf, _("(稲妻)", "(lightning)"));
-            break;
-        case RF4_BR_FIRE:
-            strcpy(inner_buf, _("(火炎)", "(fire)"));
-            break;
-        case RF4_BR_COLD:
-            strcpy(inner_buf, _("(冷気)", "(frost)"));
-            break;
-        case RF4_BR_POIS:
-            strcpy(inner_buf, _("(毒)", "(poison)"));
-            break;
-        case (RF4_BR_ACID | RF4_BR_ELEC | RF4_BR_FIRE | RF4_BR_COLD | RF4_BR_POIS):
+        if (vault_aux_dragon_mask4.has_all_of({ RF_ABILITY::BR_ACID, RF_ABILITY::BR_ELEC, RF_ABILITY::BR_FIRE, RF_ABILITY::BR_COLD, RF_ABILITY::BR_POIS })) {
             strcpy(inner_buf, _("(万色)", "(multi-hued)"));
-            break;
-        default:
+        } else if (vault_aux_dragon_mask4.has(RF_ABILITY::BR_ACID)) {
+            strcpy(inner_buf, _("(酸)", "(acid)"));
+        }else if (vault_aux_dragon_mask4.has(RF_ABILITY::BR_ELEC)) {
+            strcpy(inner_buf, _("(稲妻)", "(lightning)"));
+        }else if (vault_aux_dragon_mask4.has(RF_ABILITY::BR_FIRE)) {
+            strcpy(inner_buf, _("(火炎)", "(fire)"));
+        }else if (vault_aux_dragon_mask4.has(RF_ABILITY::BR_COLD)) {
+            strcpy(inner_buf, _("(冷気)", "(frost)"));
+        }else if (vault_aux_dragon_mask4.has(RF_ABILITY::BR_POIS)) {
+            strcpy(inner_buf, _("(毒)", "(poison)"));
+        } else {
             strcpy(inner_buf, _("(未定義)", "(undefined)"));
-            break;
         }
         break;
     }
@@ -380,7 +371,7 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
                     break;
             }
 
-            msg_format_wizard(player_ptr, CHEAT_DUNGEON, "Nest構成モンスターNo.%d:%s", i, r_name + r_info[nest_mon_info[i].r_idx].name);
+            msg_format_wizard(player_ptr, CHEAT_DUNGEON, "Nest構成モンスターNo.%d:%s", i, r_info[nest_mon_info[i].r_idx].name.c_str());
         }
     }
 
@@ -600,7 +591,7 @@ bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr)
     for (i = 0; i < 8; i++) {
         /* Every other entry */
         what[i] = what[i * 2];
-        msg_format_wizard(player_ptr, CHEAT_DUNGEON, _("Nest構成モンスター選択No.%d:%s", "Nest Monster Select No.%d:%s"), i, r_name + r_info[what[i]].name);
+        msg_format_wizard(player_ptr, CHEAT_DUNGEON, _("Nest構成モンスター選択No.%d:%s", "Nest Monster Select No.%d:%s"), i, r_info[what[i]].name.c_str());
     }
 
     /* Top and bottom rows */
@@ -924,7 +915,7 @@ bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr)
         what[i] = what[i * 2];
 
         if (cheat_hear) {
-            msg_print(r_name + r_info[what[i]].name);
+            msg_print(r_info[what[i]].name.c_str());
         }
     }
 

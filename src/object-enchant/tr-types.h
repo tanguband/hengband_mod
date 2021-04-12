@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 /*!
- * todo TRが何の略か分かる人、補足求む
+ * @todo TRが何の略か分かる人、補足求む
  */
 enum tr_type {
     TR_STR = 0, /* STR += "pval" */
@@ -143,7 +143,7 @@ enum tr_type {
     TR_COWARDICE = 132,
     TR_LOW_MELEE = 133,
     TR_LOW_AC = 134,
-    TR_LOW_MAGIC = 135,
+    TR_HARD_SPELL = 135,
     TR_FAST_DIGEST = 136,
     TR_SLOW_REGEN = 137,
     TR_MIGHTY_THROW = 138,

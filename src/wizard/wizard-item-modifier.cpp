@@ -651,7 +651,7 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
         int max_len = 0;
         for (KIND_OBJECT_IDX k = 1; k < max_k_idx; k++) {
             object_kind *k_ptr = &k_info[k];
-            if (!k_ptr->name)
+            if (k_ptr->name.empty())
                 continue;
 
             object_prep(caster_ptr, o_ptr, k);
@@ -678,10 +678,10 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
 
             for (EGO_IDX k = 1; k < max_e_idx; k++) {
                 ego_item_type *e_ptr = &e_info[k];
-                if (!e_ptr->name)
+                if (e_ptr->name.empty())
                     continue;
 
-                strcpy(o_name, (e_name + e_ptr->name));
+                strcpy(o_name, e_ptr->name.c_str());
 #ifndef JP
                 str_tolower(o_name);
 #endif
@@ -708,7 +708,7 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
         int mlen = 0;
         for (ARTIFACT_IDX i = 1; i < max_a_idx; i++) {
             artifact_type *a_ptr = &a_info[i];
-            if (!a_ptr->name)
+            if (a_ptr->name.empty())
                 continue;
 
             KIND_OBJECT_IDX k_idx = lookup_kind(a_ptr->tval, a_ptr->sval);
@@ -723,7 +723,7 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
             str_tolower(o_name);
 #endif
             a_str = a_desc;
-            strcpy(a_desc, a_name + a_ptr->name);
+            strcpy(a_desc, a_ptr->name.c_str());
 
             if (*a_str == '$')
                 a_str++;
@@ -759,7 +759,7 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
             if (cheat_xtra)
                 msg_format("Matching artifact No.%d %s(%s)", i, a_desc, _(&o_name[2], o_name));
 
-            std::vector<char *> l = { a_str, a_name + a_ptr->name, _(&o_name[2], o_name) };
+            std::vector<const char *> l = { a_str, a_ptr->name.c_str(), _(&o_name[2], o_name) };
             for (size_t c = 0; c < l.size(); c++) {
                 if (!strcmp(str, l.at(c))) {
                     len = strlen(l.at(c));
@@ -840,33 +840,39 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
         WishResult res = WishResult::NOTHING;
         if (allow_ego && (wish_ego || e_ids.size() > 0)) {
             if (must || ok_ego) {
-                int max_roll = 1000;
-                int i = 0;
-                for (i = 0; i < max_roll; i++) {
+                if (e_ids.size() > 0) {
                     object_prep(caster_ptr, o_ptr, k_idx);
-                    (void)apply_magic(caster_ptr, o_ptr, k_ptr->level, (AM_GREAT | AM_NO_FIXED_ART));
+                    o_ptr->name2 = e_ids[0];
+                    apply_ego(caster_ptr, o_ptr, caster_ptr->current_floor_ptr->base_level);
+                } else {
+                    int max_roll = 1000;
+                    int i = 0;
+                    for (i = 0; i < max_roll; i++) {
+                        object_prep(caster_ptr, o_ptr, k_idx);
+                        (void)apply_magic(caster_ptr, o_ptr, k_ptr->level, (AM_GREAT | AM_NO_FIXED_ART));
 
-                    if (o_ptr->name1 || o_ptr->art_name)
-                        continue;
+                        if (o_ptr->name1 || o_ptr->art_name)
+                            continue;
 
-                    if (wish_ego)
-                        break;
-
-                    EGO_IDX e_idx = 0;
-                    for (auto e : e_ids) {
-                        if (o_ptr->name2 == e) {
-                            e_idx = e;
+                        if (wish_ego)
                             break;
+
+                        EGO_IDX e_idx = 0;
+                        for (auto e : e_ids) {
+                            if (o_ptr->name2 == e) {
+                                e_idx = e;
+                                break;
+                            }
                         }
+
+                        if (e_idx != 0)
+                            break;
                     }
 
-                    if (e_idx != 0)
-                        break;
-                }
-
-                if (i == max_roll) {
-                    msg_print(_("失敗！もう一度願ってみてください。", "Failed! Try again."));
-                    return WishResult::FAIL;
+                    if (i == max_roll) {
+                        msg_print(_("失敗！もう一度願ってみてください。", "Failed! Try again."));
+                        return WishResult::FAIL;
+                    }
                 }
             } else {
                 wishing_puff_of_smoke();

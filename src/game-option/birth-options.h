@@ -2,7 +2,6 @@
 
 #include "system/angband.h"
 
-extern bool manual_haggle; /* Manually haggle in stores */
 extern bool easy_band; /* Easy Mode (*) */
 extern bool smart_learn; /* Monsters learn from their mistakes (*) */
 extern bool smart_cheat; /* Monsters exploit players weaknesses (*) */
@@ -19,3 +18,4 @@ extern bool preserve_mode; /* Preserve artifacts (*) */
 extern bool autoroller; /* Allow use of autoroller for stats (*) */
 extern bool autochara; /* Autoroll for weight, height and social status */
 extern bool powerup_home; /* Increase capacity of your home (*) */
+extern bool keep_savefile; //!< 同一のセーブファイルでゲームを開始する / Start game with same savefile thet is loaded

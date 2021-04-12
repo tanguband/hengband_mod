@@ -28,7 +28,7 @@
 #include "object-hook/hook-weapon.h"
 #include "object/item-tester-hooker.h"
 #include "object/item-use-flags.h"
-#include "object/object-flags.h" // todo 相互参照している.
+#include "object/object-flags.h" //!< @todo 相互参照している.
 #include "object/object-generator.h"
 #include "perception/object-perception.h"
 #include "player/player-status.h"
@@ -320,7 +320,7 @@ static void drain_essence(player_type *creature_ptr)
         dec--;
     if (has_flag(old_flgs, TR_LOW_AC))
         dec--;
-    if (has_flag(old_flgs, TR_LOW_MAGIC))
+    if (has_flag(old_flgs, TR_HARD_SPELL))
         dec--;
     if (has_flag(old_flgs, TR_FAST_DIGEST))
         dec--;

@@ -1,9 +1,6 @@
 ﻿#pragma once
 
-#include <algorithm>
 #include <bitset>
-#include <functional>
-#include <map>
 
 /**
  * @brief フラグ集合を扱う、FlagGroupクラス
@@ -101,7 +98,10 @@ public:
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
-        std::for_each(first, last, [this](FlagType t) { set(t); });
+        for (; first != last; ++first) {
+            set(*first);
+        }
+
         return *this;
     }
 
@@ -153,7 +153,10 @@ public:
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
-        std::for_each(first, last, [this](FlagType t) { reset(t); });
+        for (; first != last; ++first) {
+            reset(*first);
+        }
+
         return *this;
     }
 
@@ -237,7 +240,13 @@ public:
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
-        return std::all_of(first, last, [this](FlagType f) { return has(f); });
+        for (; first != last; ++first) {
+            if (has_not(*first)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -275,7 +284,13 @@ public:
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
-        return std::any_of(first, last, [this](FlagType f) { return has(f); });
+        for (; first != last; ++first) {
+            if (has(*first)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -362,12 +377,73 @@ public:
     }
 
     /**
+     * @brief フラグ集合 *this と rhs が等値かどうかを調べる
+     *
+     * @param rhs 比較するフラグ集合
+     * @return bool すべてのフラグの状態が等しければtrue、そうでなければfalse
+     */
+    bool operator==(const FlagGroup<FlagType> &rhs) const noexcept
+    {
+        return bs_ == rhs.bs_;
+    }
+
+    /**
+     * @brief フラグ集合 *this と rhs が非等値かどうかを調べる
+     *
+     * @param rhs 比較するフラグ集合
+     * @return bool いずれかのフラグの状態が等しくなければtrue、そうでなければfalse
+     */
+    bool operator!=(const FlagGroup<FlagType> &rhs) const noexcept
+    {
+        return bs_ != rhs.bs_;
+    }
+
+    /**
+     * @brief フラグ集合 *this と rhs の論理積(AND)の複合演算を行う
+     *
+     * *this に対して、*this と rhs で共通してONのフラグをONのままにし、それ以外のフラグをOFFにする
+     *
+     * @param rhs 複合演算を行うフラグ集合
+     * @return FlagGroup<FlagType>& *thisを返す
+     */
+    FlagGroup<FlagType> &operator&=(const FlagGroup<FlagType> &rhs) noexcept
+    {
+        bs_ &= rhs.bs_;
+        return *this;
+    }
+
+    /**
+     * @brief フラグ集合 *this と rhs の論理和(OR)の複合演算を行う
+     *
+     * *this に対して、*this と rhs でどちらか一方でもONのフラグをONにし、それ以外のフラグをOFFにする
+     *
+     * @param rhs 複合演算を行うフラグ集合
+     * @return FlagGroup<FlagType>& *thisを返す
+     */
+    FlagGroup<FlagType> &operator|=(const FlagGroup<FlagType> &rhs) noexcept
+    {
+        bs_ |= rhs.bs_;
+        return *this;
+    }
+
+    template <typename OutputIter>
+    static void get_flags(const FlagGroup<FlagType>& flag_group, OutputIter start)
+    {
+        for (size_t i = 0; i < flag_group.size(); i++) {
+            if (flag_group.bs_.test(i)) {
+                *start++ = static_cast<FlagType>(i);
+            }
+        }
+    }
+
+    /**
      * @brief セーブファイルからフラグ集合を読み出す
      *
      * @param fg 読み出したフラグ集合を格納するFlagGroupインスタンスの参照
      * @param rd_byte_func セーブファイルから1バイトデータを読み出す関数(rd_byte)へのポインタ
      */
-    friend void rd_FlagGroup(FlagGroup<FlagType> &fg, std::function<void(uint8_t *)> rd_byte_func)
+    template <typename Func>
+    friend void rd_FlagGroup(FlagGroup<FlagType> &fg, Func rd_byte_func)
     {
         uint8_t tmp_l, tmp_h;
         rd_byte_func(&tmp_l);
@@ -393,7 +469,8 @@ public:
      * @param fg 書き込むフラグ集合を保持したFlagGroupインスタンスの参照
      * @param wr_byte_func セーブファイルに1バイトデータを書き込む関数(wr_byte)へのポインタ
      */
-    friend void wr_FlagGroup(const FlagGroup<FlagType> &fg, std::function<void(uint8_t)> wr_byte_func)
+    template <typename Func>
+    friend void wr_FlagGroup(const FlagGroup<FlagType> &fg, Func wr_byte_func)
     {
         const auto fg_size = static_cast<uint16_t>((fg.bs_.size() + 7) / 8);
         wr_byte_func(fg_size & 0xff);
@@ -483,3 +560,35 @@ private:
     /** フラグ集合を保持するstd::bitsetのインスタンス */
     std::bitset<FLAG_TYPE_MAX> bs_;
 };
+
+/**
+ * @brief フラグ集合 lhs と rhs に対して論理積(AND)を取ったフラグ集合を生成する
+ *
+ * lhs と rhs で共通してONのフラグがON、それ以外のフラグがOFFのフラグ集合を生成する
+ *
+ * @tparam FlagType 扱うフラグ集合を定義したenum class型
+ * @param lhs フラグ集合1
+ * @param rhs フラグ集合2
+ * @return FlagGroup<FlagType> lhs と rhs の論理積を取ったフラグ集合
+ */
+template <typename FlagType>
+FlagGroup<FlagType> operator&(const FlagGroup<FlagType> &lhs, const FlagGroup<FlagType> &rhs) noexcept
+{
+    return FlagGroup<FlagType>(lhs) &= rhs;
+}
+
+/**
+ * @brief フラグ集合 lhs と rhs に対して論理和(OR)を取ったフラグ集合を生成する
+ *
+ * lhs と rhs でどちらか一方でもONのフラグがON、それ以外のフラグがOFFのフラグ集合を生成する
+ *
+ * @tparam FlagType 扱うフラグ集合を定義したenum class型
+ * @param lhs フラグ集合1
+ * @param rhs フラグ集合2
+ * @return FlagGroup<FlagType> lhs と rhs の論理積を取ったフラグ集合
+ */
+template <typename FlagType>
+FlagGroup<FlagType> operator|(const FlagGroup<FlagType> &lhs, const FlagGroup<FlagType> &rhs) noexcept
+{
+    return FlagGroup<FlagType>(lhs) |= rhs;
+}

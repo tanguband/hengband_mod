@@ -1,6 +1,7 @@
 ﻿#include "view/display-map.h"
 #include "autopick/autopick-finder.h"
 #include "autopick/autopick-methods-table.h"
+#include "floor/cave.h"
 #include "game-option/map-screen-options.h"
 #include "game-option/special-options.h"
 #include "grid/feature.h"
@@ -80,7 +81,59 @@ static void image_random(TERM_COLOR *ap, SYMBOL_CODE *cp)
 }
 
 /*!
- * @brief Mコマンドによる縮小マップの表示を行う / Extract the attr/char to display at the given (legal) map location
+ * @brief マップに表示されるべき地形(壁)かどうかを判定する
+ * @param floor_ptr 階の情報への参照ポインタ
+ * @param f_ptr 地形の情報への参照ポインタ
+ * @param y グリッドy座標
+ * @param x グリッドx座標
+ * @return 表示されるべきならtrue、そうでないならfalse
+ * @details
+ * 周り全てが壁に囲まれている壁についてはオプション状態による。
+ * 1か所でも空きがあるか、壁ではない地形、金を含む地形、永久岩は表示。
+ */
+static bool is_revealed_wall(floor_type *floor_ptr, feature_type *f_ptr, POSITION y, POSITION x)
+{
+    if (view_hidden_walls) {
+        if (view_unsafe_walls)
+            return TRUE;
+        if (none_bits(floor_ptr->grid_array[y][x].info, CAVE_UNSAFE))
+            return TRUE;
+    }
+
+    if (!has_flag(f_ptr->flags, FF_WALL) || has_flag(f_ptr->flags, FF_HAS_GOLD))
+        return TRUE;
+
+    if (in_bounds(floor_ptr, y, x) && has_flag(f_ptr->flags, FF_PERMANENT))
+        return TRUE;
+
+    int n = 0;
+    for (int i = 0; i < 8; i++) {
+        int dy = y + ddy_cdd[i];
+        int dx = x + ddx_cdd[i];
+        if (!in_bounds(floor_ptr, dy, dx)) {
+            n++;
+            continue;
+        }
+
+        FEAT_IDX f_idx = floor_ptr->grid_array[dy][dx].feat;
+        feature_type *n_ptr = &f_info[f_idx];
+        if (has_flag(n_ptr->flags, FF_WALL))
+            n++;
+    }
+
+    return (n != 8);
+}
+
+/*!
+ * @brief 指定した座標の地形の表示属性を取得する / Extract the attr/char to display at the given (legal) map location
+ * @param player_ptr プレイヤー情報への参照ポインタ
+ * @param y 階の中のy座標
+ * @param x 階の中のy座標
+ * @param ap 文字色属性
+ * @param cp 文字種属性
+ * @param tap 文字色属性(タイル)
+ * @param tcp 文字種属性(タイル)
+ * @return なし
  */
 void map_info(player_type *player_ptr, POSITION y, POSITION x, TERM_COLOR *ap, SYMBOL_CODE *cp, TERM_COLOR *tap, SYMBOL_CODE *tcp)
 {
@@ -130,7 +183,7 @@ void map_info(player_type *player_ptr, POSITION y, POSITION x, TERM_COLOR *ap, S
             c = f_ptr->x_char[F_LIT_STANDARD];
         }
     } else {
-        if (g_ptr->info & CAVE_MARK) {
+        if (g_ptr->info & CAVE_MARK && is_revealed_wall(floor_ptr, f_ptr, y, x)) {
             a = f_ptr->x_attr[F_LIT_STANDARD];
             c = f_ptr->x_char[F_LIT_STANDARD];
             if (player_ptr->wild_mode) {

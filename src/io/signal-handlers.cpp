@@ -11,6 +11,7 @@
 #include "floor/floor-events.h"
 #include "io/write-diary.h"
 #include "monster-floor/monster-lite.h"
+#include "game-option/cheat-options.h"
 #include "save/save.h"
 #include "system/system-variables.h"
 #include "term/term-color-types.h"
@@ -42,7 +43,6 @@ static void handle_signal_suspend(int sig)
 }
 
 /*!
- * todo ここにplayer_typeを追加すると関数ポインタ周りの収拾がつかなくなるので保留
  * @brief OSからのシグナルを受けて中断、終了する /
  * Handle signals -- simple (interrupt and quit)
  * @param sig 受け取ったシグナル
@@ -57,6 +57,7 @@ static void handle_signal_suspend(int sig)
  * To prevent messy accidents, we should reset this global variable
  * whenever the user enters a keypress, or something like that.
  * </pre>
+ * @todo ここにplayer_typeを追加すると関数ポインタ周りの収拾がつかなくなるので保留
  */
 static void handle_signal_simple(int sig)
 {
@@ -78,7 +79,8 @@ static void handle_signal_simple(int sig)
         forget_view(p_ptr->current_floor_ptr);
         clear_mon_lite(p_ptr->current_floor_ptr);
         p_ptr->playing = FALSE;
-        p_ptr->is_dead = TRUE;
+        if (!cheat_immortal)
+            p_ptr->is_dead = TRUE;
         p_ptr->leaving = TRUE;
         close_game(p_ptr);
         quit(_("強制終了", "interrupt"));
@@ -95,7 +97,6 @@ static void handle_signal_simple(int sig)
 }
 
 /*!
- * todo ここにp_ptrを追加すると関数ポインタ周りの収拾がつかなくなるので保留
  * @brief OSからのシグナルを受けて強制終了する /
  * Handle signal -- abort, kill, etc
  * @param sig 受け取ったシグナル
@@ -111,6 +112,7 @@ static void handle_signal_simple(int sig)
  * To prevent messy accidents, we should reset this global variable
  * whenever the user enters a keypress, or something like that.
  * </pre>
+ * @todo ここにp_ptrを追加すると関数ポインタ周りの収拾がつかなくなるので保留
  */
 static void handle_signal_abort(int sig)
 {

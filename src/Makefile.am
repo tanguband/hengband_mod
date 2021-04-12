@@ -99,7 +99,6 @@ hengband_SOURCES = \
 	\
 	cmd-building/cmd-building.cpp cmd-building/cmd-building.h \
 	cmd-building/cmd-inn.cpp cmd-building/cmd-inn.h \
-	cmd-building/cmd-store.cpp cmd-building/cmd-store.h \
 	\
 	cmd-io/cmd-autopick.cpp cmd-io/cmd-autopick.h \
 	cmd-io/cmd-diary.cpp cmd-io/cmd-diary.h \
@@ -153,7 +152,6 @@ hengband_SOURCES = \
 	core/hp-mp-regenerator.cpp core/hp-mp-regenerator.h \
 	core/magic-effects-timeout-reducer.cpp core/magic-effects-timeout-reducer.h \
 	core/object-compressor.cpp core/object-compressor.h \
-	core/output-updater.cpp core/output-updater.h \
 	core/player-processor.cpp core/player-processor.h \
 	core/player-redraw-types.h \
 	core/player-update-types.h \
@@ -307,7 +305,6 @@ hengband_SOURCES = \
 	io/report.cpp io/report.h \
 	io/screen-util.cpp io/screen-util.h \
 	io/signal-handlers.cpp io/signal-handlers.h \
-	io/store-key-processor.cpp io/store-key-processor.h \
 	io/tokenizer.cpp io/tokenizer.h \
 	io/uid-checker.cpp io/uid-checker.h \
 	io/write-diary.cpp io/write-diary.h \
@@ -379,6 +376,9 @@ hengband_SOURCES = \
 	main/info-initializer.cpp main/info-initializer.h \
 	main/init-error-messages-table.cpp main/init-error-messages-table.h \
 	main/music-definitions-table.cpp main/music-definitions-table.h \
+	main/scene-table.cpp main/scene-table.h \
+	main/scene-table-floor.cpp main/scene-table-floor.h \
+	main/scene-table-monster.cpp main/scene-table-monster.h \
 	main/sound-definitions-table.cpp main/sound-definitions-table.h \
 	main/sound-of-music.cpp main/sound-of-music.h \
 	main/x11-gamma-builder.cpp main/x11-gamma-builder.h \
@@ -389,8 +389,6 @@ hengband_SOURCES = \
 	market/building-util.cpp market/building-util.h \
 	market/play-gamble.cpp market/play-gamble.h \
 	market/poker.cpp market/poker.h \
-	market/articles-on-sale.cpp market/articles-on-sale.h \
-	market/gold-magnification-table.cpp market/gold-magnification-table.h \
 	market/arena.cpp market/arena.h \
 	market/bounty-prize-table.cpp market/bounty-prize-table.h \
 	market/bounty.cpp market/bounty.h \
@@ -492,10 +490,11 @@ hengband_SOURCES = \
 	\
 	monster-race/monster-race.cpp monster-race/monster-race.h \
 	monster-race/monster-race-hook.cpp monster-race/monster-race-hook.h \
+	monster-race/race-ability-flags.h \
+	monster-race/race-ability-mask.cpp monster-race/race-ability-mask.h \
 	monster-race/race-flags-resistance.h \
 	monster-race/race-flags1.h monster-race/race-flags2.h \
-	monster-race/race-flags3.h monster-race/race-flags4.h \
-	monster-race/race-flags-ability1.h monster-race/race-flags-ability2.h \
+	monster-race/race-flags3.h \
 	monster-race/race-flags7.h monster-race/race-flags8.h \
 	monster-race/race-flags9.h \
 	monster-race/race-indice-types.h \
@@ -521,7 +520,6 @@ hengband_SOURCES = \
 	mspell/mspell-damage-calculator.cpp mspell/mspell-damage-calculator.h \
 	mspell/mspell-learn-checker.cpp mspell/mspell-learn-checker.h \
 	mspell/mspell-floor.cpp mspell/mspell-floor.h \
-	mspell/mspell-mask-definitions.h \
 	mspell/mspell-special.cpp mspell/mspell-special.h \
 	mspell/mspell-status.cpp mspell/mspell-status.h \
 	mspell/mspell-particularity.cpp mspell/mspell-particularity.h \
@@ -798,15 +796,18 @@ hengband_SOURCES = \
 	\
 	store/home.cpp store/home.h \
 	store/store.cpp store/store.h \
+	store/articles-on-sale.cpp store/articles-on-sale.h \
 	store/black-market.cpp store/black-market.h \
+	store/cmd-store.cpp store/cmd-store.h \
+	store/gold-magnification-table.cpp store/gold-magnification-table.h \
 	store/museum.cpp store/museum.h \
 	store/pricing.cpp store/pricing.h \
 	store/purchase-order.cpp store/purchase-order.h \
-	store/owner-insults.cpp store/owner-insults.h \
 	store/rumor.cpp store/rumor.h \
 	store/say-comments.cpp store/say-comments.h \
 	store/sell-order.cpp store/sell-order.h \
 	store/service-checker.cpp store/service-checker.h \
+	store/store-key-processor.cpp store/store-key-processor.h \
 	store/store-util.cpp store/store-util.h \
 	store/store-owners.cpp store/store-owners.h \
 	store/store-owner-comments.cpp store/store-owner-comments.h \
@@ -859,6 +860,7 @@ hengband_SOURCES = \
 	util/flag-group.h \
 	util/int-char-converter.h \
 	util/object-sort.cpp util/object-sort.h \
+	util/point-2d.h \
 	util/probability-table.h \
 	util/quarks.cpp util/quarks.h \
 	util/sort.cpp util/sort.h \
@@ -920,19 +922,21 @@ hengband_SOURCES = \
 	world/world-turn-processor.cpp world/world-turn-processor.h
 
 EXTRA_hengband_SOURCES = \
-	angband.ico angband.rc ang_eng.rc maid-x11.cpp main-win.cpp \
 	angband.ico angband.rc ang_eng.rc ang_jp.rc maid-x11.cpp main-win.cpp \
 	main-win/main-win-bg.cpp main-win/main-win-bg.h \
+	main-win/main-win-cfg-reader.cpp main-win/main-win-cfg-reader.h \
 	main-win/main-win-define.h \
 	main-win/main-win-file-utils.cpp main-win/main-win-file-utils.h \
 	main-win/main-win-mci.cpp main-win/main-win-mci.h \
+	main-win/main-win-menuitem.h \
 	main-win/main-win-mmsystem.h \
 	main-win/main-win-music.cpp main-win/main-win-music.h \
 	main-win/main-win-sound.cpp main-win/main-win-sound.h \
 	main-win/main-win-tokenizer.cpp main-win/main-win-tokenizer.h \
 	main-win/main-win-windows.h \
 	main-cap.cpp main-xaw.cpp \
-	makefile.bcc makefile.std term/readdib.cpp term/readdib.h wall.bmp
+	makefile.bcc makefile.std term/readdib.cpp term/readdib.h wall.bmp \
+	stdafx.cpp stdafx.h
 
 cocoa_xcode_files = \
 	cocoa/AppDelegate.m \
@@ -975,11 +979,11 @@ hengband_SOURCES += \
 	system/grafmode.h \
 	system/grafmode.cpp \
 	cocoa/AppDelegate.h
-AM_CFLAGS = -mmacosx-version-min=10.8 -Wunguarded-availability
-AM_OBJCXXFLAGS = -std=c++17 -fobjc-arc -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
-AM_CXXFLAGS = -std=c++17 -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
+AM_CFLAGS = -mmacosx-version-min=10.14 -Wunguarded-availability
+AM_OBJCXXFLAGS = -std=c++17 -fobjc-arc -mmacosx-version-min=10.14 -Wunguarded-availability -stdlib=libc++
+AM_CXXFLAGS = -std=c++17 -mmacosx-version-min=10.14 -Wunguarded-availability -stdlib=libc++
 hengband_LDFLAGS = -framework cocoa $(AM_LDFLAGS)
-hengband_LINK = MACOSX_DEPLOYMENT_TARGET=10.8 $(OBJCXXLINK) $(hengband_LDFLAGS) $(LDFLAGS) -o $@
+hengband_LINK = MACOSX_DEPLOYMENT_TARGET=10.14 $(OBJCXXLINK) $(hengband_LDFLAGS) $(LDFLAGS) -o $@
 APPNAME = $(PACKAGE_NAME)
 APPEXE = hengband
 APPDIR = $(APPNAME).app
@@ -1012,10 +1016,12 @@ appen_DATA = $(cocoa_en_strings_files)
 appendir = $(APPRES)/en.lproj
 appja_DATA = $(cocoa_ja_strings_files)
 appjadir = $(APPRES)/ja.lproj
+MD5SUM=md5
 else
 EXTRA_hengband_SOURCES += main-cocoa.mm system/grafmode.h system/grafmode.cpp \
 	cocoa/AppDelegate.h
 hengband_LINK = $(CXXLINK)
+MD5SUM=md5sum
 endif
 
 DEFAULT_INCLUDES = -I$(srcdir) -I$(top_builddir)/src
@@ -1027,6 +1033,18 @@ OBJCXXCOMPILE = $(srcdir)/gcc-wrap $(OBJCXX) $(DEFS) $(DEFAULT_INCLUDES) \
 	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCXXFLAGS) $(OBJCXXFLAGS)
 CXXCOMPILE = $(srcdir)/gcc-wrap $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+if PCH
+CXXCOMPILE += -include stdafx.h
+endif
+
+if PCH
+stdafx.h.gch: stdafx.h stdafx.cpp Makefile
+	$(CXX) -x c++-header $(CXXFLAGS) $(AM_CXXFLAGS) $(srcdir)/stdafx.cpp -o $@
+	rm -f stdafx.h.gch.sum
+	$(MD5SUM) $@ > stdafx.h.gch.sum
+
+$(hengband_SOURCES:.cpp=.$(OBJEXT)): stdafx.h.gch
+endif
 
 install-exec-hook:
 if SET_GID
@@ -1038,6 +1056,7 @@ if COCOA
 # Suppress the warnings from the EUC-JP encoded strings used when building
 # the Japanese version.
 AM_CFLAGS += -Wno-invalid-source-encoding
+AM_CXXFLAGS += -Wno-invalid-source-encoding
 AM_OBJCXXFLAGS += -Wno-invalid-source-encoding
 
 # Create lib/info within the application bundle since not currently
@@ -1080,3 +1099,6 @@ distclean-local:
 	-rm -r -f $(DEPDIR) */$(DEPDIR)
 
 endif
+
+clean-local:
+	-rm stdafx.h.gch stdafx.h.gch.sum

@@ -1,11 +1,15 @@
 ﻿#pragma once
 
 /* 人畜無害なenumヘッダを先に読み込む */
-#include "player/player-classes-types.h"
-#include "object/tval-types.h"
-#include "realm/realm-types.h"
 #include "system/angband.h"
+
+#include "object/tval-types.h"
+#include "player/player-classes-types.h"
+#include "realm/realm-types.h"
 #include "spell/technic-info-table.h"
+
+#include <string>
+#include <vector>
 
 /** m_info.txtでMPの無い職業に設定される */
 #define SPELL_FIRST_NO_SPELL 99
@@ -17,19 +21,19 @@
  */
 
 typedef struct player_magic {
-	tval_type spell_book; /* Tval of spell books (if any) */
-	int spell_xtra;		/* Something for later */
+    tval_type spell_book{}; /* Tval of spell books (if any) */
+    int spell_xtra{}; /* Something for later */
 
-	int spell_stat;		/* Stat for spells (if any)  */
-	int spell_type;		/* Spell type (mage/priest) */
+    int spell_stat{}; /* Stat for spells (if any)  */
+    int spell_type{}; /* Spell type (mage/priest) */
 
-	int spell_first;		/* Level of first spell */
-	int spell_weight;		/* Weight that hurts spells */
+    int spell_first{}; /* Level of first spell */
+    int spell_weight{}; /* Weight that hurts spells */
 
-	magic_type info[MAX_MAGIC][32];    /* The available spells */
+    magic_type info[MAX_MAGIC][32]{}; /* The available spells */
 } player_magic;
 
-extern player_magic *m_info;
+extern std::vector<player_magic> m_info;
 extern const player_magic *mp_ptr;
 
 /*

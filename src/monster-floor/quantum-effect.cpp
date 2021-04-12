@@ -38,7 +38,6 @@ static void vanish_nonunique(player_type *target_ptr, MONSTER_IDX m_idx, bool se
 }
 
 /*!
- * todo ユニークとプレーヤーとの間でしか効果が発生しない。ユニークとその他のモンスター間では何もしなくてよい？
  * @brief 量子生物ユニークの量子的効果 (ショート・テレポートまたは距離10のテレポート・アウェイ)を実行する
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param m_idx モンスターID
@@ -49,6 +48,7 @@ static void vanish_nonunique(player_type *target_ptr, MONSTER_IDX m_idx, bool se
  * 波動関数の収縮はテレポートではないので反テレポート無効
  * @notes
  * パターンは収縮どころか拡散しているが、この際気にしてはいけない
+ * @todo ユニークとプレーヤーとの間でしか効果が発生しない。ユニークとその他のモンスター間では何もしなくてよい？
  */
 static void produce_quantum_effect(player_type *target_ptr, MONSTER_IDX m_idx, bool see_m)
 {
@@ -65,9 +65,8 @@ static void produce_quantum_effect(player_type *target_ptr, MONSTER_IDX m_idx, b
         msg_print(_("量子的効果が起こった！", "A decoherence was produced!"));
 
     bool target = one_in_(2);
-    const int blink = 32 * 5 + 4;
     if (target)
-        (void)monspell_to_monster(target_ptr, blink, m_ptr->fy, m_ptr->fx, m_idx, m_idx, TRUE);
+        (void)monspell_to_monster(target_ptr, RF_ABILITY::BLINK, m_ptr->fy, m_ptr->fx, m_idx, m_idx, TRUE);
     else
         teleport_player_away(m_idx, target_ptr, 10, TRUE);
 }

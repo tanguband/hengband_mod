@@ -34,6 +34,8 @@
 #include "io/screen-util.h"
 #include "monster-floor/monster-remover.h"
 #include "monster-race/monster-race.h"
+#include "monster-race/race-flags2.h"
+#include "monster-race/race-flags7.h"
 #include "monster/monster-info.h"
 #include "monster/monster-status.h"
 #include "monster/monster-update.h"
@@ -47,6 +49,7 @@
 #include "system/floor-type-definition.h"
 #include "term/term-color-types.h"
 #include "util/bit-flags-calculator.h"
+#include "util/point-2d.h"
 #include "view/display-map.h"
 #include "view/display-messages.h"
 #include "window/main-window-util.h"
@@ -424,8 +427,8 @@ void print_rel(player_type *subject_ptr, SYMBOL_CODE c, TERM_COLOR a, POSITION y
     }
 }
 
-/*
- * todo ここにplayer_type を追加した時のコンパイルエラーに対処できなかったので保留
+/*!
+ * @todo ここにplayer_type を追加した時のコンパイルエラーに対処できなかったので保留
  * Memorize interesting viewable object/features in the given grid
  *
  * This function should only be called on "legal" grids.
@@ -802,31 +805,22 @@ static POSITION flow_y = 0;
  */
 void update_flow(player_type *subject_ptr)
 {
-    struct Point {
-        int y;
-        int x;
-        Point(const int y, const int x)
-            : y(y)
-            , x(x)
-        {
-        }
-    };
-
     POSITION x, y;
     DIRECTION d;
+    floor_type *f_ptr = subject_ptr->current_floor_ptr;
 
     /* The last way-point is on the map */
-    if (subject_ptr->running && in_bounds(subject_ptr->current_floor_ptr, flow_y, flow_x)) {
+    if (subject_ptr->running && in_bounds(f_ptr, flow_y, flow_x)) {
         /* The way point is in sight - do not update.  (Speedup) */
-        if (subject_ptr->current_floor_ptr->grid_array[flow_y][flow_x].info & CAVE_VIEW)
+        if (f_ptr->grid_array[flow_y][flow_x].info & CAVE_VIEW)
             return;
     }
 
     /* Erase all of the current flow information */
-    for (y = 0; y < subject_ptr->current_floor_ptr->height; y++) {
-        for (x = 0; x < subject_ptr->current_floor_ptr->width; x++) {
-            subject_ptr->current_floor_ptr->grid_array[y][x].cost = 0;
-            subject_ptr->current_floor_ptr->grid_array[y][x].dist = 0;
+    for (y = 0; y < f_ptr->height; y++) {
+        for (x = 0; x < f_ptr->width; x++) {
+            memset(&f_ptr->grid_array[y][x].costs, 0, sizeof(f_ptr->grid_array[y][x].costs));
+            memset(&f_ptr->grid_array[y][x].dists, 0, sizeof(f_ptr->grid_array[y][x].dists));
         }
     }
 
@@ -834,56 +828,84 @@ void update_flow(player_type *subject_ptr)
     flow_y = subject_ptr->y;
     flow_x = subject_ptr->x;
 
-    // 幅優先探索用のキュー。
-    std::queue<Point> que;
-    que.emplace(subject_ptr->y, subject_ptr->x);
+    for (int i = 0; i < FLOW_MAX; i++) {
+        // 幅優先探索用のキュー。
+        std::queue<Pos2D> que;
+        que.emplace(subject_ptr->y, subject_ptr->x);
 
-    /* Now process the queue */
-    while (!que.empty()) {
-        /* Extract the next entry */
-        const auto [ty, tx] = que.front();
-        que.pop();
+        /* Now process the queue */
+        while (!que.empty()) {
+            /* Extract the next entry */
+            const auto [ty, tx] = que.front();
+            que.pop();
 
-        /* Add the "children" */
-        for (d = 0; d < 8; d++) {
-            byte m = subject_ptr->current_floor_ptr->grid_array[ty][tx].cost + 1;
-            byte n = subject_ptr->current_floor_ptr->grid_array[ty][tx].dist + 1;
+            /* Add the "children" */
+            for (d = 0; d < 8; d++) {
+                byte m = subject_ptr->current_floor_ptr->grid_array[ty][tx].costs[i] + 1;
+                byte n = subject_ptr->current_floor_ptr->grid_array[ty][tx].dists[i] + 1;
 
-            /* Child location */
-            y = ty + ddy_ddd[d];
-            x = tx + ddx_ddd[d];
+                /* Child location */
+                y = ty + ddy_ddd[d];
+                x = tx + ddx_ddd[d];
 
-            /* Ignore player's grid */
-            if (player_bold(subject_ptr, y, x))
-                continue;
+                /* Ignore player's grid */
+                if (player_bold(subject_ptr, y, x))
+                    continue;
 
-            grid_type *g_ptr = &subject_ptr->current_floor_ptr->grid_array[y][x];
+                grid_type *g_ptr = &subject_ptr->current_floor_ptr->grid_array[y][x];
 
-            if (is_closed_door(subject_ptr, g_ptr->feat))
-                m += 3;
+                if (is_closed_door(subject_ptr, g_ptr->feat))
+                    m += 3;
 
-            /* Ignore "pre-stamped" entries */
-            if (g_ptr->dist != 0 && g_ptr->dist <= n && g_ptr->cost <= m)
-                continue;
+                /* Ignore "pre-stamped" entries */
+                if (g_ptr->dists[i] != 0 && g_ptr->dists[i] <= n && g_ptr->costs[i] <= m)
+                    continue;
 
-            /* Ignore "walls" and "rubble" */
-            if (!cave_has_flag_grid(g_ptr, FF_MOVE) && !is_closed_door(subject_ptr, g_ptr->feat))
-                continue;
+                /* Ignore "walls", "holes" and "rubble" */
+                bool can_move = false;
+                switch (i) {
+                case FLOW_CAN_FLY:
+                    can_move = cave_has_flag_grid(g_ptr, FF_MOVE) || cave_has_flag_grid(g_ptr, FF_CAN_FLY);
+                    break;
+                default:
+                    can_move = cave_has_flag_grid(g_ptr, FF_MOVE);
+                    break;
+                }
 
-            /* Save the flow cost */
-            if (g_ptr->cost == 0 || g_ptr->cost > m)
-                g_ptr->cost = m;
-            if (g_ptr->dist == 0 || g_ptr->dist > n)
-                g_ptr->dist = n;
+                if (!can_move && !is_closed_door(subject_ptr, g_ptr->feat))
+                    continue;
 
-            /* Hack -- limit flow depth */
-            if (n == MONSTER_FLOW_DEPTH)
-                continue;
+                /* Save the flow cost */
+                if (g_ptr->costs[i] == 0 || g_ptr->costs[i] > m)
+                    g_ptr->costs[i] = m;
+                if (g_ptr->dists[i] == 0 || g_ptr->dists[i] > n)
+                    g_ptr->dists[i] = n;
 
-            /* Enqueue that entry */
-            que.emplace(y, x);
+                /* Hack -- limit flow depth */
+                if (n == MONSTER_FLOW_DEPTH)
+                    continue;
+
+                /* Enqueue that entry */
+                que.emplace(y, x);
+            }
         }
     }
+}
+
+static flow_type get_grid_flow_type(monster_race *r_ptr) {
+    if (any_bits(r_ptr->flags7, RF7_CAN_FLY))
+        return FLOW_CAN_FLY;
+    return FLOW_NORMAL;
+}
+
+byte grid_cost(grid_type *g_ptr, monster_race *r_ptr)
+{
+    return g_ptr->costs[get_grid_flow_type(r_ptr)];
+}
+
+byte grid_dist(grid_type *g_ptr, monster_race *r_ptr)
+{
+    return g_ptr->dists[get_grid_flow_type(r_ptr)];
 }
 
 /*
@@ -1250,7 +1272,7 @@ void place_bold(player_type *player_ptr, POSITION y, POSITION x, grid_bold_type 
 void set_cave_feat(floor_type *floor_ptr, POSITION y, POSITION x, FEAT_IDX feature_idx) { floor_ptr->grid_array[y][x].feat = feature_idx; }
 
 /*!
- * todo intをenumに変更する
+ * @todo intをenumに変更する
  */
 void add_cave_info(floor_type *floor_ptr, POSITION y, POSITION x, int cave_mask) { floor_ptr->grid_array[y][x].info |= cave_mask; }
 

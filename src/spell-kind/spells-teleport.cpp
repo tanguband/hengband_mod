@@ -17,7 +17,6 @@
 #include "main/sound-of-music.h"
 #include "monster-floor/monster-move.h"
 #include "monster-race/monster-race.h"
-#include "monster-race/race-flags-ability2.h"
 #include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags7.h"
 #include "monster/monster-info.h"
@@ -384,7 +383,7 @@ void teleport_player(player_type *creature_ptr, POSITION dis, BIT_FLAGS mode)
                 monster_type *m_ptr = &creature_ptr->current_floor_ptr->m_list[tmp_m_idx];
                 monster_race *r_ptr = &r_info[m_ptr->r_idx];
 
-                bool is_resistible = (r_ptr->a_ability_flags2 & RF6_TPORT) != 0;
+                bool is_resistible = r_ptr->ability_flags.has(RF_ABILITY::TPORT);
                 is_resistible &= (r_ptr->flagsr & RFR_RES_TELE) == 0;
                 is_resistible &= monster_csleep_remaining(m_ptr) == 0;
                 if (is_resistible) {
@@ -424,7 +423,7 @@ void teleport_player_away(MONSTER_IDX m_idx, player_type *target_ptr, POSITION d
             monster_type *m_ptr = &target_ptr->current_floor_ptr->m_list[tmp_m_idx];
             monster_race *r_ptr = &r_info[m_ptr->r_idx];
 
-            bool is_resistible = (r_ptr->a_ability_flags2 & RF6_TPORT) != 0;
+            bool is_resistible = r_ptr->ability_flags.has(RF_ABILITY::TPORT);
             is_resistible &= (r_ptr->flagsr & RFR_RES_TELE) == 0;
             is_resistible &= monster_csleep_remaining(m_ptr) == 0;
             if (is_resistible) {
@@ -505,7 +504,7 @@ void teleport_away_followable(player_type *tracer_ptr, MONSTER_IDX m_idx)
         return;
 
     bool follow = FALSE;
-    if ((tracer_ptr->muta1 & MUT1_VTELEPORT) || (tracer_ptr->pclass == CLASS_IMITATOR))
+    if (tracer_ptr->muta.has(MUTA::VTELEPORT) || (tracer_ptr->pclass == CLASS_IMITATOR))
         follow = TRUE;
     else {
         BIT_FLAGS flgs[TR_FLAG_SIZE];

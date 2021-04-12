@@ -13,6 +13,7 @@
 #include "floor/wild.h"
 #include "game-option/disturbance-options.h"
 #include "game-option/map-screen-options.h"
+#include "game-option/cheat-options.h"
 #include "grid/grid.h"
 #include "inventory/pack-overflow.h"
 #include "io/cursor.h"
@@ -35,6 +36,7 @@
 #include "monster/monster-util.h"
 #include "mutation/mutation-investor-remover.h"
 #include "player/attack-defense-types.h"
+#include "player/eldritch-horror.h"
 #include "player/player-skill.h"
 #include "player/special-defense-types.h"
 #include "spell-kind/spells-random.h"
@@ -116,7 +118,7 @@ void process_player(player_type *creature_ptr)
             if (!monster_is_valid(m_ptr))
                 continue;
 
-            m_ptr->mflag2 |= (MFLAG2_MARK | MFLAG2_SHOW);
+            m_ptr->mflag2.set({MFLAG2::MARK, MFLAG2::SHOW});
             update_monster(creature_ptr, m_idx, FALSE);
         }
 
@@ -263,7 +265,7 @@ void process_player(player_type *creature_ptr)
             move_cursor_relative(creature_ptr->y, creature_ptr->x);
             command_cmd = SPECIAL_KEY_BUILDING;
             process_command(creature_ptr);
-        } else if (creature_ptr->paralyzed || (creature_ptr->stun >= 100)) {
+        } else if ((creature_ptr->paralyzed || creature_ptr->stun >= 100) && !cheat_immortal) {
             take_turn(creature_ptr, 100);
         } else if (creature_ptr->action == ACTION_REST) {
             if (creature_ptr->resting > 0) {
@@ -325,17 +327,22 @@ void process_player(player_type *creature_ptr)
                 }
 
                 // 出現して即魔法を使わないようにするフラグを落とす処理
-                if (m_ptr->mflag & MFLAG_PREVENT_MAGIC) {
-                    m_ptr->mflag &= ~(MFLAG_PREVENT_MAGIC);
+                if (m_ptr->mflag.has(MFLAG::PREVENT_MAGIC)) {
+                    m_ptr->mflag.reset(MFLAG::PREVENT_MAGIC);
+                }
+
+                if (m_ptr->mflag.has(MFLAG::SANITY_BLAST)) {
+                    m_ptr->mflag.reset(MFLAG::SANITY_BLAST);
+                    sanity_blast(creature_ptr, m_ptr, FALSE);
                 }
 
                 // 感知中のモンスターのフラグを落とす処理
                 // 感知したターンはMFLAG2_SHOWを落とし、次のターンに感知中フラグのMFLAG2_MARKを落とす
-                if (m_ptr->mflag2 & MFLAG2_MARK) {
-                    if (m_ptr->mflag2 & MFLAG2_SHOW) {
-                        m_ptr->mflag2 &= ~(MFLAG2_SHOW);
+                if (m_ptr->mflag2.has(MFLAG2::MARK)) {
+                    if (m_ptr->mflag2.has(MFLAG2::SHOW)) {
+                        m_ptr->mflag2.reset(MFLAG2::SHOW);
                     } else {
-                        m_ptr->mflag2 &= ~(MFLAG2_MARK);
+                        m_ptr->mflag2.reset(MFLAG2::MARK);
                         m_ptr->ml = FALSE;
                         update_monster(creature_ptr, m_idx, FALSE);
                         if (creature_ptr->health_who == m_idx)
