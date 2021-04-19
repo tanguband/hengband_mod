@@ -50,9 +50,7 @@
  * <p>
  * Compiling this file, and using the resulting executable, requires
  * several extra files not distributed with the standard Angband code.
- * In any case, some "*.fon" files (including "8X13.FON" if nothing else)
- * must be placed into "lib/xtra/font/".  All of these extra files can be found
- * in the "ext-win" archive.
+ * All of these extra files can be found in the "ext-win" archive.
  * </p>
  *
  * <p>
@@ -175,11 +173,7 @@
  * </p>
  * <p>
  * Note the use of "font_want" for the names of the font file requested by
- * the user, and the use of "font_file" for the currently active font file.
- *
- * The "font_file" is uppercased, and takes the form "8X13.FON", while
- * "font_want" can be in almost any form as long as it could be construed
- * as attempting to represent the name of a font.
+ * the user.
  * </p>
  */
 typedef struct {
@@ -207,7 +201,6 @@ typedef struct {
     bool visible;
     bool bizarre;
     concptr font_want;
-    concptr font_file;
     HFONT font_id;
     int font_wid; //!< フォント横幅
     int font_hgt; //!< フォント縦幅
@@ -539,6 +532,8 @@ static void save_prefs(void)
 
     strcpy(buf, arg_music ? "1" : "0");
     WritePrivateProfileString("Angband", "Music", buf, ini_file);
+    strcpy(buf, use_pause_music_inactive ? "1" : "0");
+    WritePrivateProfileString("Angband", "MusicPauseInactive", buf, ini_file);
 
     strcpy(buf, use_bg ? "1" : "0");
     WritePrivateProfileString("Angband", "BackGround", buf, ini_file);
@@ -620,7 +615,7 @@ static void load_prefs_aux(int i)
     int posx = GetPrivateProfileInt(sec_name, "PositionX", 0, ini_file);
     int posy = GetPrivateProfileInt(sec_name, "PositionY", 0, ini_file);
     // 保存座標がモニタ内の領域にあるかチェック
-    RECT rect = { posx, posy, posx + 128, posy +128 };
+    RECT rect = { posx, posy, posx + 128, posy + 128 };
     bool in_any_monitor = false;
     ::EnumDisplayMonitors(NULL, &rect, monitorenumproc, (LPARAM)&in_any_monitor);
     if (in_any_monitor) {
@@ -644,6 +639,7 @@ static void load_prefs(void)
     use_bigtile = arg_bigtile;
     arg_sound = (GetPrivateProfileInt("Angband", "Sound", 0, ini_file) != 0);
     arg_music = (GetPrivateProfileInt("Angband", "Music", 0, ini_file) != 0);
+    use_pause_music_inactive = (GetPrivateProfileInt("Angband", "MusicPauseInactive", 0, ini_file) != 0);
     use_bg = GetPrivateProfileInt("Angband", "BackGround", 0, ini_file);
     GetPrivateProfileString("Angband", "BackGroundBitmap", DEFAULT_BG_FILENAME, bg_bitmap_file, 1023, ini_file);
     GetPrivateProfileString("Angband", "SaveFile", "", savefile, 1023, ini_file);
@@ -887,18 +883,16 @@ static void term_window_resize(term_data *td)
 }
 
 /*!
- * @brief Force the use of a new "font file" for a term_data.
+ * @brief Force the use of a new font for a term_data.
  * This function may be called before the "window" is ready.
  * This function returns zero only if everything succeeds.
  * @note that the "font name" must be capitalized!!!
- * @todo 引数のpathを消す
  */
-static errr term_force_font(term_data *td, concptr path)
+static errr term_force_font(term_data *td)
 {
     if (td->font_id)
         DeleteObject(td->font_id);
 
-    (void)path;
     td->font_id = CreateFontIndirect(&(td->lf));
     int wid = td->lf.lfWidth;
     int hgt = td->lf.lfHeight;
@@ -940,7 +934,7 @@ static void term_change_font(term_data *td)
     if (!ChooseFont(&cf))
         return;
 
-    term_force_font(td, NULL);
+    term_force_font(td);
     td->bizarre = TRUE;
     td->tile_wid = td->font_wid;
     td->tile_hgt = td->font_hgt;
@@ -1025,14 +1019,6 @@ static errr term_xtra_win_react(player_type *player_ptr)
     use_sound = arg_sound;
     if (use_sound) {
         init_sound();
-    }
-
-    use_music = arg_music;
-    if (use_music) {
-        init_music();
-        select_floor_music(player_ptr);
-    } else {
-        main_win_music::stop_music();
     }
 
     if (use_graphics != (arg_graphics > 0)) {
@@ -1601,7 +1587,7 @@ static void init_windows(void)
         strncpy(td->lf.lfFaceName, td->font_want, LF_FACESIZE);
         td->lf.lfCharSet = DEFAULT_CHARSET;
         td->lf.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
-        term_force_font(td, NULL);
+        term_force_font(td);
         if (!td->tile_wid)
             td->tile_wid = td->font_wid;
         if (!td->tile_hgt)
@@ -1770,6 +1756,7 @@ static void setup_menus(void)
     CheckMenuItem(hm, IDM_OPTIONS_NEW2_GRAPHICS, (arg_graphics == GRAPHICS_HENGBAND ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hm, IDM_OPTIONS_BIGTILE, (arg_bigtile ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hm, IDM_OPTIONS_MUSIC, (arg_music ? MF_CHECKED : MF_UNCHECKED));
+    CheckMenuItem(hm, IDM_OPTIONS_MUSIC_PAUSE_INACTIVE, (use_pause_music_inactive ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hm, IDM_OPTIONS_SOUND, (arg_sound ? MF_CHECKED : MF_UNCHECKED));
     CheckMenuItem(hm, IDM_OPTIONS_BG, (use_bg ? MF_CHECKED : MF_UNCHECKED));
 
@@ -2150,8 +2137,18 @@ static void process_menus(player_type *player_ptr, WORD wCmd)
     }
     case IDM_OPTIONS_MUSIC: {
         arg_music = !arg_music;
-        if (inkey_flag)
-            term_xtra_win_react(player_ptr);
+        use_music = arg_music;
+        if (use_music) {
+            init_music();
+            if (game_in_progress)
+                select_floor_music(player_ptr);
+        } else {
+            main_win_music::stop_music();
+        }
+        break;
+    }
+    case IDM_OPTIONS_MUSIC_PAUSE_INACTIVE: {
+        use_pause_music_inactive = !use_pause_music_inactive;
         break;
     }
     case IDM_OPTIONS_SOUND: {
@@ -2318,6 +2315,28 @@ static bool process_keydown(WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
+static void handle_app_active(HWND hWnd, UINT uMsg, WPARAM wParam, [[maybe_unused]] LPARAM lParam)
+{
+    switch (uMsg) {
+    case WM_ACTIVATEAPP: {
+        if (wParam) {
+            if (use_pause_music_inactive)
+                main_win_music::resume_music();
+        } else {
+            if (use_pause_music_inactive)
+                main_win_music::pause_music();
+        }
+        break;
+    }
+    case WM_WINDOWPOSCHANGING: {
+        if (!IsIconic(hWnd))
+            if (use_pause_music_inactive)
+                main_win_music::resume_music();
+        break;
+    }
+    }
+}
+
 /*!
  * @todo WNDCLASSに影響があるのでplayer_type*の追加は保留
  */
@@ -2326,6 +2345,8 @@ LRESULT PASCAL AngbandWndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam
     PAINTSTRUCT ps;
     term_data *td;
     td = (term_data *)GetWindowLong(hWnd, 0);
+
+    handle_app_active(hWnd, uMsg, wParam, lParam);
 
     switch (uMsg) {
     case WM_NCCREATE: {
@@ -2824,7 +2845,7 @@ static void hook_quit(concptr str)
 
     save_prefs();
     for (int i = MAX_TERM_DATA - 1; i >= 0; --i) {
-        term_force_font(&data[i], NULL);
+        term_force_font(&data[i]);
         if (data[i].font_want)
             string_free(data[i].font_want);
         if (data[i].w)
@@ -3033,6 +3054,11 @@ int WINAPI WinMain(_In_ HINSTANCE hInst, _In_opt_ HINSTANCE hPrevInst, _In_ LPST
     if (use_bg) {
         init_background();
         use_bg = init_bg();
+    }
+
+    use_music = arg_music;
+    if (use_music) {
+        init_music();
     }
 
     plog_aux = hook_plog;
