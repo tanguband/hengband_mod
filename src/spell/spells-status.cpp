@@ -17,6 +17,7 @@
 #include "flavor/object-flavor-types.h"
 #include "floor/cave.h"
 #include "floor/floor-object.h"
+#include "floor/geometry.h"
 #include "grid/feature-flag-types.h"
 #include "grid/grid.h"
 #include "inventory/inventory-object.h"
@@ -43,6 +44,9 @@
 #include "status/shape-changer.h"
 #include "status/sight-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
@@ -463,7 +467,7 @@ bool fishing(player_type *creature_ptr)
  * @param creature_ptr プレイヤー情報への参照ポインタ
  * @param o_ptr_ptr 脱ぐ装備品への参照ポインタのポインタ
  * @return 脱いだらTRUE、脱がなかったらFALSE
- * @detail
+ * @details
  * 脱いで落とした装備にtimeoutを設定するために装備品のアドレスを返す。
  */
 bool cosmic_cast_off(player_type *creature_ptr, object_type **o_ptr_ptr)

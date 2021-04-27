@@ -1,7 +1,13 @@
-﻿#include "main/scene-table-floor.h"
+﻿/*!
+ * @file scene-table-floor.cpp
+ * @brief フロアの状況に応じたBGM設定処理実装
+ */
+
+#include "main/scene-table-floor.h"
 #include "dungeon/quest.h"
 #include "main/music-definitions-table.h"
 #include "system/floor-type-definition.h"
+#include "system/player-type-definition.h"
 
 using scene_feel_func = bool (*)(player_type *player_ptr, scene_type *value);
 

@@ -1,4 +1,9 @@
-﻿#include "action/action-limited.h"
+﻿/*!
+ * @file action-limited.cpp
+ * @brief プレイヤーの行動制約判定定義
+ */
+
+#include "action/action-limited.h"
 #include "dungeon/dungeon-flag-types.h"
 #include "dungeon/dungeon.h"
 #include "game-option/disturbance-options.h"
@@ -6,6 +11,7 @@
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
 #include "system/floor-type-definition.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "view/display-messages.h"
 

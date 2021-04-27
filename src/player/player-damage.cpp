@@ -55,6 +55,10 @@
 #include "status/element-resistance.h"
 #include "system/building-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
 #include "util/bit-flags-calculator.h"
@@ -389,6 +393,7 @@ int take_hit(player_type *creature_ptr, int damage_type, HIT_POINT damage, concp
 
             current_world_ptr->total_winner = FALSE;
             if (winning_seppuku) {
+                add_retired_class(creature_ptr->pclass);
                 exe_write_diary(creature_ptr, DIARY_DESCRIPTION, 0, _("勝利の後切腹した。", "committed seppuku after the winning."));
             } else {
                 char buf[20];

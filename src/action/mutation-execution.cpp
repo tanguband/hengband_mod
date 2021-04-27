@@ -1,7 +1,13 @@
-﻿#include "action/mutation-execution.h"
+﻿/*!
+ * @file mutation-execution.cpp
+ * @brief プレイヤーの変異能力実行定義
+ */
+
+#include "action/mutation-execution.h"
 #include "cmd-item/cmd-throw.h"
 #include "core/asking-player.h"
 #include "effect/spells-effect-util.h"
+#include "floor/geometry.h"
 #include "game-option/play-record-options.h"
 #include "grid/grid.h"
 #include "inventory/inventory-slot-types.h"
@@ -41,7 +47,10 @@
 #include "status/element-resistance.h"
 #include "status/shape-changer.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "view/display-messages.h"
 

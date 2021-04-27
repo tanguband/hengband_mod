@@ -1,4 +1,10 @@
 ﻿#pragma once
+/*!
+ * @file sound-definitions-table.h
+ * @brief 設定ファイル用の効果音名定義ヘッダ
+ */
+
+#include "system/angband.h"
 
 enum sound_type {
     SOUND_HIT = 1,

@@ -31,6 +31,7 @@
 #include "floor/floor-events.h"
 #include "floor/floor-leaver.h"
 #include "floor/floor-mode-changer.h"
+#include "floor/floor-save.h"
 #include "floor/floor-util.h"
 #include "floor/wild.h"
 #include "game-option/cheat-options.h"
@@ -77,7 +78,10 @@
 #include "sv-definition/sv-weapon-types.h"
 #include "system/angband-version.h"
 #include "system/floor-type-definition.h"
-#include "system/system-variables.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/target-checker.h"
 #include "term/gameterm.h"
 #include "term/screen-processor.h"
@@ -121,7 +125,7 @@ static void send_waiting_record(player_type *player_ptr)
 
     /* 町名消失バグ対策(#38205)のためここで世界マップ情報を読み出す */
     parse_fixed_map(player_ptr, "w_info.txt", 0, 0, current_world_ptr->max_wild_y, current_world_ptr->max_wild_x);
-    bool success = send_world_score(player_ptr, TRUE, update_playtime, display_player);
+    bool success = send_world_score(player_ptr, TRUE, display_player);
     if (!success && !get_check_strict(player_ptr, _("スコア登録を諦めますか？", "Do you give up score registration? "), CHECK_NO_HISTORY)) {
         prt(_("引き続き待機します。", "standing by for future registration..."), 0, 0);
         (void)inkey();

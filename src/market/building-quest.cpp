@@ -9,7 +9,8 @@
 #include "monster-race/race-flags1.h"
 #include "monster/monster-list.h"
 #include "system/floor-type-definition.h"
-#include "system/system-variables.h"
+#include "system/monster-race-definition.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
 #include "view/display-messages.h"
@@ -90,7 +91,7 @@ void castle_quest(player_type *player_ptr)
         put_str(_("あなたは現在のクエストを終了させていません！", "You have not completed your current quest yet!"), 8, 0);
         put_str(_("CTRL-Qを使えばクエストの状態がチェックできます。", "Use CTRL-Q to check the status of your quest."), 9, 0);
 
-        get_questinfo(player_ptr, q_index, true);
+        get_questinfo(player_ptr, q_index, false);
         put_str(format(_("現在のクエスト「%s」", "Current quest is '%s'."), q_ptr->name), 11, 0);
 
         if (q_ptr->type != QUEST_TYPE_KILL_LEVEL || q_ptr->dungeon == 0) {

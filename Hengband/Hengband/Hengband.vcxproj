@@ -267,6 +267,7 @@
     <ClCompile Include="..\..\src\cmd-action\cmd-travel.cpp" />
     <ClCompile Include="..\..\src\cmd-action\cmd-tunnel.cpp" />
     <ClCompile Include="..\..\src\action\movement-execution.cpp" />
+    <ClCompile Include="..\..\src\main-win\read-graphics.cpp" />
     <ClCompile Include="..\..\src\store\cmd-store.cpp" />
     <ClCompile Include="..\..\src\cmd-io\cmd-floor.cpp" />
     <ClCompile Include="..\..\src\cmd-io\cmd-lore.cpp" />
@@ -532,6 +533,7 @@
     <ClCompile Include="..\..\src\store\sell-order.cpp" />
     <ClCompile Include="..\..\src\store\service-checker.cpp" />
     <ClCompile Include="..\..\src\system\angband-version.cpp" />
+    <ClCompile Include="..\..\src\system\player-type-definition.cpp" />
     <ClCompile Include="..\..\src\target\grid-selector.cpp" />
     <ClCompile Include="..\..\src\target\projection-path-calculator.cpp" />
     <ClCompile Include="..\..\src\target\target-describer.cpp" />
@@ -931,6 +933,9 @@
     <ClInclude Include="..\..\src\cmd-action\cmd-travel.h" />
     <ClInclude Include="..\..\src\cmd-action\cmd-tunnel.h" />
     <ClInclude Include="..\..\src\action\movement-execution.h" />
+    <ClInclude Include="..\..\src\main-win\read-graphics.h" />
+    <ClInclude Include="..\..\src\main-win\string-win.h" />
+    <ClInclude Include="..\..\src\main-win\tile-info.h" />
     <ClInclude Include="..\..\src\store\cmd-store.h" />
     <ClInclude Include="..\..\src\cmd-io\cmd-floor.h" />
     <ClInclude Include="..\..\src\cmd-io\cmd-lore.h" />
@@ -1226,6 +1231,7 @@
     <ClInclude Include="..\..\src\system\alloc-entries.h" />
     <ClInclude Include="..\..\src\system\dungeon-data-definition.h" />
     <ClInclude Include="..\..\src\system\floor-type-definition.h" />
+    <ClInclude Include="..\..\src\system\player-type-definition.h" />
     <ClInclude Include="..\..\src\target\grid-selector.h" />
     <ClInclude Include="..\..\src\target\projection-path-calculator.h" />
     <ClInclude Include="..\..\src\target\target-describer.h" />
@@ -1453,7 +1459,6 @@
     <ClInclude Include="..\..\src\mspell\mspell-type.h" />
     <ClInclude Include="..\..\src\mspell\mspell-util.h" />
     <ClInclude Include="..\..\src\mspell\mspell-ball.h" />
-    <ClInclude Include="..\..\src\mspell\mspell.h" />
     <ClInclude Include="..\..\src\player\player-personalities-types.h" />
     <ClInclude Include="..\..\src\player\player-race-types.h" />
     <ClInclude Include="..\..\src\player\player-classes-types.h" />
@@ -1520,7 +1525,6 @@
     <ClCompile Include="..\..\src\mutation\mutation-calculator.cpp" />
     <ClCompile Include="..\..\src\object\object-info.cpp" />
     <ClCompile Include="..\..\src\racial\racial-switcher.cpp" />
-    <ClCompile Include="..\..\src\term\readdib.cpp" />
     <ClCompile Include="..\..\src\realm\realm-arcane.cpp" />
     <ClCompile Include="..\..\src\realm\realm-chaos.cpp" />
     <ClCompile Include="..\..\src\realm\realm-hex.cpp" />
@@ -1793,7 +1797,6 @@
     <ClInclude Include="..\..\src\player\player-status.h" />
     <ClInclude Include="..\..\src\dungeon\quest.h" />
     <ClInclude Include="..\..\src\racial\racial-switcher.h" />
-    <ClInclude Include="..\..\src\term\readdib.h" />
     <ClInclude Include="..\..\src\realm\realm-arcane.h" />
     <ClInclude Include="..\..\src\realm\realm-chaos.h" />
     <ClInclude Include="..\..\src\realm\realm-craft.h" />

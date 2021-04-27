@@ -1,14 +1,13 @@
 ﻿#pragma once
 
-#include "system/angband.h"
+#include <string>
+#include <vector>
 
 #include "object-enchant/tr-types.h"
 #include "object-enchant/trg-types.h"
-#include "system/object-type-definition.h"
+#include "system/angband.h"
+#include "system/system-variables.h"
 #include "util/flag-group.h"
-
-#include <string>
-#include <vector>
 
 /* Body Armor */
 #define EGO_A_MORGUL            4
@@ -242,6 +241,10 @@ struct ego_item_type {
     DEPTH level{}; //!< 生成レベル
     RARITY rarity{}; //<! レアリティ
 
+    HIT_PROB base_to_h{}; //!< ベース命中修正
+    HIT_POINT base_to_d{}; //!< べ^スダメージ修正
+    ARMOUR_CLASS base_to_a{}; //!< ベースAC修正
+
     HIT_PROB max_to_h{}; //!< 最大ボーナス命中修正
     HIT_POINT max_to_d{}; //!< 最大ボーナスダメージ修正
     ARMOUR_CLASS max_to_a{}; //!< 最大ボーナスAC修正
@@ -251,7 +254,7 @@ struct ego_item_type {
     PRICE cost{}; //!< コスト
 
     BIT_FLAGS flags[TR_FLAG_SIZE]{}; //!< 能力/耐性フラグ
-    FlagGroup<TRG> gen_flags; //!< 生成時適用フラグ
+    EnumClassFlagGroup<TRG> gen_flags; //!< 生成時適用フラグ
     std::vector<ego_generate_type> xtra_flags{}; //!< 追加能力/耐性フラグ
 
     IDX act_idx{}; //!< 発動番号 / Activative ability index
@@ -260,5 +263,7 @@ struct ego_item_type {
 extern EGO_IDX max_e_idx;
 extern std::vector<ego_item_type> e_info;
 
+typedef struct object_type object_type;
+typedef struct player_type player_type;
 byte get_random_ego(byte slot, bool good);
 void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev);

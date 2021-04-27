@@ -1,4 +1,5 @@
 ﻿/*!
+ * @file open-close-execution.cpp 
  * @brief 扉や箱を開ける処理
  * @date 2020/07/11
  * @author Hourier
@@ -21,6 +22,7 @@
 #include "status/experience.h"
 #include "system/floor-type-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"

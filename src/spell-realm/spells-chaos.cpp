@@ -6,6 +6,7 @@
 #include "effect/effect-characteristics.h"
 #include "effect/effect-processor.h"
 #include "floor/cave.h"
+#include "floor/geometry.h"
 #include "grid/feature.h"
 #include "grid/grid.h"
 #include "monster/monster-describer.h"
@@ -17,6 +18,8 @@
 #include "spell-kind/spells-launcher.h"
 #include "spell/spell-types.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/projection-path-calculator.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
@@ -95,7 +98,7 @@ void call_the_void(player_type *caster_ptr)
  * @brief 虚無招来によるフロア中の全壁除去処理 /
  * Vanish all walls in this floor
  * @param caster_ptr プレーヤーへの参照ポインタ
- * @params caster_ptr 術者の参照ポインタ
+ * @param caster_ptr 術者の参照ポインタ
  * @return 実際に処理が反映された場合TRUE
  */
 bool vanish_dungeon(player_type *caster_ptr)

@@ -516,7 +516,6 @@ hengband_SOURCES = \
 	mspell/mspell-lite.cpp mspell/mspell-lite.h \
 	mspell/mspell-summon.cpp mspell/mspell-summon.h \
 	mspell/mspell-util.cpp mspell/mspell-util.h \
-	mspell/mspell-type.h \
 	mspell/mspell-damage-calculator.cpp mspell/mspell-damage-calculator.h \
 	mspell/mspell-learn-checker.cpp mspell/mspell-learn-checker.h \
 	mspell/mspell-floor.cpp mspell/mspell-floor.h \
@@ -835,6 +834,7 @@ hengband_SOURCES = \
 	system/monster-race-definition.h \
 	system/monster-type-definition.h \
 	system/object-type-definition.h \
+	system/player-type-definition.cpp system/player-type-definition.h \
 	system/system-variables.cpp system/system-variables.h \
 	system/gamevalue.h \
 	\
@@ -935,7 +935,9 @@ EXTRA_hengband_SOURCES = \
 	main-win/main-win-tokenizer.cpp main-win/main-win-tokenizer.h \
 	main-win/main-win-windows.h \
 	main-cap.cpp main-xaw.cpp \
-	makefile.bcc makefile.std term/readdib.cpp term/readdib.h wall.bmp \
+	main-win/read-graphics.cpp main-win/read-graphics.h \
+	main-win/tile-info.h \
+	wall.bmp \
 	stdafx.cpp stdafx.h
 
 cocoa_xcode_files = \
@@ -979,11 +981,11 @@ hengband_SOURCES += \
 	system/grafmode.h \
 	system/grafmode.cpp \
 	cocoa/AppDelegate.h
-AM_CFLAGS = -mmacosx-version-min=10.14 -Wunguarded-availability
-AM_OBJCXXFLAGS = -std=c++17 -fobjc-arc -mmacosx-version-min=10.14 -Wunguarded-availability -stdlib=libc++
-AM_CXXFLAGS = -std=c++17 -mmacosx-version-min=10.14 -Wunguarded-availability -stdlib=libc++
+AM_CFLAGS = -mmacosx-version-min=10.8 -Wunguarded-availability
+AM_OBJCXXFLAGS = -std=c++17 -fobjc-arc -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
+AM_CXXFLAGS = -std=c++17 -mmacosx-version-min=10.8 -Wunguarded-availability -stdlib=libc++
 hengband_LDFLAGS = -framework cocoa $(AM_LDFLAGS)
-hengband_LINK = MACOSX_DEPLOYMENT_TARGET=10.14 $(OBJCXXLINK) $(hengband_LDFLAGS) $(LDFLAGS) -o $@
+hengband_LINK = MACOSX_DEPLOYMENT_TARGET=10.8 $(OBJCXXLINK) $(hengband_LDFLAGS) $(LDFLAGS) -o $@
 APPNAME = $(PACKAGE_NAME)
 APPEXE = hengband
 APPDIR = $(APPNAME).app

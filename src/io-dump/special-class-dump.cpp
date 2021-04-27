@@ -4,6 +4,8 @@
  * @author Hourier
  */
 
+#include <vector>
+
 #include "io-dump/special-class-dump.h"
 #include "blue-magic/blue-magic-checker.h"
 #include "cmd-item/cmd-magiceat.h"
@@ -13,12 +15,11 @@
 #include "mspell/monster-power-table.h"
 #include "object/object-kind-hook.h"
 #include "object/object-kind.h"
+#include "system/player-type-definition.h"
 #include "util/flag-group.h"
 
-#include <vector>
-
 typedef struct {
-    FlagGroup<RF_ABILITY> ability_flags;
+    EnumClassFlagGroup<RF_ABILITY> ability_flags;
 } learnt_spell_table;
 
 /*!
@@ -170,7 +171,7 @@ static void dump_blue_mage(player_type *creature_ptr, FILE *fff)
         add_monster_spell_type(p, col, static_cast<blue_magic_type>(spell_type), &learnt_magic);
 
         std::vector<RF_ABILITY> learnt_spells;
-        FlagGroup<RF_ABILITY>::get_flags(learnt_magic.ability_flags, std::back_inserter(learnt_spells));
+        EnumClassFlagGroup<RF_ABILITY>::get_flags(learnt_magic.ability_flags, std::back_inserter(learnt_spells));
 
         col++;
         bool pcol = FALSE;

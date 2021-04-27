@@ -1,4 +1,9 @@
-﻿#include "action/activation-execution.h"
+﻿/*!
+ * @file activation-execution.cpp
+ * @brief アイテムの発動実行定義
+ */
+
+#include "action/activation-execution.h"
 #include "action/action-limited.h"
 #include "artifact/random-art-effects.h"
 #include "artifact/artifact-info.h"
@@ -16,6 +21,7 @@
 #include "monster/monster-util.h"
 #include "object-activation/activation-switcher.h"
 #include "object-activation/activation-util.h"
+#include "object-enchant/activation-info-table.h"
 #include "object-enchant/object-ego.h"
 #include "object-hook/hook-enchant.h"
 #include "object/object-info.h"
@@ -32,6 +38,7 @@
 #include "system/floor-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "term/screen-processor.h"
 #include "util/quarks.h"

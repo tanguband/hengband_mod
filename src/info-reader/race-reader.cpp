@@ -3,6 +3,7 @@
 #include "info-reader/race-info-tokens-table.h"
 #include "main/angband-headers.h"
 #include "monster-race/monster-race.h"
+#include "system/monster-race-definition.h"
 #include "term/gameterm.h"
 #include "util/string-processor.h"
 #include "view/display-messages.h"
@@ -50,7 +51,7 @@ static errr grab_one_basic_flag(monster_race *r_ptr, concptr what)
  */
 static errr grab_one_spell_flag(monster_race *r_ptr, concptr what)
 {
-    if (FlagGroup<RF_ABILITY>::grab_one_flag(r_ptr->ability_flags, r_info_ability_flags, what))
+    if (EnumClassFlagGroup<RF_ABILITY>::grab_one_flag(r_ptr->ability_flags, r_info_ability_flags, what))
         return PARSE_ERROR_NONE;
 
     msg_format(_("未知のモンスター・フラグ '%s'。", "Unknown monster flag '%s'."), what);

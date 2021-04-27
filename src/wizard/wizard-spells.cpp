@@ -4,6 +4,8 @@
  * @author Hourier
  */
 
+#include <vector>
+
 #include "wizard/wizard-spells.h"
 #include "blue-magic/blue-magic-checker.h"
 #include "core/asking-player.h"
@@ -23,12 +25,12 @@
 #include "spell/spells-status.h"
 #include "spell/summon-types.h"
 #include "system/floor-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/grid-selector.h"
 #include "target/target-checker.h"
 #include "target/target-getter.h"
+#include "util/flag-group.h"
 #include "view/display-messages.h"
-
-#include <vector>
 
 debug_spell_command debug_spell_commands_list[SPELL_MAX] = {
     { 2, "vanish dungeon", { .spell2 = { vanish_dungeon } } },
@@ -126,12 +128,12 @@ void wiz_teleport_back(player_type *caster_ptr)
  */
 void wiz_learn_blue_magic_all(player_type *caster_ptr)
 {
-    FlagGroup<RF_ABILITY> ability_flags;
+    EnumClassFlagGroup<RF_ABILITY> ability_flags;
     for (int j = 1; j < A_MAX; j++) {
         set_rf_masks(ability_flags, static_cast<blue_magic_type>(j));
 
         std::vector<RF_ABILITY> spells;
-        FlagGroup<RF_ABILITY>::get_flags(ability_flags, std::back_inserter(spells));
+        EnumClassFlagGroup<RF_ABILITY>::get_flags(ability_flags, std::back_inserter(spells));
         for (auto spell : spells) {
             caster_ptr->magic_num2[static_cast<int>(spell)] = 1;
         }
@@ -178,9 +180,9 @@ void wiz_summon_pet(player_type *summoner_ptr, MONRACE_IDX r_idx)
 }
 
 /*!
- * @brief ターゲットを指定してダメージ100万・半径0の弱魔力のボールを放つ
+ * @brief ターゲットを指定してダメージ100万・半径0の射撃のボールを放つ
  * @return なし
- * @details
+ * @details RES_ALL持ちも一撃で殺せる
  */
 void wiz_kill_enemy(player_type *caster_ptr)
 {
@@ -189,5 +191,5 @@ void wiz_kill_enemy(player_type *caster_ptr)
     if (!get_aim_dir(caster_ptr, &dir))
         return;
 
-    fire_ball(caster_ptr, GF_MISSILE, dir, 1000000, 0);
+    fire_ball(caster_ptr, GF_ARROW, dir, 1000000, 0);
 }

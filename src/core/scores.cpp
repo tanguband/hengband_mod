@@ -29,6 +29,7 @@
 #include "player/race-info-table.h"
 #include "system/angband-version.h"
 #include "system/floor-type-definition.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
 #include "util/angband-files.h"
@@ -438,7 +439,7 @@ void display_scores(int from, int to)
  * @return 転送が成功したらTRUEを返す
  * @todo プリプロが邪魔していて最初のif文を削除すると到達不能コードが発生する
  */
-bool send_world_score(player_type *current_player_ptr, bool do_send, void(*update_playtime)(void), display_player_pf display_player)
+bool send_world_score(player_type *current_player_ptr, bool do_send, display_player_pf display_player)
 {
 #ifdef WORLD_SCORE
 	if (send_score && do_send)
@@ -459,13 +460,17 @@ bool send_world_score(player_type *current_player_ptr, bool do_send, void(*updat
 		prt(_("送信中．．", "Sending..."), 0, 0);
 		term_fresh();
 		screen_save();
-		err = report_score(current_player_ptr, update_playtime, display_player);
+		err = report_score(current_player_ptr, display_player);
 		screen_load();
 		if (err) return FALSE;
 
 		prt(_("完了。何かキーを押してください。", "Completed.  Hit any key."), 0, 0);
 		(void)inkey();
 	}
+#else
+    (void)current_player_ptr;
+    (void)do_send;
+    (void)display_player;
 #endif
 	return TRUE;
 }

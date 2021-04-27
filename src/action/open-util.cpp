@@ -1,10 +1,16 @@
-﻿#include "action/open-util.h"
+﻿/*!
+ * @file open-util.cpp
+ * @brief 開閉処理関連関数
+ */
+
+#include "action/open-util.h"
 #include "floor/geometry.h"
 #include "grid/grid.h"
 #include "grid/trap.h"
 #include "perception/object-perception.h"
 #include "system/floor-type-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 
 /*!
  * @brief 該当のマスに存在している箱のオブジェクトIDを返す。

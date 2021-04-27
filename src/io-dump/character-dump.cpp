@@ -1,4 +1,6 @@
-﻿#include "io-dump/character-dump.h"
+﻿#include <string>
+
+#include "io-dump/character-dump.h"
 #include "artifact/fixed-art-types.h"
 #include "cmd-building/cmd-building.h"
 #include "dungeon/dungeon.h"
@@ -34,11 +36,14 @@
 #include "system/angband-version.h"
 #include "system/building-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/int-char-converter.h"
 #include "util/sort.h"
 #include "view/display-messages.h"
 #include "world/world.h"
-#include <string>
 
 /*!
  * @brief プレイヤーのペット情報をファイルにダンプする
@@ -348,9 +353,16 @@ static void dump_aux_monsters(player_type *creature_ptr, FILE *fff)
     ang_sort(creature_ptr, who, &why, uniq_total, ang_sort_comp_hook, ang_sort_swap_hook);
     fprintf(fff, _("\n《上位%ld体のユニーク・モンスター》\n", "\n< Unique monsters top %ld >\n"), MIN(uniq_total, 10));
 
+    char buf[80];
     for (MONRACE_IDX k = uniq_total - 1; k >= 0 && k >= uniq_total - 10; k--) {
         monster_race *r_ptr = &r_info[who[k]];
-        fprintf(fff, _("  %-40s (レベル%3d)\n", "  %-40s (level %3d)\n"), r_ptr->name.c_str(), (int)r_ptr->level);
+        if (r_ptr->defeat_level && r_ptr->defeat_time)
+            sprintf(buf, _(" - レベル%2d - %d:%02d:%02d", " - level %2d - %d:%02d:%02d"), r_ptr->defeat_level, r_ptr->defeat_time / (60 * 60),
+                (r_ptr->defeat_time / 60) % 60, r_ptr->defeat_time % 60);
+        else
+            buf[0] = '\0';
+
+        fprintf(fff, _("  %-40s (レベル%3d)%s\n", "  %-40s (level %3d)%s\n"), r_ptr->name.c_str(), (int)r_ptr->level, buf);
     }
 
     C_KILL(who, max_r_idx, s16b);
@@ -561,12 +573,11 @@ static concptr get_check_sum(void)
  * @param fff ファイルポインタ
  * @return エラーコード
  */
-void make_character_dump(player_type *creature_ptr, FILE *fff, void (*update_playtime)(void), display_player_pf display_player)
+void make_character_dump(player_type *creature_ptr, FILE *fff, display_player_pf display_player)
 {
     char title[127];
     put_version(title);
     fprintf(fff, _("  [%s キャラクタ情報]\n\n", "  [%s Character Dump]\n\n"), title);
-    (*update_playtime)();
 
     dump_aux_player_status(creature_ptr, fff, display_player);
     dump_aux_last_message(creature_ptr, fff);

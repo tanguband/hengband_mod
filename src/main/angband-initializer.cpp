@@ -1,5 +1,6 @@
 ﻿/*!
- * @brief ゲームデータ初期化
+ * @file angband-initializer.cpp
+ * @brief 変愚蛮怒のシステム初期化
  * @date 2014/01/28
  * @author
  * <pre>
@@ -24,6 +25,7 @@
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags7.h"
 #include "system/angband-version.h"
+#include "system/monster-race-definition.h"
 #include "system/system-variables.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"

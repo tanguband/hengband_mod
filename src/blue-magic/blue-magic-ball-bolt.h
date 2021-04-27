@@ -1,8 +1,11 @@
 ﻿#pragma once
-
-#include "system/angband.h"
+/*!
+ * @file blue-magic-ball-bolt.h
+ * @brief 青魔法のボール/ボルト系呪文ヘッダ
+ */
 
 typedef struct bmc_type bmc_type;
+typedef struct player_type player_type;
 bool cast_blue_ball_acid(player_type *caster_ptr, bmc_type *bmc_ptr);
 bool cast_blue_ball_elec(player_type *caster_ptr, bmc_type *bmc_ptr);
 bool cast_blue_ball_fire(player_type *caster_ptr, bmc_type *bmc_ptr);

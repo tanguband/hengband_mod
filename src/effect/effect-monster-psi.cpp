@@ -3,6 +3,7 @@
 #include "core/window-redrawer.h"
 #include "effect/effect-monster-util.h"
 #include "floor/line-of-sight.h"
+#include "grid/grid.h"
 #include "mind/mind-mirror-master.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
@@ -13,6 +14,9 @@
 #include "monster/monster-info.h"
 #include "player/player-damage.h"
 #include "status/bad-status-setter.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 #include "world/world.h"
@@ -40,7 +44,7 @@ static bool resisted_psi_because_empty_mind(player_type *caster_ptr, effect_mons
  * @brief 異質な精神のモンスター及び強力なモンスターのPsi攻撃に対する耐性を発動する
  * @param em_ptr モンスター効果への参照ポインタ
  * @return 耐性を発動した場合TRUE、そうでなければFALSE
- * @detail
+ * @details
  * 以下のいずれかの場合は耐性がある
  * 1) STUPIDまたはWIERD_MINDである
  * 2) ANIMALである
@@ -63,7 +67,7 @@ static bool resisted_psi_because_weird_mind_or_powerful(effect_monster_type *em_
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return ダメージ反射を発動した場合TRUE、そうでなければFALSE
- * @detail
+ * @details
  * 以下の条件を満たす場合に 1/2 の確率でダメージ反射する
  * 1) UNDEADまたはDEMONである
  * 2) レベルが詠唱者の レベル/2 より大きい
@@ -86,7 +90,7 @@ static bool reflects_psi_with_currupted_mind(player_type *caster_ptr, effect_mon
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return なし
- * @detail
+ * @details
  * 効果は、混乱、朦朧、恐怖、麻痺
  * 3/4の確率または影分身時はダメージ及び追加効果はない。
  */
@@ -123,7 +127,7 @@ static void effect_monster_psi_reflect_extra_effect(player_type *caster_ptr, eff
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return なし
- * @detail
+ * @details
  * 耐性を発動した精神の堕落したモンスターは効力を跳ね返すことがある。
  */
 static void effect_monster_psi_resist(player_type *caster_ptr, effect_monster_type *em_ptr)
@@ -154,7 +158,7 @@ static void effect_monster_psi_resist(player_type *caster_ptr, effect_monster_ty
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return なし
- * @detail
+ * @details
  * 効果は、混乱、朦朧、恐怖、麻痺(各耐性無効)
  * ダメージがないか3/4の確率で効果なし
  */
@@ -185,7 +189,7 @@ static void effect_monster_psi_extra_effect(effect_monster_type *em_ptr)
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return PROICESS_CONTINUE
- * @detail
+ * @details
  * 視界による影響を発動する。
  * モンスターの耐性とそれに不随した効果を発動する。
  */
@@ -212,7 +216,7 @@ process_result effect_monster_psi(player_type *caster_ptr, effect_monster_type *
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return なし
- * @detail
+ * @details
  * 耐性を発動した精神の堕落したモンスターは効力を跳ね返すことがある。
  */
 static void effect_monster_psi_drain_resist(player_type *caster_ptr, effect_monster_type *em_ptr)
@@ -273,7 +277,7 @@ static void effect_monster_psi_drain_change_power(player_type *caster_ptr, effec
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return PROICESS_CONTINUE
- * @detail
+ * @details
  * ダメージがないか3/4の確率で追加効果なし
  */
 process_result effect_monster_psi_drain(player_type *caster_ptr, effect_monster_type *em_ptr)
@@ -294,7 +298,7 @@ process_result effect_monster_psi_drain(player_type *caster_ptr, effect_monster_
  * @param caster_ptr プレイヤーへの参照ポインタ
  * @param em_ptr モンスター効果への参照ポインタ
  * @return PROICESS_CONTINUE
- * @detail
+ * @details
  * 朦朧＋ショートテレポートアウェイ
  */
 process_result effect_monster_telekinesis(player_type *caster_ptr, effect_monster_type *em_ptr)

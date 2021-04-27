@@ -42,6 +42,9 @@
 #include "status/experience.h"
 #include "sv-definition/sv-food-types.h"
 #include "sv-definition/sv-other-types.h"
+#include "system/monster-race-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/string-processor.h"
 #include "view/display-messages.h"
 #include "view/object-describer.h"
@@ -339,9 +342,7 @@ void exe_eat_food(player_type *creature_ptr, INVENTORY_IDX item)
 
         if (creature_ptr->food < PY_FOOD_ALERT) /* Hungry */
             msg_print(_("あなたの飢えは新鮮な血によってのみ満たされる！", "Your hunger can only be satisfied with fresh blood!"));
-    } else if (is_specific_player_race(creature_ptr, RACE_GOLEM) || is_specific_player_race(creature_ptr, RACE_ZOMBIE)
-        || is_specific_player_race(creature_ptr, RACE_ENT) || is_specific_player_race(creature_ptr, RACE_BALROG)
-        || is_specific_player_race(creature_ptr, RACE_ANDROID) || is_specific_player_race(creature_ptr, RACE_SPECTRE)
+    } else if (player_race_life(creature_ptr) != PlayerRaceLife::LIVING
         || (mimic_info[creature_ptr->mimic_form].MIMIC_FLAGS & MIMIC_IS_NONLIVING)) {
         msg_print(_("生者の食物はあなたにとってほとんど栄養にならない。", "The food of mortals is poor sustenance for you."));
         set_food(creature_ptr, creature_ptr->food + ((o_ptr->pval) / 20));

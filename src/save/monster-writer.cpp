@@ -4,6 +4,7 @@
 #include "monster/monster-info.h"
 #include "monster/monster-status.h"
 #include "save/save-util.h"
+#include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "util/quarks.h"
 
@@ -186,5 +187,8 @@ void wr_lore(MONRACE_IDX r_idx)
 
     wr_byte((byte)r_ptr->max_num);
     wr_s16b(r_ptr->floor_id);
+
+    wr_s16b(r_ptr->defeat_level);
+    wr_u32b(r_ptr->defeat_time);
     wr_byte(0);
 }

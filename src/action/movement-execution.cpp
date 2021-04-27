@@ -1,4 +1,9 @@
-﻿#include "action/movement-execution.h"
+﻿/*!
+ * @file movement-execution.cpp
+ * @brief プレイヤーの歩行勝利実行定義
+ */
+
+#include "action/movement-execution.h"
 #include "action/open-close-execution.h"
 #include "artifact/fixed-art-types.h"
 #include "cmd-action/cmd-attack.h"
@@ -6,6 +11,7 @@
 #include "core/player-update-types.h"
 #include "core/stuff-handler.h"
 #include "floor/pattern-walk.h"
+#include "floor/geometry.h"
 #include "game-option/input-options.h"
 #include "grid/feature.h"
 #include "grid/grid.h"
@@ -27,6 +33,9 @@
 #include "player/player-move.h"
 #include "player/player-status-flags.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "system/object-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"

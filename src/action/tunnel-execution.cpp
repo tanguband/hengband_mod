@@ -1,4 +1,9 @@
-﻿#include "action/tunnel-execution.h"
+﻿/*!
+ * @file tunnel-execution.cpp
+ * @brief 掘削処理実装
+ */
+
+#include "action/tunnel-execution.h"
 #include "core/player-update-types.h"
 #include "floor/cave.h"
 #include "grid/feature.h"
@@ -8,6 +13,7 @@
 #include "player-info/avatar.h"
 #include "player/player-move.h"
 #include "system/floor-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 

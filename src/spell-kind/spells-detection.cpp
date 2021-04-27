@@ -3,7 +3,9 @@
 #include "dungeon/dungeon-flag-types.h"
 #include "dungeon/dungeon.h"
 #include "floor/cave.h"
+#include "floor/geometry.h"
 #include "floor/floor-save-util.h"
+#include "grid/feature.h"
 #include "grid/grid.h"
 #include "grid/trap.h"
 #include "monster-race/monster-race.h"
@@ -21,7 +23,9 @@
 #include "realm/realm-song-numbers.h"
 #include "realm/realm-song.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/string-processor.h"
 #include "view/display-messages.h"
 
@@ -76,7 +80,7 @@ static bool detect_feat_flag(player_type *caster_ptr, POSITION range, int flag, 
  * @param range 効果範囲
  * @param known 感知外範囲を超える警告フラグを立てる場合TRUEを返す
  * @return 効力があった場合TRUEを返す
- * @detail
+ * @details
  * 吟遊詩人による感知についてはFALSEを返す
  */
 bool detect_traps(player_type *caster_ptr, POSITION range, bool known)

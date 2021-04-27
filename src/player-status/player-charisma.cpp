@@ -8,6 +8,7 @@
 #include "player/special-defense-types.h"
 #include "realm/realm-hex-numbers.h"
 #include "spell-realm/spells-hex.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
 void PlayerCharisma::set_locals()
@@ -108,7 +109,7 @@ BIT_FLAGS PlayerCharisma::get_bad_flags()
 
 /*!
  * @brief ステータス現在値更新の例外処理
- * @params 通常処理されたステータスの値
+ * @param 通常処理されたステータスの値
  * @returns 例外処理されたステータスの値
  * @details
  * * MUT3_ILL_NORMを保持しているときの例外処理。

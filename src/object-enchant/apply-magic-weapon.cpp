@@ -14,6 +14,7 @@
 #include "object-enchant/trc-types.h"
 #include "sv-definition/sv-weapon-types.h"
 #include "system/floor-type-definition.h"
+#include "system/object-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 
@@ -99,19 +100,6 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
             }
 
             switch (o_ptr->name2) {
-            case EGO_SLAYING_WEAPON:
-                if (one_in_(3))
-                    o_ptr->dd *= 2;
-                else {
-                    do {
-                        o_ptr->dd++;
-                    } while (one_in_(o_ptr->dd));
-
-                    do {
-                        o_ptr->ds++;
-                    } while (one_in_(o_ptr->ds));
-                }
-                break;
             case EGO_SHARPNESS:
                 o_ptr->pval = (PARAMETER_VALUE)m_bonus(5, level) + 1;
                 break;
@@ -180,11 +168,6 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
             }
 
             o_ptr->name2 = get_random_ego(INVEN_AMMO, TRUE);
-            switch (o_ptr->name2) {
-            case EGO_SLAYING_BOLT:
-                o_ptr->dd++;
-                break;
-            }
 
             while (one_in_(10L * o_ptr->dd * o_ptr->ds))
                 o_ptr->dd++;

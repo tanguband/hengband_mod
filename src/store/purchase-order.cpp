@@ -23,8 +23,11 @@
 #include "store/home.h"
 #include "store/pricing.h"
 #include "store/say-comments.h"
+#include "store/store-owners.h"
 #include "store/store-util.h"
 #include "store/store.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "util/int-char-converter.h"
 #include "view/display-messages.h"
@@ -268,7 +271,19 @@ void store_purchase(player_type *player_ptr)
         if (!res)
             return;
 
+        /*
+         * res.value() requires macOS 10.14 or later; avoid it if compiling for
+         * an earlier version of macOS.
+         */
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < 1140
+        price = res.value_or(0);
+#else
         price = res.value();
+#endif
+#else
+        price = res.value_or(0);
+#endif
     }
 
     if (price == (best * j_ptr->number))

@@ -1,4 +1,8 @@
 ﻿#pragma once
+/*!
+ * @file travel-execution.h
+ * @brief トラベル移動処理ヘッダ
+ */
 
 #include "system/angband.h"
 #include "floor/floor-base-definitions.h"
@@ -14,5 +18,7 @@ typedef struct travel_type {
 
 extern travel_type travel;
 
+typedef struct floor_type floor_type;
+typedef struct player_type player_type;
 void travel_step(player_type *creature_ptr);
 void forget_travel_flow(floor_type *floor_ptr);

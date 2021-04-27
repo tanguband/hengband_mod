@@ -1,4 +1,5 @@
 ﻿/*!
+ * @file blue-magic-checker.cpp
  * @brief 青魔法の処理実装 / Blue magic
  * @date 2014/01/15
  * @author
@@ -13,11 +14,12 @@
 #include "core/player-redraw-types.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
-#include "mind/mind-blue-mage.h"
 #include "monster-race/race-ability-mask.h"
 #include "mspell/monster-power-table.h"
 #include "player/attack-defense-types.h"
 #include "status/experience.h"
+#include "system/angband.h"
+#include "system/player-type-definition.h"
 #include "view/display-messages.h"
 
 /*!
@@ -55,7 +57,7 @@ void learn_spell(player_type *learner_ptr, int monspell)
  * @return なし
  * @todo f4, f5, f6を構造体にまとめ直す
  */
-void set_rf_masks(FlagGroup<RF_ABILITY>& ability_flags, blue_magic_type mode)
+void set_rf_masks(EnumClassFlagGroup<RF_ABILITY> &ability_flags, blue_magic_type mode)
 {
     ability_flags.clear();
 

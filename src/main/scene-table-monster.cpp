@@ -1,9 +1,17 @@
-﻿#include "main/scene-table-monster.h"
+﻿/*!
+ * @file scene-table-monster.cpp
+ * @brief モンスターの遭遇状況に応じたBGM設定処理実装
+ */
+
+#include "main/scene-table-monster.h"
 #include "dungeon/quest.h"
 #include "main/music-definitions-table.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "world/world.h"
 

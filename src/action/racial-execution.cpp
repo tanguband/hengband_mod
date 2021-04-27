@@ -1,9 +1,15 @@
-﻿#include "action/racial-execution.h"
+﻿/*!
+ * @file racial-execution.cpp
+ * @brief レイシャルパワー実行処理実装
+ */
+
+#include "action/racial-execution.h"
 #include "action/action-limited.h"
 #include "core/asking-player.h"
 #include "game-option/disturbance-options.h"
 #include "racial/racial-switcher.h"
 #include "racial/racial-util.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "view/display-messages.h"
 

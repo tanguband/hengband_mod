@@ -1,4 +1,9 @@
-﻿#include "main/info-initializer.h"
+﻿/*!
+ * @file info-initializer.cpp
+ * @brief 変愚蛮怒のゲームデータ解析処理定義
+ */
+
+#include "main/info-initializer.h"
 #include "dungeon/dungeon.h"
 #include "grid/feature.h"
 #include "info-reader/artifact-reader.h"
@@ -24,6 +29,7 @@
 #include "room/rooms-vault.h"
 #include "system/angband-version.h"
 #include "system/artifact-type-definition.h"
+#include "system/monster-race-definition.h"
 #include "util/angband-files.h"
 #include "view/display-messages.h"
 #include "world/world.h"

@@ -74,6 +74,7 @@
 #include "status/bad-status-setter.h"
 #include "status/buff-setter.h"
 #include "status/experience.h"
+#include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "util/bit-flags-calculator.h"
 #include "util/int-char-converter.h"
@@ -201,11 +202,14 @@ bool switch_class_racial_execution(player_type *creature_ptr, const s32b command
             return FALSE;
 
         handle_stuff(creature_ptr);
-        do_cmd_cast(creature_ptr);
-        handle_stuff(creature_ptr);
-        if (!creature_ptr->paralyzed && !cmd_limit_cast(creature_ptr))
-            do_cmd_cast(creature_ptr);
+        if (!do_cmd_cast(creature_ptr))
+            return FALSE;
 
+        if (!creature_ptr->paralyzed && !cmd_limit_cast(creature_ptr)) {
+            handle_stuff(creature_ptr);
+            command_dir = 0;
+            (void)do_cmd_cast(creature_ptr);
+        }
         return TRUE;
     case CLASS_SAMURAI:
         if (command == -3) {

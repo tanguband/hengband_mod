@@ -1,9 +1,15 @@
-﻿#include "blue-magic/blue-magic-summon.h"
+﻿/*!
+ * @file blue-magic-summon.cpp
+ * @brief 青魔法の召喚系スペル定義
+ */
+
+#include "blue-magic/blue-magic-summon.h"
 #include "blue-magic/blue-magic-util.h"
 #include "monster-floor/monster-summon.h"
 #include "monster-floor/place-monster-types.h"
 #include "spell/spells-summon.h"
 #include "spell/summon-types.h"
+#include "system/player-type-definition.h"
 #include "view/display-messages.h"
 
 bool cast_blue_summon_kin(player_type *caster_ptr, bmc_type *bmc_ptr)

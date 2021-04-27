@@ -27,6 +27,7 @@
 #include "monster-floor/monster-summon.h"
 #include "monster-floor/place-monster-types.h"
 #include "monster-race/monster-race.h"
+#include "monster-race/race-ability-flags.h"
 #include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags1.h"
 #include "monster/monster-describer.h"
@@ -50,6 +51,9 @@
 #include "status/body-improvement.h"
 #include "status/buff-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/projection-path-calculator.h"
 #include "target/target-checker.h"
 #include "target/target-getter.h"
@@ -499,7 +503,7 @@ static bool use_mane(player_type *caster_ptr, RF_ABILITY spell)
         fire_breath(caster_ptr, GF_PLASMA, dir, damage, (plev > 35 ? 3 : 2));
         break;
 
-    case RF_ABILITY::BR_WALL:
+    case RF_ABILITY::BR_FORC:
         if (!get_aim_dir(caster_ptr, &dir))
             return FALSE;
         else

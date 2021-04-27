@@ -17,6 +17,7 @@
 #include "effect/effect-characteristics.h"
 #include "effect/effect-processor.h"
 #include "game-option/cheat-types.h"
+#include "grid/grid.h"
 #include "inventory/inventory-slot-types.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
@@ -40,6 +41,10 @@
 #include "spell/spell-types.h"
 #include "status/action-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "view/display-messages.h"
 #include "wizard/wizard-messages.h"
 
@@ -165,7 +170,7 @@ bool do_cmd_attack(player_type *attacker_ptr, POSITION y, POSITION x, combat_opt
     monster_race *r_ptr = &r_info[m_ptr->r_idx];
     GAME_TEXT m_name[MAX_NLEN];
 
-    const auto mutation_attack_methods = {MUTA::HORNS, MUTA::BEAK, MUTA::SCOR_TAIL, MUTA::TRUNK, MUTA::TENTACLES};
+    const std::initializer_list<MUTA> mutation_attack_methods = { MUTA::HORNS, MUTA::BEAK, MUTA::SCOR_TAIL, MUTA::TRUNK, MUTA::TENTACLES };
 
     disturb(attacker_ptr, FALSE, TRUE);
 
