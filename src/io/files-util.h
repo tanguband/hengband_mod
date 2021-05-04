@@ -21,10 +21,11 @@ extern concptr ANGBAND_DIR_DEBUG_SAVE;
 extern concptr ANGBAND_DIR_USER;
 extern concptr ANGBAND_DIR_XTRA;
 
-typedef void(*display_player_pf)(player_type*, int);
+typedef struct player_type player_type;
+typedef void (*display_player_pf)(player_type *, int);
 typedef void(*update_playtime_pf)(void);
 
-extern errr file_character(player_type *creature_ptr, concptr name, update_playtime_pf update_playtime, display_player_pf display_player);
+extern errr file_character(player_type *creature_ptr, concptr name, display_player_pf display_player);
 extern errr get_rnd_line(concptr file_name, int entry, char *output);
 void read_dead_file(char* buf, size_t buf_size);
 

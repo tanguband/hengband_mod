@@ -16,7 +16,9 @@
 #include "mspell/summon-checker.h"
 #include "spell/summon-types.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 
 /*!
  * @var summon_specific_who
@@ -48,7 +50,7 @@ static bool summon_specific_okay(player_type *player_ptr, MONRACE_IDX r_idx)
         if (monster_has_hostile_align(player_ptr, m_ptr, 0, 0, r_ptr))
             return FALSE;
     } else if (summon_specific_who < 0) {
-        if (monster_has_hostile_align(player_ptr, NULL, 10, -10, r_ptr) && !one_in_(ABS(player_ptr->align) / 2 + 1))
+        if (monster_has_hostile_align(player_ptr, NULL, 10, -10, r_ptr) && !one_in_(ABS(player_ptr->alignment) / 2 + 1))
             return FALSE;
     }
 
@@ -90,7 +92,7 @@ static bool is_dead_summoning(summon_type type)
  * @brief 荒野のレベルを含めた階層レベルを返す
  * @param player_ptr プレーヤーへの参照ポインタ
  * @return 階層レベル
- * @detail
+ * @details
  * ダンジョン及びクエストはdun_level>0となる。
  * 荒野はdun_level==0なので、その場合荒野レベルを返す。
  */

@@ -1,13 +1,12 @@
 ﻿#include "realm/realm-nature.h"
 #include "cmd-action/cmd-spell.h"
-#include "core/hp-mp-processor.h"
 #include "effect/effect-characteristics.h"
 #include "effect/effect-processor.h"
 #include "effect/spells-effect-util.h"
 #include "floor/floor-object.h"
+#include "hpmp/hp-mp-processor.h"
 #include "monster-floor/monster-summon.h"
 #include "monster-floor/place-monster-types.h"
-#include "object/object-generator.h"
 #include "object/object-kind-hook.h"
 #include "player-attack/player-attack.h"
 #include "player-info/avatar.h"
@@ -37,6 +36,7 @@
 #include "status/element-resistance.h"
 #include "sv-definition/sv-food-types.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "view/display-messages.h"
 
@@ -133,7 +133,7 @@ concptr do_nature_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mod
                 msg_print(_("食料を生成した。", "A food ration is produced."));
 
                 /* Create the food ration */
-                object_prep(caster_ptr, q_ptr, lookup_kind(TV_FOOD, SV_FOOD_RATION));
+                q_ptr->prep(caster_ptr, lookup_kind(TV_FOOD, SV_FOOD_RATION));
 
                 /* Drop the object from heaven */
                 (void)drop_near(caster_ptr, q_ptr, -1, caster_ptr->y, caster_ptr->x);
@@ -158,7 +158,7 @@ concptr do_nature_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mod
             if (cast) {
                 lite_area(caster_ptr, damroll(dice, sides), rad);
 
-                if ((is_specific_player_race(caster_ptr, RACE_VAMPIRE) || (caster_ptr->mimic_form == MIMIC_VAMPIRE)) && !has_resist_lite(caster_ptr)) {
+                if (player_race_life(caster_ptr) == PlayerRaceLife::UNDEAD && player_race_has_flag(caster_ptr, TR_VUL_LITE) && !has_resist_lite(caster_ptr)) {
                     msg_print(_("日の光があなたの肉体を焦がした！", "The daylight scorches your flesh!"));
                     take_hit(caster_ptr, DAMAGE_NOESCAPE, damroll(2, 2), _("日の光", "daylight"));
                 }
@@ -623,7 +623,7 @@ concptr do_nature_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mod
                 chg_virtue(caster_ptr, V_ENLIGHTEN, 1);
                 wiz_lite(caster_ptr, FALSE);
 
-                if ((is_specific_player_race(caster_ptr, RACE_VAMPIRE) || (caster_ptr->mimic_form == MIMIC_VAMPIRE)) && !has_resist_lite(caster_ptr)) {
+                if (player_race_life(caster_ptr) == PlayerRaceLife::UNDEAD && player_race_has_flag(caster_ptr, TR_VUL_LITE) && !has_resist_lite(caster_ptr)) {
                     msg_print(_("日光があなたの肉体を焦がした！", "The sunlight scorches your flesh!"));
                     take_hit(caster_ptr, DAMAGE_NOESCAPE, 50, _("日光", "sunlight"));
                 }

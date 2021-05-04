@@ -22,13 +22,15 @@
 #include "mspell/mspell-learn-checker.h"
 #include "mspell/mspell-lite.h"
 #include "mspell/mspell-selector.h"
-#include "mspell/mspell-type.h"
 #include "mspell/mspell-util.h"
 #include "mspell/mspell.h"
 #include "player/attack-defense-types.h"
 #include "spell-kind/spells-world.h"
 #include "spell-realm/spells-hex.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/projection-path-calculator.h"
 #include "view/display-messages.h"
 #include "world/world.h"
@@ -110,7 +112,7 @@ static bool check_mspell_non_stupid(player_type *target_ptr, msa_type *msa_ptr)
 
 static void set_mspell_list(msa_type *msa_ptr)
 {
-    FlagGroup<RF_ABILITY>::get_flags(msa_ptr->ability_flags, std::back_inserter(msa_ptr->mspells));
+    EnumClassFlagGroup<RF_ABILITY>::get_flags(msa_ptr->ability_flags, std::back_inserter(msa_ptr->mspells));
 }
 
 static void describe_mspell_monster(player_type *target_ptr, msa_type *msa_ptr)

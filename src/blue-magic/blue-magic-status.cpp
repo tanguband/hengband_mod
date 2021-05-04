@@ -1,6 +1,12 @@
-﻿#include "blue-magic/blue-magic-status.h"
+﻿/*!
+ * @file blue-magic-status.cpp
+ * @brief 青魔法の状態異常系スペル定義
+ */
+
+#include "blue-magic/blue-magic-status.h"
 #include "blue-magic/blue-magic-util.h"
 #include "spell/spells-status.h"
+#include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "view/display-messages.h"
 

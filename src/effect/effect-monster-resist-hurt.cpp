@@ -1,5 +1,6 @@
 ﻿#include "effect/effect-monster-resist-hurt.h"
 #include "effect/effect-monster-util.h"
+#include "grid/grid.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags1.h"
@@ -10,6 +11,9 @@
 #include "monster/monster-info.h"
 #include "monster/monster-status-setter.h"
 #include "monster/monster-status.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
 /*!
@@ -575,7 +579,7 @@ process_result effect_monster_icee_bolt(player_type *caster_ptr, effect_monster_
  * @param caster_ptr プレイヤー情報への参照ポインタ
  * @em_ptr 魔法効果情報への参照ポインタ
  * @return 効果処理を続けるかどうか
- * @detail
+ * @details
  * 量子生物に倍打、壁抜けに1.5倍打、テレポート耐性が耐性
  */
 process_result effect_monster_void(player_type* caster_ptr, effect_monster_type* em_ptr)
@@ -619,7 +623,7 @@ process_result effect_monster_void(player_type* caster_ptr, effect_monster_type*
  * @param caster_ptr プレイヤー情報への参照ポインタ
  * @em_ptr 魔法効果情報への参照ポインタ
  * @return 効果処理を続けるかどうか
- * @detail
+ * @details
  * 飛ばないテレポート耐性に1.25倍打、暗黒耐性が耐性
  * 1/3で追加に混乱か恐怖
  */

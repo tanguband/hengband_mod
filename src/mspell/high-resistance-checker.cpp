@@ -1,8 +1,10 @@
 ﻿#include "mspell/high-resistance-checker.h"
+#include "monster-race/race-ability-flags.h"
 #include "monster/smart-learn-types.h"
 #include "mspell/smart-mspell-util.h"
 #include "player/player-race.h"
 #include "player/player-status-flags.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
 void add_cheat_remove_flags_others(player_type *target_ptr, msr_type *msr_ptr)
@@ -89,7 +91,7 @@ static void check_dark_resistance(player_type *target_ptr, msr_type *msr_ptr)
     if (msr_ptr->smart.has_not(SM::RES_DARK))
         return;
 
-    if (is_specific_player_race(target_ptr, RACE_VAMPIRE)) {
+    if (player_race_has_flag(target_ptr, TR_IM_DARK)) {
         msr_ptr->ability_flags.reset(RF_ABILITY::BR_DARK);
         msr_ptr->ability_flags.reset(RF_ABILITY::BA_DARK);
         return;

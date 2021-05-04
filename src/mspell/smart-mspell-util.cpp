@@ -1,10 +1,14 @@
 ﻿#include "mspell/smart-mspell-util.h"
 #include "monster-race/monster-race.h"
+#include "monster-race/race-ability-flags.h"
 #include "monster-race/race-flags2.h"
+#include "monster/smart-learn-types.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 
-msr_type *initialize_msr_type(player_type *target_ptr, msr_type *msr_ptr, MONSTER_IDX m_idx, const FlagGroup<RF_ABILITY>& ability_flags)
+msr_type *initialize_msr_type(player_type *target_ptr, msr_type *msr_ptr, MONSTER_IDX m_idx, const EnumClassFlagGroup<RF_ABILITY> &ability_flags)
 {
     monster_type *m_ptr = &target_ptr->current_floor_ptr->m_list[m_idx];
     msr_ptr->r_ptr = &r_info[m_ptr->r_idx];

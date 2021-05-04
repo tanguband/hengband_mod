@@ -4,6 +4,8 @@
  * @author deskull
  * @details Ego-Item indexes (see "lib/edit/e_info.txt")
  */
+#include <vector>
+
 #include "object-enchant/object-ego.h"
 #include "object-enchant/object-boost.h"
 #include "object-enchant/object-curse.h"
@@ -13,9 +15,9 @@
 #include "object-hook/hook-weapon.h"
 #include "sv-definition/sv-protector-types.h"
 #include "sv-definition/sv-weapon-types.h"
+#include "system/object-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "util/probability-table.h"
-#include <vector>
 
 /*
  * The ego-item arrays
@@ -61,9 +63,8 @@ byte get_random_ego(byte slot, bool good)
  * @param player_ptr プレイヤー情報への参照ポインタ
  * @param o_ptr オブジェクト情報への参照ポインタ
  * @param gen_flags 生成フラグ(参照渡し)
- * @return なし
  */
-static void ego_invest_curse(player_type* player_ptr, object_type* o_ptr, FlagGroup<TRG>& gen_flags)
+static void ego_invest_curse(player_type *player_ptr, object_type *o_ptr, EnumClassFlagGroup<TRG> &gen_flags)
 {
     if (gen_flags.has(TRG::CURSED))
         o_ptr->curse_flags |= (TRC_CURSED);
@@ -83,9 +84,8 @@ static void ego_invest_curse(player_type* player_ptr, object_type* o_ptr, FlagGr
  * @brief エゴオブジェクトに追加能力/耐性を付加する
  * @param o_ptr オブジェクト情報への参照ポインタ
  * @param gen_flags 生成フラグ(参照渡し)
- * @return なし
  */
-static void ego_invest_extra_abilities(object_type *o_ptr, FlagGroup<TRG> &gen_flags)
+static void ego_invest_extra_abilities(object_type *o_ptr, EnumClassFlagGroup<TRG> &gen_flags)
 {
     if (gen_flags.has(TRG::ONE_SUSTAIN))
         one_sustain(o_ptr);
@@ -113,14 +113,25 @@ static void ego_invest_extra_abilities(object_type *o_ptr, FlagGroup<TRG> &gen_f
         add_low_telepathy(o_ptr);
     if (gen_flags.has(TRG::XTRA_L_ESP))
         one_low_esp(o_ptr);
-    if (gen_flags.has(TRG::XTRA_DICE)) {
-        do {
-            o_ptr->dd++;
-        } while (one_in_(o_ptr->dd));
-
-        if (o_ptr->dd > 9)
-            o_ptr->dd = 9;
+    if (gen_flags.has(TRG::ADD_DICE))
+        o_ptr->dd++;
+    if (gen_flags.has(TRG::DOUBLED_DICE))
+        o_ptr->dd *= 2;
+    else {
+        if (gen_flags.has(TRG::XTRA_DICE)) {
+            do {
+                o_ptr->dd++;
+            } while (one_in_(o_ptr->dd));
+        }
+        if (gen_flags.has(TRG::XTRA_DICE_SIDE)) {
+            do {
+                o_ptr->ds++;
+            } while (one_in_(o_ptr->ds));
+        }
     }
+
+    if (o_ptr->dd > 9)
+        o_ptr->dd = 9;
 }
 
 /*!
@@ -129,9 +140,8 @@ static void ego_invest_extra_abilities(object_type *o_ptr, FlagGroup<TRG> &gen_f
  * @param o_ptr オブジェクト情報への参照ポインタ
  * @param e_ptr エゴアイテム情報への参照ポインタ
  * @param gen_flags 生成フラグ(参照渡し)
- * @return なし
  */
-static void ego_interpret_extra_abilities(object_type *o_ptr, ego_item_type *e_ptr, FlagGroup<TRG> &gen_flags)
+static void ego_interpret_extra_abilities(object_type *o_ptr, ego_item_type *e_ptr, EnumClassFlagGroup<TRG> &gen_flags)
 {
     for (auto& xtra : e_ptr->xtra_flags) {
         if (xtra.mul == 0 || xtra.dev == 0)
@@ -191,7 +201,6 @@ static bool ego_has_flag(object_type *o_ptr, ego_item_type *e_ptr, tr_type flag)
  * @param o_ptr オブジェクト情報への参照ポインタ
  * @param e_ptr エゴアイテム情報への参照ポインタ
  * @param lev 生成階
- * @return なし
  */
 void ego_invest_extra_attack(player_type *player_ptr, object_type *o_ptr, ego_item_type *e_ptr, DEPTH lev)
 {
@@ -229,7 +238,6 @@ void ego_invest_extra_attack(player_type *player_ptr, object_type *o_ptr, ego_it
  * @param player_ptr プレイヤー情報への参照ポインタ
  * @param o_ptr オブジェクト情報への参照ポインタ
  * @param lev 生成階
- * @return なし
  */
 void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
 {
@@ -246,6 +254,10 @@ void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
 
     if (e_ptr->act_idx)
         o_ptr->xtra2 = (XTRA8)e_ptr->act_idx;
+
+    o_ptr->to_h += (HIT_PROB)e_ptr->base_to_h;
+    o_ptr->to_d += (HIT_POINT)e_ptr->base_to_d;
+    o_ptr->to_a += (ARMOUR_CLASS)e_ptr->base_to_a;
 
     auto is_powerful = e_ptr->gen_flags.has(TRG::POWERFUL);
     auto is_cursed = (object_is_cursed(o_ptr) || object_is_broken(o_ptr)) && !is_powerful;
@@ -269,7 +281,7 @@ void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
         }
 
         o_ptr->to_h += (HIT_PROB)randint1_signed(e_ptr->max_to_h);
-        o_ptr->to_d += randint1_signed(e_ptr->max_to_d);
+        o_ptr->to_d += (HIT_POINT)randint1_signed(e_ptr->max_to_d);
         o_ptr->to_a += (ARMOUR_CLASS)randint1_signed(e_ptr->max_to_a);
 
         if (gen_flags.has(TRG::MOD_ACCURACY)) {

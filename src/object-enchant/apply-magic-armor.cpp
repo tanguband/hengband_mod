@@ -16,6 +16,7 @@
 #include "object-enchant/trc-types.h"
 #include "sv-definition/sv-armor-types.h"
 #include "sv-definition/sv-protector-types.h"
+#include "system/object-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 
@@ -26,7 +27,6 @@
  * @param o_ptr 強化を与えたいオブジェクトの構造体参照ポインタ
  * @param level 生成基準階
  * @param power 生成ランク
- * @return なし
  * @details
  * Hack -- note special processing for crown/helm\n
  * Hack -- note special processing for robe of permanence\n
@@ -322,18 +322,6 @@ void apply_magic_armor(player_type *owner_ptr, object_type *o_ptr, DEPTH level, 
                 break;
             }
             o_ptr->name2 = get_random_ego(INVEN_OUTER, TRUE);
-
-            switch (o_ptr->name2) {
-            case EGO_BAT:
-                o_ptr->to_d -= 6;
-                o_ptr->to_h -= 6;
-                break;
-            case EGO_NAZGUL:
-                o_ptr->to_d -= 3;
-                o_ptr->to_h -= 3;
-                break;
-            }
-
         } else if (power < -1) {
             o_ptr->name2 = get_random_ego(INVEN_OUTER, FALSE);
         }

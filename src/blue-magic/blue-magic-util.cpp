@@ -1,5 +1,11 @@
-﻿#include "blue-magic/blue-magic-util.h"
+﻿/*!
+ * @file blue-magic-util.cpp
+ * @brief 青魔法の構造体、初期化処理定義
+ */
+
+#include "blue-magic/blue-magic-util.h"
 #include "monster-floor/place-monster-types.h"
+#include "system/player-type-definition.h"
 
 bmc_type *initialize_blue_magic_type(
     player_type *caster_ptr, bmc_type *bmc_ptr, const bool success, get_pseudo_monstetr_level_pf get_pseudo_monstetr_level)

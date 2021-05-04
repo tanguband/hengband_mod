@@ -25,6 +25,7 @@
 #include "monster/monster-compaction.h"
 #include "monster/monster-status.h"
 #include "object/object-kind.h"
+#include "player/player-status.h"
 #include "save/floor-writer.h"
 #include "save/info-writer.h"
 #include "save/item-writer.h"
@@ -35,6 +36,7 @@
 #include "store/store-util.h"
 #include "system/angband-version.h"
 #include "system/artifact-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/angband-files.h"
 #include "view/display-messages.h"
 #include "world/world.h"
@@ -159,6 +161,10 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
         wr_byte(a_ptr->cur_num);
         wr_s16b(a_ptr->floor_id);
     }
+
+    wr_u32b(current_world_ptr->sf_play_time);
+    wr_FlagGroup(current_world_ptr->sf_winner, wr_byte);
+    wr_FlagGroup(current_world_ptr->sf_retired, wr_byte);
 
     wr_player(player_ptr);
     tmp16u = PY_MAX_LEVEL;

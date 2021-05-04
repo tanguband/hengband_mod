@@ -22,6 +22,7 @@
 #include "store/store.h"
 #include "system/floor-type-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "term/gameterm.h"
 #include "term/screen-processor.h"
 #include "util/buffer-shaper.h"
@@ -36,7 +37,6 @@
 /*!
  * @brief 墓石の真ん中に文字列を書き込む /
  * Centers a string within a GRAVE_LINE_WIDTH character string		-JWT-
- * @return なし
  * @details
  */
 static void center_string(char *buf, concptr str)
@@ -50,7 +50,6 @@ static void center_string(char *buf, concptr str)
  * @brief 墓に基本情報を表示
  * @param dead_ptr プレーヤーへの参照ポインタ
  * @param buf 墓テンプレ
- * @return なし
  */
 static void show_basic_params(player_type *dead_ptr, char *buf)
 {
@@ -120,7 +119,6 @@ static int show_killing_monster(player_type *dead_ptr, char *buf, char *tomb_mes
  * @param buf 墓テンプレ
  * @param tomb_message 表示する文字列
  * @param extra_line 追加の行数
- * @return なし
  */
 static void show_dead_place(player_type *dead_ptr, char *buf, char *tomb_message, int extra_line)
 {
@@ -150,7 +148,6 @@ static void show_dead_place(player_type *dead_ptr, char *buf, char *tomb_message
  * @brief 墓に刻む言葉を細かく表示 (日本語版専用)
  * @param dead_ptr プレーヤーへの参照ポインタ
  * @param buf 墓テンプレ
- * @return なし
  */
 static void show_tomb_detail(player_type *dead_ptr, char *buf)
 {
@@ -211,7 +208,6 @@ static void show_tomb_detail(player_type *dead_ptr, char *buf)
  * @brief 墓石のアスキーアート表示 /
  * Display a "tomb-stone"
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 void print_tomb(player_type *dead_ptr)
 {
@@ -250,7 +246,6 @@ void print_tomb(player_type *dead_ptr)
 /*!
  * @brief 死亡/引退/切腹時にインベントリ内のアイテムを*鑑定*する
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 static void inventory_aware(player_type *creature_ptr)
 {
@@ -268,7 +263,6 @@ static void inventory_aware(player_type *creature_ptr)
 /*!
  * @brief 死亡/引退/切腹時に我が家のアイテムを*鑑定*する
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 static void home_aware(player_type *creature_ptr)
 {
@@ -317,7 +311,6 @@ static bool show_dead_player_items(player_type *creature_ptr)
 /*!
  * @brief 我が家にあったアイテムを表示する
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 static void show_dead_home_items(player_type *creature_ptr)
 {
@@ -351,9 +344,8 @@ static void show_dead_home_items(player_type *creature_ptr)
  * @brief キャラクタ情報をファイルに書き出す
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param file_character ステータスダンプへのコールバック
- * @return なし
  */
-static void export_player_info(player_type *creature_ptr, update_playtime_pf update_playtime, display_player_pf display_player)
+static void export_player_info(player_type *creature_ptr, display_player_pf display_player)
 {
     prt(_("キャラクターの記録をファイルに書き出すことができます。", "You may now dump a character record to one or more files."), 21, 0);
     prt(_("リターンキーでキャラクターを見ます。ESCで中断します。", "Then, hit RETURN to see the character, or ESC to abort."), 22, 0);
@@ -367,16 +359,15 @@ static void export_player_info(player_type *creature_ptr, update_playtime_pf upd
             break;
 
         screen_save();
-        (void)file_character(creature_ptr, out_val, update_playtime, display_player);
+        (void)file_character(creature_ptr, out_val, display_player);
         screen_load();
     }
 }
 
 /*!
  * @brief 自動的にプレイヤーステータスをファイルダンプ出力する
- * @return なし
  */
-static void file_character_auto(player_type *creature_ptr, update_playtime_pf update_playtime, display_player_pf display_player)
+static void file_character_auto(player_type *creature_ptr, display_player_pf display_player)
 {
     time_t now_t = time(NULL);
     struct tm *now_tm = localtime(&now_t);
@@ -388,20 +379,16 @@ static void file_character_auto(player_type *creature_ptr, update_playtime_pf up
     strnfmt(filename, sizeof(filename), "%s_Autodump_%s.txt", p_ptr->name, datetime);
 
     screen_save();
-    (void)file_character(creature_ptr, filename, update_playtime, display_player);
+    (void)file_character(creature_ptr, filename, display_player);
     screen_load();
 }
 
 /*!
  * @brief 死亡、引退時の簡易ステータス表示
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @param handle_stuff 更新処理チェックへのコールバック
- * @param file_character ステータスダンプへのコールバック
- * @param update_playtime プレイ時間更新処理へのコールバック
  * @param display_player ステータス表示へのコールバック
- * @return なし
  */
-void show_death_info(player_type *creature_ptr, update_playtime_pf update_playtime, display_player_pf display_player)
+void show_death_info(player_type *creature_ptr, display_player_pf display_player)
 {
     inventory_aware(creature_ptr);
     home_aware(creature_ptr);
@@ -412,10 +399,9 @@ void show_death_info(player_type *creature_ptr, update_playtime_pf update_playti
     msg_erase();
 
     if (auto_dump)
-        file_character_auto(creature_ptr, update_playtime, display_player);
+        file_character_auto(creature_ptr, display_player);
 
-    export_player_info(creature_ptr, update_playtime, display_player);
-    (*update_playtime)();
+    export_player_info(creature_ptr, display_player);
     (*display_player)(creature_ptr, 0);
     prt(_("何かキーを押すとさらに情報が続きます (ESCで中断): ", "Hit any key to see more information (ESC to abort): "), 23, 0);
     if (inkey() == ESCAPE)

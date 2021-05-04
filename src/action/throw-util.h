@@ -1,11 +1,16 @@
 ﻿#pragma once
+/*!
+ * @file throw-util.h
+ * @brief 投擲処理関連ヘッダ
+ */
 
 #include "system/angband.h"
-#include "system/object-type-definition.h"
+#include "system/system-variables.h"
 
 // Item Throw.
 typedef struct grid_type grid_type;
 typedef struct monster_type monster_type;
+typedef struct object_type object_type;
 typedef struct it_type {
     int mult;
     bool boomerang;

@@ -4,12 +4,12 @@
 #include "load/load-util.h"
 #include "load/load-v1-5-0.h"
 #include "load/angband-version-comparer.h"
+#include "system/monster-race-definition.h"
 
 /*!
  * @brief モンスターの思い出を読み込む / Read the monster lore
  * @param r_ptr 読み込み先モンスター種族情報へのポインタ
  * @param r_idx 読み込み先モンスターID(種族特定用)
- * @return なし
  */
 void rd_lore(monster_race *r_ptr, MONRACE_IDX r_idx)
 {
@@ -84,6 +84,12 @@ void rd_lore(monster_race *r_ptr, MONRACE_IDX r_idx)
     r_ptr->max_num = (MONSTER_NUMBER)tmp8u;
 
     rd_s16b(&r_ptr->floor_id);
+
+    if (!loading_savefile_version_is_older_than(4)) {
+        rd_s16b(&r_ptr->defeat_level);
+        rd_u32b(&r_ptr->defeat_time);
+    }
+
     rd_byte(&tmp8u);
 
     r_ptr->r_flags1 &= r_ptr->flags1;
