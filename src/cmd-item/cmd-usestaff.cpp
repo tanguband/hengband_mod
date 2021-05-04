@@ -12,16 +12,15 @@
 #include "monster-floor/place-monster-types.h"
 #include "object-enchant/special-object-flags.h"
 #include "object/item-use-flags.h"
-#include "object/object-generator.h"
 #include "object/object-info.h"
 #include "object/object-kind.h"
 #include "perception/object-perception.h"
 #include "player/attack-defense-types.h"
 #include "player-info/avatar.h"
+#include "player-status/player-energy.h"
 #include "player/player-class.h"
 #include "player/player-race-types.h"
 #include "player/player-race.h"
-#include "player/player-status.h"
 #include "player/player-status-flags.h"
 #include "player/special-defense-types.h"
 #include "spell-kind/earthquake.h"
@@ -283,8 +282,7 @@ int staff_effect(player_type *creature_ptr, OBJECT_SUBTYPE_VALUE sval, bool *use
 
     case SV_STAFF_NOTHING: {
         msg_print(_("何も起らなかった。", "Nothing happens."));
-        if (is_specific_player_race(creature_ptr, RACE_SKELETON) || is_specific_player_race(creature_ptr, RACE_GOLEM)
-            || is_specific_player_race(creature_ptr, RACE_ZOMBIE) || is_specific_player_race(creature_ptr, RACE_SPECTRE))
+        if (player_race_food(creature_ptr) == PlayerRaceFood::MANA)
             msg_print(_("もったいない事をしたような気がする。食べ物は大切にしなくては。", "What a waste.  It's your food!"));
         break;
     }
@@ -296,7 +294,6 @@ int staff_effect(player_type *creature_ptr, OBJECT_SUBTYPE_VALUE sval, bool *use
  * @brief 杖を使うコマンドのサブルーチン /
  * Use a staff.			-RAK-
  * @param item 使うオブジェクトの所持品ID
- * @return なし
  * @details
  * One charge of one staff disappears.
  * Hack -- staffs of identify can be "cancelled".
@@ -317,7 +314,7 @@ void exe_use_staff(player_type *creature_ptr, INVENTORY_IDX item)
         return;
     }
 
-    take_turn(creature_ptr, 100);
+    PlayerEnergy(creature_ptr).set_player_turn_energy(100);
 
     lev = k_info[o_ptr->k_idx].level;
     if (lev > 50)
@@ -404,7 +401,7 @@ void exe_use_staff(player_type *creature_ptr, INVENTORY_IDX item)
         object_type forge;
         object_type *q_ptr;
         q_ptr = &forge;
-        object_copy(q_ptr, o_ptr);
+        q_ptr->copy_from(o_ptr);
 
         /* Modify quantity */
         q_ptr->number = 1;
@@ -432,7 +429,6 @@ void exe_use_staff(player_type *creature_ptr, INVENTORY_IDX item)
 
 /*!
  * @brief 杖を使うコマンドのメインルーチン /
- * @return なし
  */
 void do_cmd_use_staff(player_type *creature_ptr)
 {

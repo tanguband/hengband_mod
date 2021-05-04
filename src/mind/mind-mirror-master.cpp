@@ -1,5 +1,4 @@
 ﻿#include "mind/mind-mirror-master.h"
-#include "cmd-action/cmd-pet.h"
 #include "core/disturbance.h"
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
@@ -21,6 +20,7 @@
 #include "io/screen-util.h"
 #include "mind/mind-magic-resistance.h"
 #include "mind/mind-numbers.h"
+#include "pet/pet-util.h"
 #include "spell-kind/spells-detection.h"
 #include "spell-kind/spells-floor.h"
 #include "spell-kind/spells-launcher.h"
@@ -80,7 +80,6 @@ bool mirror_concentration(player_type *creature_ptr)
  * @brief 全鏡の消去 / Remove all mirrors in this floor
  * @param caster_ptr プレーヤーへの参照ポインタ
  * @param explode 爆発処理を伴うならばTRUE
- * @return なし
  */
 void remove_all_mirrors(player_type *caster_ptr, bool explode)
 {

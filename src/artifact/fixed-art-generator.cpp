@@ -20,13 +20,13 @@
 #include "object-enchant/tr-types.h"
 #include "object-enchant/trc-types.h"
 #include "object-enchant/trg-types.h"
-#include "object/object-generator.h"
 #include "object/object-kind-hook.h"
 #include "object/object-kind.h"
 #include "player/player-sex.h"
 #include "specific-object/bloody-moon.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
@@ -63,7 +63,6 @@ static bool invest_terror_mask(player_type *player_ptr, object_type *o_ptr)
  * @brief 戦乙女ミリムの危ない水着への特殊処理 (セクシーギャルのみpval追加)
  * @param player_ptr プレーヤーへの参照ポインタ
  * @param o_ptr 対象のオブジェクト構造体への参照ポインタ
- * @return なし
  */
 static void milim_swimsuit(player_type *player_ptr, object_type *o_ptr)
 {
@@ -86,7 +85,6 @@ static void milim_swimsuit(player_type *player_ptr, object_type *o_ptr)
  * @param player_ptr プレーヤーへの参照ポインタ
  * @param o_ptr 対象のオブジェクト構造体ポインタ
  * @param a_ptr 生成する固定アーティファクト構造体ポインタ
- * @return なし
  * @details
  * 対象は村正、ロビントンのハープ、龍争虎鬪、ブラッディムーン、羽衣、天女の羽衣、ミリム
  */
@@ -127,7 +125,6 @@ static void invest_special_artifact_abilities(player_type *player_ptr, object_ty
  * @param player_ptr プレイヤー情報への参照ポインタ
  * @param a_ptr 固定アーティファクト情報への参照ポインタ
  * @param q_ptr オブジェクト情報への参照ポインタ
- * @return なし
  */
 static void fixed_artifact_random_abilities(player_type *player_ptr, artifact_type *a_ptr, object_type *o_ptr)
 {
@@ -175,7 +172,6 @@ static void fixed_artifact_random_abilities(player_type *player_ptr, artifact_ty
  * @param player_ptr プレイヤー情報への参照ポインタ
  * @param a_ptr 固定アーティファクト情報への参照ポインタ
  * @param q_ptr オブジェクト情報への参照ポインタ
- * @return なし
  */
 static void invest_curse_to_fixed_artifact(player_type *player_ptr, artifact_type *a_ptr, object_type *o_ptr)
 {
@@ -250,7 +246,7 @@ bool create_named_art(player_type *player_ptr, ARTIFACT_IDX a_idx, POSITION y, P
 
     object_type forge;
     auto q_ptr = &forge;
-    object_prep(player_ptr, q_ptr, i);
+    q_ptr->prep(player_ptr, i);
     q_ptr->name1 = a_idx;
 
     (void)apply_artifact(player_ptr, q_ptr);
@@ -381,7 +377,7 @@ bool make_artifact_special(player_type *player_ptr, object_type *o_ptr)
 
         /*! @note 前述の条件を満たしたら、後のIDのアーティファクトはチェックせずすぐ確定し生成処理に移す /
          * Assign the template. Mega-Hack -- mark the item as an artifact. Hack: Some artifacts get random extra powers. Success. */
-        object_prep(player_ptr, o_ptr, k_idx);
+        o_ptr->prep(player_ptr, k_idx);
 
         o_ptr->name1 = i;
         return true;

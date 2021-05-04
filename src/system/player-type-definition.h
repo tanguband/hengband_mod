@@ -1,17 +1,21 @@
 ﻿#pragma once
 
+#include "player-ability/player-ability-types.h"
 #include "player/player-race-types.h"
-#include "player/player-classes-types.h"
-#include "player/player-personalities-types.h"
+#include "player/player-class-types.h"
+#include "player/player-personality-types.h"
 #include "system/angband.h"
 #include "system/system-variables.h"
+#include "util/flag-group.h"
 
 #define MAX_SKILLS 10
 #define MAX_MANE 16
 
+enum class MUTA;
+enum class RF_ABILITY;
+
 typedef struct floor_type floor_type;
 typedef struct object_type object_type;
-enum class RF_ABILITY;
 typedef struct player_type {
     int player_uid{};
     int player_euid{};
@@ -297,7 +301,7 @@ typedef struct player_type {
     bool sutemi{};
     bool counter{};
 
-    ALIGNMENT align{}; /* Good/evil/neutral */
+    ALIGNMENT alignment{}; /* Good/evil/neutral */
     POSITION run_py{};
     POSITION run_px{};
     DIRECTION fishing_dir{};

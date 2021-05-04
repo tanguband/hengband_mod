@@ -29,7 +29,9 @@
 #include "object-enchant/item-feeling.h"
 #include "object-hook/hook-checker.h"
 #include "player-info/self-info.h"
+#include "player-status/player-energy.h"
 #include "player/player-damage.h"
+#include "player/player-status.h"
 #include "racial/racial-vampire.h"
 #include "spell-kind/earthquake.h"
 #include "spell-kind/spells-charm.h"
@@ -284,7 +286,7 @@ bool exe_mutation_power(player_type *creature_ptr, MUTA power)
     case MUTA::LAUNCHER:
         return do_cmd_throw(creature_ptr, 2 + lvl / 40, FALSE, -1);
     default:
-        free_turn(creature_ptr);
+        PlayerEnergy(creature_ptr).reset_player_turn();
         msg_format(_("能力 %s は実装されていません。", "Power %s not implemented. Oops."), power);
         return TRUE;
     }

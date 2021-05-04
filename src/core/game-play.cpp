@@ -19,6 +19,7 @@
 #include "core/game-closer.h"
 #include "core/player-processor.h"
 #include "core/player-update-types.h"
+#include "core/score-util.h"
 #include "core/scores.h"
 #include "core/speed-table.h"
 #include "core/stuff-handler.h"
@@ -62,9 +63,10 @@
 #include "monster-race/race-indice-types.h"
 #include "monster/monster-util.h"
 #include "player/player-class.h"
-#include "player/player-personalities-types.h"
+#include "player/player-personality-types.h"
 #include "player/player-race-types.h"
 #include "player/player-skill.h"
+#include "player/player-status.h"
 #include "player/process-name.h"
 #include "racial/racial-android.h"
 #include "realm/realm-names-table.h"
@@ -394,7 +396,6 @@ static void process_game_turn(player_type *player_ptr)
  * @param player_ptr プレーヤーへの参照ポインタ
  * @param new_game 新規にゲームを始めたかどうか
  * @param browsing_movie ムービーモードか
- * @return なし
  * @note
  * If the "new_game" parameter is true, then, after loading the
  * savefile, we will commit suicide, if necessary, to allow the

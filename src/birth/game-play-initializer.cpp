@@ -10,9 +10,9 @@
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
 #include "monster-race/race-flags7.h"
-#include "object/object-generator.h"
 #include "object/object-kind.h"
 #include "pet/pet-util.h"
+#include "player/digestion-processor.h"
 #include "player/player-race-types.h"
 #include "player/player-race.h"
 #include "system/artifact-type-definition.h"
@@ -23,7 +23,6 @@
 
 /*!
  * @brief ベースアイテム構造体の鑑定済みフラグをリセットする。
- * @return なし
  * @details
  * 不具合対策で0からリセットする(セーブは0から)
  */
@@ -39,7 +38,6 @@ static void k_info_reset(void)
 /*!
  * @brief プレイヤー構造体の内容を初期値で消去する(名前を除く) / Clear all the global "character" data (without name)
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  * @details 少し長いが、これ1つで処理が完結しているので分割は見送る
  */
 void player_wipe_without_name(player_type *creature_ptr)
@@ -79,7 +77,7 @@ void player_wipe_without_name(player_type *creature_ptr)
     creature_ptr->inven_cnt = 0;
     creature_ptr->equip_cnt = 0;
     for (int i = 0; i < INVEN_TOTAL; i++)
-        object_wipe(&creature_ptr->inventory_list[i]);
+        (&creature_ptr->inventory_list[i])->wipe();
 
     for (int i = 0; i < max_a_idx; i++) {
         artifact_type *a_ptr = &a_info[i];
@@ -185,7 +183,6 @@ void player_wipe_without_name(player_type *creature_ptr)
 /*!
  * @brief ダンジョン内部のクエストを初期化する / Initialize random quests and final quests
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 void init_dungeon_quests(player_type *creature_ptr)
 {
@@ -219,7 +216,6 @@ void init_dungeon_quests(player_type *creature_ptr)
 /*!
  * @brief ゲームターンを初期化する / Reset turn
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  * @details アンデッド系種族は開始時刻を夜からにする / Undead start just sunset
  * @details
  */

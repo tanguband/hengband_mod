@@ -7,6 +7,7 @@
 #include "grid/feature.h"
 #include "grid/grid.h"
 #include "io/input-key-requester.h"
+#include "player-status/player-energy.h"
 #include "player/attack-defense-types.h"
 #include "player/special-defense-types.h"
 #include "status/action-setter.h"
@@ -19,7 +20,6 @@
 /*!
  * @brief 「掘る」動作コマンドのメインルーチン /
  * Tunnels through "walls" (including rubble and closed doors)
- * @return なし
  * @details
  * <pre>
  * Note that you must tunnel in order to hit invisible monsters
@@ -59,7 +59,7 @@ void do_cmd_tunnel(player_type *creature_ptr)
     else if (!has_flag(f_info[feat].flags, FF_TUNNEL))
         msg_print(_("そこは掘れない。", "You can't tunnel through that."));
     else if (g_ptr->m_idx) {
-        take_turn(creature_ptr, 100);
+        PlayerEnergy(creature_ptr).set_player_turn_energy(100);
         msg_print(_("モンスターが立ちふさがっている！", "There is a monster in the way!"));
         do_cmd_attack(creature_ptr, y, x, HISSATSU_NONE);
     } else

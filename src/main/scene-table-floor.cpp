@@ -4,6 +4,7 @@
  */
 
 #include "main/scene-table-floor.h"
+#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "main/music-definitions-table.h"
 #include "system/floor-type-definition.h"

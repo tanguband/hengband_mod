@@ -14,8 +14,9 @@
 #include "object-hook/hook-enchant.h"
 #include "object/item-use-flags.h"
 #include "object/object-flags.h"
-#include "player/attack-defense-types.h"
 #include "player-info/avatar.h"
+#include "player-info/equipment-info.h"
+#include "player/attack-defense-types.h"
 #include "player/special-defense-types.h"
 #include "racial/racial-android.h"
 #include "spell/spells-object.h"
@@ -285,7 +286,7 @@ bool pulish_shield(player_type *caster_ptr)
         msg_format("%s %s shine%s!", ((item >= 0) ? "Your" : "The"), o_name, ((o_ptr->number > 1) ? "" : "s"));
 #endif
         o_ptr->name2 = EGO_REFLECTION;
-        enchant(caster_ptr, o_ptr, randint0(3) + 4, ENCH_TOAC);
+        enchant_equipment(caster_ptr, o_ptr, randint0(3) + 4, ENCH_TOAC);
         o_ptr->discount = 99;
         chg_virtue(caster_ptr, V_ENCHANT, 2);
         return TRUE;

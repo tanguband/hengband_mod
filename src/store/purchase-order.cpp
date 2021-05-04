@@ -13,7 +13,6 @@
 #include "main/sound-of-music.h"
 #include "object-enchant/item-feeling.h"
 #include "object-enchant/special-object-flags.h"
-#include "object/object-generator.h"
 #include "object/object-info.h"
 #include "object/object-stack.h"
 #include "object/object-value.h"
@@ -101,7 +100,6 @@ static bool show_store_select_item(COMMAND_CODE *item, const int i)
  * @param amt 数量
  * @param i お店のストック数(アドレス渡し)
  * @param 取得元インベントリ番号
- * @return なし
  */
 static void take_item_from_home(player_type *player_ptr, object_type *o_ptr, object_type *j_ptr, const COMMAND_CODE item)
 {
@@ -180,7 +178,6 @@ static void switch_store_stock(player_type *player_ptr, const int i, const COMMA
  * @brief 店からの購入処理のメインルーチン /
  * Buy an item from a store 			-RAK-
  * @param player_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 void store_purchase(player_type *player_ptr)
 {
@@ -212,7 +209,7 @@ void store_purchase(player_type *player_ptr)
     ITEM_NUMBER amt = 1;
     object_type forge;
     object_type *j_ptr = &forge;
-    object_copy(j_ptr, o_ptr);
+    j_ptr->copy_from(o_ptr);
 
     /*
      * If a rod or wand, allocate total maximum timeouts or charges
@@ -237,7 +234,7 @@ void store_purchase(player_type *player_ptr)
     }
 
     j_ptr = &forge;
-    object_copy(j_ptr, o_ptr);
+    j_ptr->copy_from(o_ptr);
 
     /*
      * If a rod or wand, allocate total maximum timeouts or charges

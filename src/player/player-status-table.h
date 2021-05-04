@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "player-ability/player-ability-types.h"
 #include "system/angband.h"
 #include "system/system-variables.h"
 

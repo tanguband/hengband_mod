@@ -9,6 +9,7 @@
 #include "object/object-broken.h"
 #include "object/object-info.h"
 #include "object/object-stack.h"
+#include "player/player-status.h"
 #include "system/floor-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -20,7 +21,6 @@
  * @param player_ptr プレーヤーへの参照ポインタ
  * @param typ 破損判定関数ポインタ
  * @param perc 基本確率
- * @return なし
  * @details
  * Note that missiles are no longer necessarily all destroyed
  * Destruction taken from "melee.c" code for "stealing".

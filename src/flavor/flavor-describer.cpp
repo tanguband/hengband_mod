@@ -27,6 +27,7 @@
 #include "object/object-kind.h"
 #include "perception/object-perception.h"
 #include "player/player-status-table.h"
+#include "player/player-status.h"
 #include "specific-object/bow.h"
 #include "sv-definition/sv-lite-types.h"
 #include "sv-definition/sv-weapon-types.h"
@@ -441,7 +442,6 @@ static void describe_lamp_life(flavor_type *flavor_ptr)
 /*!
  * @brief 杖や光源等、寿命のあるアイテムの残り回数やターン表記
  * @param アイテム表記への参照ポインタ
- * @return なし
  */
 static void describe_remaining(flavor_type *flavor_ptr)
 {

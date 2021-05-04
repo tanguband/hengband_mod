@@ -3,6 +3,7 @@
 #include "core/player-update-types.h"
 #include "core/stuff-handler.h"
 #include "core/window-redrawer.h"
+#include "dungeon/dungeon.h"
 #include "flavor/flavor-describer.h"
 #include "floor/cave.h"
 #include "floor/floor-events.h"
@@ -17,8 +18,8 @@
 #include "io/input-key-requester.h"
 #include "main/music-definitions-table.h"
 #include "main/sound-of-music.h"
-#include "object/object-generator.h"
 #include "object/object-info.h"
+#include "player-status/player-energy.h"
 #include "store/cmd-store.h"
 #include "store/home.h"
 #include "store/store-key-processor.h"
@@ -39,7 +40,6 @@
  * @brief 店舗処理全体のメインルーチン /
  * Enter a store, and interact with it. *
  * @param player_ptr プレーヤーへの参照ポインタ
- * @return なし
  * @note
  * <pre>
  * Note that we use the standard "request_command()" function
@@ -170,7 +170,7 @@ void do_cmd_store(player_type *player_ptr)
                 GAME_TEXT o_name[MAX_NLEN];
                 msg_print(_("ザックからアイテムがあふれてしまった！", "Your pack overflows!"));
                 q_ptr = &forge;
-                object_copy(q_ptr, o_ptr);
+                q_ptr->copy_from(o_ptr);
                 describe_flavor(player_ptr, o_name, q_ptr, 0);
                 msg_format(_("%sが落ちた。(%c)", "You drop %s (%c)."), o_name, index_to_label(item));
                 vary_item(player_ptr, item, -255);
@@ -195,7 +195,7 @@ void do_cmd_store(player_type *player_ptr)
     player_ptr->town_num = old_town_num;
 
     select_floor_music(player_ptr);
-    take_turn(player_ptr, 100);
+    PlayerEnergy(player_ptr).set_player_turn_energy(100);
     current_world_ptr->character_icky_depth = 0;
     command_new = 0;
     command_see = FALSE;

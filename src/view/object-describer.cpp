@@ -3,7 +3,6 @@
 #include "flavor/flavor-describer.h"
 #include "flavor/object-flavor-types.h"
 #include "object-enchant/special-object-flags.h"
-#include "object/object-generator.h"
 #include "perception/object-perception.h"
 #include "realm/realm-names-table.h"
 #include "spell/spell-info.h"
@@ -17,7 +16,6 @@
  * Describe the charges on an item in the inventory.
  * @param owner_ptr プレーヤーへの参照ポインタ
  * @param item 残量を表示したいプレイヤーのアイテム所持スロット
- * @return なし
  */
 void inven_item_charges(player_type *owner_ptr, INVENTORY_IDX item)
 {
@@ -49,7 +47,6 @@ void inven_item_charges(player_type *owner_ptr, INVENTORY_IDX item)
  * Describe an item in the inventory.
  * @param owner_ptr プレーヤーへの参照ポインタ
  * @param item 残量を表示したいプレイヤーのアイテム所持スロット
- * @return なし
  */
 void inven_item_describe(player_type *owner_ptr, INVENTORY_IDX item)
 {
@@ -72,7 +69,6 @@ void inven_item_describe(player_type *owner_ptr, INVENTORY_IDX item)
  * Hack -- display an object kind in the current window
  * @param owner_ptr プレーヤーへの参照ポインタ
  * @param k_idx ベースアイテムの参照ID
- * @return なし
  * @details
  * Include list of usable spells for readible books
  */
@@ -91,7 +87,7 @@ void display_koff(player_type *owner_ptr, KIND_OBJECT_IDX k_idx)
         return;
     q_ptr = &forge;
 
-    object_prep(owner_ptr, q_ptr, k_idx);
+    q_ptr->prep(owner_ptr, k_idx);
     describe_flavor(owner_ptr, o_name, q_ptr, (OD_OMIT_PREFIX | OD_NAME_ONLY | OD_STORE));
 
     term_putstr(0, 0, -1, TERM_WHITE, o_name);

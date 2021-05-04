@@ -18,6 +18,7 @@
 #include "player/player-damage.h"
 #include "player/player-status-flags.h"
 #include "player/player-status-resist.h"
+#include "player/player-status.h"
 #include "spell-kind/earthquake.h"
 #include "spell-kind/spells-equipment.h"
 #include "status/bad-status-setter.h"
@@ -33,7 +34,6 @@
  * @brief 毒ダメージを計算する
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  * @details 減衰の計算式がpoisではなくnukeなのは仕様 (1/3では減衰が強すぎると判断したため)
  */
 static void calc_blow_poison(player_type *target_ptr, monap_type *monap_ptr)
@@ -54,7 +54,6 @@ static void calc_blow_poison(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 劣化ダメージを計算する (耐性があれば、(1d4 + 4) / 9になる)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_disenchant(player_type *target_ptr, monap_type *monap_ptr)
 {
@@ -77,7 +76,6 @@ static void calc_blow_disenchant(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 魔道具吸収ダメージを計算する (消費魔力減少、呪文失敗率減少、魔道具使用能力向上があればそれぞれ-7.5%)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  * @detals 魔道具使用能力向上フラグがあれば、吸収対象のアイテムをスキャンされる回数が半分で済む
  */
 static void calc_blow_un_power(player_type *target_ptr, monap_type *monap_ptr)
@@ -114,7 +112,6 @@ static void calc_blow_un_power(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 盲目ダメージを計算する (耐性があれば、(1d4 + 3) / 8になる)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_blind(player_type *target_ptr, monap_type *monap_ptr)
 {
@@ -133,7 +130,6 @@ static void calc_blow_blind(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 混乱ダメージを計算する (耐性があれば、(1d4 + 3) / 8になる)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_confusion(player_type *target_ptr, monap_type *monap_ptr)
 {
@@ -157,7 +153,6 @@ static void calc_blow_confusion(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 恐怖ダメージを計算する (耐性があれば、(1d4 + 3) / 8になる)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_fear(player_type *target_ptr, monap_type *monap_ptr)
 {
@@ -176,7 +171,6 @@ static void calc_blow_fear(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 麻痺ダメージを計算する (耐性があれば、(1d4 + 3) / 8になる)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_paralysis(player_type *target_ptr, monap_type *monap_ptr)
 {
@@ -195,7 +189,6 @@ static void calc_blow_paralysis(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 経験値吸収ダメージを計算する (経験値保持と地獄耐性があれば、それぞれ-7.5%)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_drain_exp(player_type *target_ptr, monap_type *monap_ptr, const int drain_value, const int hold_exp_prob)
 {
@@ -220,7 +213,6 @@ static void calc_blow_drain_exp(player_type *target_ptr, monap_type *monap_ptr, 
  * @brief 時間逆転ダメージを計算する (耐性があれば、(1d4 + 4) / 9になる)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_time(player_type *target_ptr, monap_type *monap_ptr)
 {
@@ -238,7 +230,6 @@ static void calc_blow_time(player_type *target_ptr, monap_type *monap_ptr)
  * @brief 生命力吸収ダメージを計算する (経験値維持があれば9/10になる)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_drain_life(player_type *target_ptr, monap_type *monap_ptr)
 {
@@ -259,7 +250,6 @@ static void calc_blow_drain_life(player_type *target_ptr, monap_type *monap_ptr)
  * @brief MPダメージを計算する (消費魔力減少、呪文失敗率減少、魔道具使用能力向上があればそれぞれ-5%)
  * @param target_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void calc_blow_drain_mana(player_type *target_ptr, monap_type *monap_ptr)
 {

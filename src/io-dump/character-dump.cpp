@@ -1,6 +1,5 @@
 ﻿#include <string>
 
-#include "io-dump/character-dump.h"
 #include "artifact/fixed-art-types.h"
 #include "cmd-building/cmd-building.h"
 #include "dungeon/dungeon.h"
@@ -10,6 +9,7 @@
 #include "game-option/birth-options.h"
 #include "game-option/game-play-options.h"
 #include "inventory/inventory-slot-types.h"
+#include "io-dump/character-dump.h"
 #include "io-dump/player-status-dump.h"
 #include "io-dump/special-class-dump.h"
 #include "io/mutations-dump.h"
@@ -26,6 +26,7 @@
 #include "monster/smart-learn-types.h"
 #include "object/object-info.h"
 #include "pet/pet-util.h"
+#include "player-info/alignment.h"
 #include "player-info/avatar.h"
 #include "player/player-status-flags.h"
 #include "player/player-status-table.h"
@@ -49,7 +50,6 @@
  * @brief プレイヤーのペット情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_pet(player_type *master_ptr, FILE *fff)
 {
@@ -105,7 +105,6 @@ static void dump_aux_pet(player_type *master_ptr, FILE *fff)
  * @brief クエスト情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_quest(player_type *creature_ptr, FILE *fff)
 {
@@ -131,7 +130,6 @@ static void dump_aux_quest(player_type *creature_ptr, FILE *fff)
  * @brief 死の直前メッセージ並びに遺言をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_last_message(player_type *creature_ptr, FILE *fff)
 {
@@ -158,7 +156,6 @@ static void dump_aux_last_message(player_type *creature_ptr, FILE *fff)
 /*!
  * @brief 帰還場所情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_recall(FILE *fff)
 {
@@ -183,7 +180,6 @@ static void dump_aux_recall(FILE *fff)
 /*!
  * @brief オプション情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_options(FILE *fff)
 {
@@ -238,7 +234,6 @@ static void dump_aux_options(FILE *fff)
  * @brief 闘技場の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_arena(player_type *creature_ptr, FILE *fff)
 {
@@ -286,7 +281,6 @@ static void dump_aux_arena(player_type *creature_ptr, FILE *fff)
 /*!
  * @brief 撃破モンスターの情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_monsters(player_type *creature_ptr, FILE *fff)
 {
@@ -372,7 +366,6 @@ static void dump_aux_monsters(player_type *creature_ptr, FILE *fff)
  * @brief 元種族情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_race_history(player_type *creature_ptr, FILE *fff)
 {
@@ -401,7 +394,6 @@ static void dump_aux_race_history(player_type *creature_ptr, FILE *fff)
  * @brief 元魔法領域情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_realm_history(player_type *creature_ptr, FILE *fff)
 {
@@ -422,7 +414,6 @@ static void dump_aux_realm_history(player_type *creature_ptr, FILE *fff)
  * @brief 徳の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_virtues(player_type *creature_ptr, FILE *fff)
 {
@@ -451,7 +442,7 @@ static void dump_aux_virtues(player_type *creature_ptr, FILE *fff)
             fprintf(fff, "%s ???\n", stat_names[v_nr]);
     }
 
-    std::string alg = your_alignment(creature_ptr);
+    std::string alg = PlayerAlignment(creature_ptr).get_alignment_description();
     fprintf(fff, _("\n属性 : %s\n", "\nYour alignment : %s\n"), alg.c_str());
     fprintf(fff, "\n");
     dump_virtues(creature_ptr, fff);
@@ -461,7 +452,6 @@ static void dump_aux_virtues(player_type *creature_ptr, FILE *fff)
  * @brief 突然変異の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_mutations(player_type *creature_ptr, FILE *fff)
 {
@@ -475,7 +465,6 @@ static void dump_aux_mutations(player_type *creature_ptr, FILE *fff)
  * @brief 所持品の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_equipment_inventory(player_type *creature_ptr, FILE *fff)
 {
@@ -509,7 +498,6 @@ static void dump_aux_equipment_inventory(player_type *creature_ptr, FILE *fff)
 /*!
  * @brief 我が家と博物館のオブジェクト情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_home_museum(player_type *creature_ptr, FILE *fff)
 {

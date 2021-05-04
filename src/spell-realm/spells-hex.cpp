@@ -6,6 +6,7 @@
 #include "monster-race/monster-race.h"
 #include "player/attack-defense-types.h"
 #include "player/player-skill.h"
+#include "spell-realm/spells-song.h"
 #include "realm/realm-hex-numbers.h"
 #include "spell/spell-info.h"
 #include "spell/spells-execution.h"
@@ -23,7 +24,6 @@
 
 /*!
  * @brief プレイヤーが詠唱中の全呪術を停止する
- * @return なし
  */
 bool stop_hex_spell_all(player_type *caster_ptr)
 {
@@ -48,7 +48,6 @@ bool stop_hex_spell_all(player_type *caster_ptr)
 
 /*!
  * @brief プレイヤーが詠唱中の呪術から一つを選んで停止する
- * @return なし
  */
 bool stop_hex_spell(player_type *caster_ptr)
 {
@@ -121,7 +120,6 @@ bool stop_hex_spell(player_type *caster_ptr)
 /*!
  * @brief 一定時間毎に呪術で消費するMPを処理する /
  * Upkeeping hex spells Called from dungeon.c
- * @return なし
  */
 void check_hex(player_type *caster_ptr)
 {
@@ -233,7 +231,6 @@ bool hex_spell_fully(player_type *caster_ptr)
 
 /*!
  * @brief 一定ゲームターン毎に復讐処理の残り期間の判定を行う
- * @return なし
  */
 void revenge_spell(player_type *caster_ptr)
 {
@@ -255,7 +252,6 @@ void revenge_spell(player_type *caster_ptr)
 /*!
  * @brief 復讐ダメージの追加を行う
  * @param dam 蓄積されるダメージ量
- * @return なし
  */
 void revenge_store(player_type *caster_ptr, HIT_POINT dam)
 {

@@ -16,7 +16,6 @@
 #include "monster-attack/monster-attack-util.h"
 #include "monster/monster-status.h"
 #include "object-hook/hook-enchant.h"
-#include "object/object-generator.h"
 #include "object/object-info.h"
 #include "object/object-kind.h"
 #include "object/object-mark-types.h"
@@ -98,7 +97,6 @@ bool check_eat_item(player_type *target_ptr, monap_type *monap_ptr)
  * @brief プレーヤーが持っているアイテムをモンスターに移す
  * @param target_ptr プレーヤーへの参照ポインタ
  * @monap_ptr モンスターからモンスターへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 static void move_item_to_monster(player_type *target_ptr, monap_type *monap_ptr, const OBJECT_IDX o_idx)
 {
@@ -107,7 +105,7 @@ static void move_item_to_monster(player_type *target_ptr, monap_type *monap_ptr,
 
     object_type *j_ptr;
     j_ptr = &target_ptr->current_floor_ptr->o_list[o_idx];
-    object_copy(j_ptr, monap_ptr->o_ptr);
+    j_ptr->copy_from(monap_ptr->o_ptr);
     j_ptr->number = 1;
     if ((monap_ptr->o_ptr->tval == TV_ROD) || (monap_ptr->o_ptr->tval == TV_WAND)) {
         j_ptr->pval = monap_ptr->o_ptr->pval / monap_ptr->o_ptr->number;
@@ -116,15 +114,13 @@ static void move_item_to_monster(player_type *target_ptr, monap_type *monap_ptr,
 
     j_ptr->marked = OM_TOUCHED;
     j_ptr->held_m_idx = monap_ptr->m_idx;
-    j_ptr->next_o_idx = monap_ptr->m_ptr->hold_o_idx;
-    monap_ptr->m_ptr->hold_o_idx = o_idx;
+    monap_ptr->m_ptr->hold_o_idx_list.push_front(o_idx);
 }
 
 /*!
  * @brief アイテム盗み処理
  * @param target_ptr プレーヤーへの参照ポインタ
  * @monap_ptr モンスターからモンスターへの直接攻撃構造体への参照ポインタ
- * @return なし
  * @details eatとあるがお金や食べ物と違ってなくならない、盗んだモンスターを倒せば取り戻せる
  */
 void process_eat_item(player_type *target_ptr, monap_type *monap_ptr)

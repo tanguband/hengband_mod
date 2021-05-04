@@ -25,6 +25,7 @@
 #include "io/write-diary.h"
 #include "main/music-definitions-table.h"
 #include "main/sound-of-music.h"
+#include "player-status/player-energy.h"
 #include "player/attack-defense-types.h"
 #include "player/player-move.h"
 #include "player/special-defense-types.h"
@@ -39,7 +40,6 @@
 
 /*!
  * @brief 探索コマンドのメインルーチン / Simple command to "search" for one turn
- * @return なし
  */
 void do_cmd_search(player_type *creature_ptr)
 {
@@ -49,7 +49,7 @@ void do_cmd_search(player_type *creature_ptr)
         command_arg = 0;
     }
 
-    take_turn(creature_ptr, 100);
+    PlayerEnergy(creature_ptr).set_player_turn_energy(100);
     search(creature_ptr);
 
     if (creature_ptr->action == ACTION_SEARCH)
@@ -69,7 +69,7 @@ static bool exe_alter(player_type *creature_ptr)
     FEAT_IDX feat = get_feat_mimic(g_ptr);
     feature_type *f_ptr;
     f_ptr = &f_info[feat];
-    take_turn(creature_ptr, 100);
+    PlayerEnergy(creature_ptr).set_player_turn_energy(100);
     if (g_ptr->m_idx) {
         do_cmd_attack(creature_ptr, y, x, HISSATSU_NONE);
         return FALSE;
@@ -96,7 +96,6 @@ static bool exe_alter(player_type *creature_ptr)
 
 /*!
  * @brief 特定のマスに影響を及ぼすための汎用的コマンド / Manipulate an adjacent grid in some way
- * @return なし
  * @details
  */
 void do_cmd_alter(player_type *creature_ptr)
@@ -152,7 +151,6 @@ static void accept_winner_message(player_type *creature_ptr)
 /*!
  * @brief 自殺するコマンドのメインルーチン
  * commit suicide
- * @return なし
  * @details
  */
 void do_cmd_suicide(player_type *creature_ptr)

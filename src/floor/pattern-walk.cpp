@@ -12,10 +12,12 @@
 #include "grid/grid.h"
 #include "io/input-key-requester.h"
 #include "io/write-diary.h"
+#include "player-status/player-energy.h"
 #include "player/player-damage.h"
 #include "player/player-move.h"
 #include "player/player-race-types.h"
 #include "player/player-race.h"
+#include "player/player-status.h"
 #include "spell/spells-status.h"
 #include "spell-kind/spells-teleport.h"
 #include "status/bad-status-setter.h"
@@ -29,7 +31,6 @@
 /*!
  * @brief パターン終点到達時のテレポート処理を行う
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 static void pattern_teleport(player_type *creature_ptr)
 {
@@ -81,7 +82,7 @@ static void pattern_teleport(player_type *creature_ptr)
         exe_write_diary(creature_ptr, DIARY_PAT_TELE, 0, NULL);
 
     creature_ptr->current_floor_ptr->inside_quest = 0;
-    free_turn(creature_ptr);
+    PlayerEnergy(creature_ptr).reset_player_turn();
 
     /*
      * Clear all saved floors

@@ -13,7 +13,6 @@
 /*!
  * @brief 生い立ちメッセージを編集する。/Character background edit-mode
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 void edit_history(player_type *creature_ptr)
 {
@@ -45,9 +44,10 @@ void edit_history(player_type *creature_ptr)
             put_str(creature_ptr->history[i], i + 12, 10);
         }
 #ifdef JP
-        if (iskanji2(creature_ptr->history[y], x))
-            c_put_str(TERM_L_BLUE, format("%c%c", creature_ptr->history[y][x], creature_ptr->history[y][x + 1]), y + 12, x + 10);
-        else
+        if (iskanji2(creature_ptr->history[y], x)) {
+            char kanji[3] = { creature_ptr->history[y][x], creature_ptr->history[y][x + 1], '\0' };
+            c_put_str(TERM_L_BLUE, format("%s", kanji), y + 12, x + 10);
+        } else
 #endif
             c_put_str(TERM_L_BLUE, format("%c", creature_ptr->history[y][x]), y + 12, x + 10);
 
