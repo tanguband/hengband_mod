@@ -1,5 +1,6 @@
 ﻿#include "combat/shoot.h"
 #include "artifact/fixed-art-types.h"
+#include "combat/attack-criticality.h"
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
 #include "core/stuff-handler.h"
@@ -10,6 +11,7 @@
 #include "flavor/object-flavor-types.h"
 #include "floor/cave.h"
 #include "floor/floor-object.h"
+#include "floor/geometry.h"
 #include "game-option/cheat-types.h"
 #include "game-option/special-options.h"
 #include "grid/feature-flag-types.h"
@@ -41,20 +43,22 @@
 #include "object-hook/hook-enchant.h"
 #include "object/object-broken.h"
 #include "object/object-flags.h"
-#include "object/object-generator.h"
 #include "object/object-info.h"
 #include "object/object-kind.h"
 #include "object/object-mark-types.h"
 #include "player-info/avatar.h"
+#include "player-status/player-energy.h"
 #include "player/player-class.h"
-#include "player/player-personalities-types.h"
+#include "player/player-personality-types.h"
 #include "player/player-skill.h"
 #include "player/player-status-table.h"
-#include "player/player-status.h"
 #include "spell/spell-types.h"
 #include "sv-definition/sv-bow-types.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/projection-path-calculator.h"
 #include "target/target-checker.h"
 #include "target/target-getter.h"
@@ -356,7 +360,6 @@ static MULTIPLY calc_shot_damage_with_slay(player_type *sniper_ptr, object_type 
  * Fire an object from the pack or floor.
  * @param item 射撃するオブジェクトの所持ID
  * @param bow_ptr 射撃武器のオブジェクト参照ポインタ
- * @return なし
  * @details
  * <pre>
  * You may only fire items that "match" your missile launcher.
@@ -430,7 +433,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
     else
         chance = (shooter_ptr->skill_thb + ((shooter_ptr->weapon_exp[0][j_ptr->sval] - (WEAPON_EXP_MASTER / 2)) / 200 + bonus) * BTH_PLUS_ADJ);
 
-    shooter_ptr->energy_use = bow_energy(j_ptr->sval);
+    PlayerEnergy(shooter_ptr).set_player_turn_energy(bow_energy(j_ptr->sval));
     tmul = bow_tmul(j_ptr->sval);
 
     /* Get extra "power" from "extra might" */
@@ -456,7 +459,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
     /* Get a direction (or cancel) */
     if (!get_aim_dir(shooter_ptr, &dir)) {
-        free_turn(shooter_ptr);
+        PlayerEnergy(shooter_ptr).reset_player_turn();
 
         if (snipe_type == SP_AWAY)
             snipe_type = SP_NONE;
@@ -483,7 +486,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
     /* Don't shoot at my feet */
     if (tx == shooter_ptr->x && ty == shooter_ptr->y) {
-        free_turn(shooter_ptr);
+        PlayerEnergy(shooter_ptr).reset_player_turn();
 
         /* project_length is already reset to 0 */
 
@@ -491,7 +494,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
     }
 
     /* Take a (partial) turn */
-    shooter_ptr->energy_use = (shooter_ptr->energy_use / thits);
+    PlayerEnergy(shooter_ptr).div_player_turn_energy((ENERGY)thits);
     shooter_ptr->is_fired = TRUE;
 
     /* Sniper - Difficult to shot twice at 1 turn */
@@ -504,7 +507,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
         y = shooter_ptr->y;
         x = shooter_ptr->x;
         q_ptr = &forge;
-        object_copy(q_ptr, o_ptr);
+        q_ptr->copy_from(o_ptr);
 
         /* Single object */
         q_ptr->number = 1;
@@ -647,11 +650,11 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                 }
 
                 if (shooter_ptr->riding) {
-                    if ((shooter_ptr->skill_exp[GINOU_RIDING] < s_info[shooter_ptr->pclass].s_max[GINOU_RIDING])
-                        && ((shooter_ptr->skill_exp[GINOU_RIDING] - (RIDING_EXP_BEGINNER * 2)) / 200
+                    if ((shooter_ptr->skill_exp[SKILL_RIDING] < s_info[shooter_ptr->pclass].s_max[SKILL_RIDING])
+                        && ((shooter_ptr->skill_exp[SKILL_RIDING] - (RIDING_EXP_BEGINNER * 2)) / 200
                             < r_info[shooter_ptr->current_floor_ptr->m_list[shooter_ptr->riding].r_idx].level)
                         && one_in_(2)) {
-                        shooter_ptr->skill_exp[GINOU_RIDING] += 1;
+                        shooter_ptr->skill_exp[SKILL_RIDING] += 1;
                         set_bits(shooter_ptr->update, PU_BONUS);
                     }
                 }
@@ -659,7 +662,8 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                 /* Did we hit it (penalize range) */
                 if (test_hit_fire(shooter_ptr, chance - cur_dis, m_ptr, m_ptr->ml, o_name)) {
                     bool fear = FALSE;
-                    int tdam = tdam_base;
+                    auto tdam = tdam_base; //!< @note 実際に与えるダメージ
+                    auto base_dam = tdam; //!< @note 補正前の与えるダメージ(無傷、全ての耐性など)
 
                     /* Get extra damage from concentration */
                     if (shooter_ptr->concent)
@@ -696,9 +700,12 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                             monster_desc(shooter_ptr, m_name, m_ptr, 0);
 
                             tdam = m_ptr->hp + 1;
+                            base_dam = tdam;
                             msg_format(_("%sの急所に突き刺さった！", "Your shot hit a fatal spot of %s!"), m_name);
-                        } else
+                        } else {
                             tdam = 1;
+                            base_dam = tdam;
+                        }
                     } else {
                         /* Apply special damage */
                         tdam = calc_shot_damage_with_slay(shooter_ptr, j_ptr, q_ptr, tdam, m_ptr, snipe_type);
@@ -709,6 +716,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                             tdam = 0;
 
                         /* Modify the damage */
+                        base_dam = tdam;
                         tdam = mon_damage_mod(shooter_ptr, m_ptr, tdam, FALSE);
                     }
 
@@ -720,7 +728,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                         u16b flg = (PROJECT_STOP | PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID);
 
                         sound(SOUND_EXPLODE); /* No explode sound - use breath fire instead */
-                        project(shooter_ptr, 0, ((shooter_ptr->concent + 1) / 2 + 1), ny, nx, tdam, GF_MISSILE, flg);
+                        project(shooter_ptr, 0, ((shooter_ptr->concent + 1) / 2 + 1), ny, nx, base_dam, GF_MISSILE, flg);
                         break;
                     }
 
@@ -844,7 +852,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
             }
 
             o_ptr = &shooter_ptr->current_floor_ptr->o_list[o_idx];
-            object_copy(o_ptr, q_ptr);
+            o_ptr->copy_from(q_ptr);
 
             /* Forget mark */
             reset_bits(o_ptr->marked, OM_TOUCHED);
@@ -855,11 +863,8 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
             /* Memorize monster */
             o_ptr->held_m_idx = m_idx;
 
-            /* Build a stack */
-            o_ptr->next_o_idx = m_ptr->hold_o_idx;
-
             /* Carry object */
-            m_ptr->hold_o_idx = o_idx;
+            m_ptr->hold_o_idx_list.add(shooter_ptr->current_floor_ptr, o_idx);
         } else if (cave_has_flag_bold(shooter_ptr->current_floor_ptr, y, x, FF_PROJECT)) {
             /* Drop (or break) near that location */
             (void)drop_near(shooter_ptr, q_ptr, j, y, x);
@@ -1173,11 +1178,11 @@ HIT_POINT calc_expect_crit_shot(player_type *shooter_ptr, WEIGHT weight, int plu
  * @param dam 基本ダメージ
  * @param meichuu 命中値
  * @param dokubari 毒針処理か否か
+ * @param impact 強撃かどうか
  * @return ダメージ期待値
  */
-HIT_POINT calc_expect_crit(player_type *shooter_ptr, WEIGHT weight, int plus, HIT_POINT dam, s16b meichuu, bool dokubari)
+HIT_POINT calc_expect_crit(player_type *shooter_ptr, WEIGHT weight, int plus, HIT_POINT dam, s16b meichuu, bool dokubari, bool impact)
 {
-    u32b k, num;
     if (dokubari)
         return dam;
 
@@ -1185,30 +1190,34 @@ HIT_POINT calc_expect_crit(player_type *shooter_ptr, WEIGHT weight, int plus, HI
     if (i < 0)
         i = 0;
 
-    k = weight;
-    num = 0;
+    // 通常ダメージdam、武器重量weightでクリティカルが発生した時のクリティカルダメージ期待値
+    auto calc_weight_expect_dam = [](HIT_POINT dam, WEIGHT weight) {
+        HIT_POINT sum = 0;
+        for (int d = 1; d <= 650; ++d) {
+            int k = weight + d;
+            sum += std::get<0>(apply_critical_norm_damage(k, dam));
+        }
+        return sum / 650;
+    };
 
-    if (k < 400)
-        num += (2 * dam + 5) * (400 - k);
-    if (k < 700)
-        num += (2 * dam + 10) * (MIN(700, k + 650) - MAX(400, k));
-    if (k > (700 - 650) && k < 900)
-        num += (3 * dam + 15) * (MIN(900, k + 650) - MAX(700, k));
-    if (k > (900 - 650) && k < 1300)
-        num += (3 * dam + 20) * (MIN(1300, k + 650) - MAX(900, k));
-    if (k > (1300 - 650))
-        num += (7 * dam / 2 + 25) * MIN(650, k - (1300 - 650));
+    u32b num = 0;
 
-    num /= 650;
-    if (shooter_ptr->pclass == CLASS_NINJA) {
-        num *= i;
-        num += (4444 - i) * dam;
-        num /= 4444;
+    if (impact) {
+        for (int d = 1; d <= 650; ++d) {
+            num += calc_weight_expect_dam(dam, weight + d);
+        }
+        num /= 650;
     } else {
-        num *= i;
-        num += (5000 - i) * dam;
-        num /= 5000;
+        num += calc_weight_expect_dam(dam, weight);
     }
+
+    int pow = (shooter_ptr->pclass == CLASS_NINJA) ? 4444 : 5000;
+    if (impact)
+        pow /= 2;
+
+    num *= i;
+    num += (pow - i) * dam;
+    num /= pow;
 
     return num;
 }

@@ -7,7 +7,9 @@
 #include "mspell/high-resistance-checker.h"
 #include "mspell/smart-mspell-util.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 
 static void add_cheat_remove_flags(player_type *target_ptr, msr_type *msr_ptr)
 {
@@ -25,9 +27,8 @@ static void add_cheat_remove_flags(player_type *target_ptr, msr_type *msr_ptr)
  * @param f4p モンスター魔法のフラグリスト1
  * @param f5p モンスター魔法のフラグリスト2
  * @param f6p モンスター魔法のフラグリスト3
- * @return なし
  */
-void remove_bad_spells(MONSTER_IDX m_idx, player_type *target_ptr, FlagGroup<RF_ABILITY>& ability_flags)
+void remove_bad_spells(MONSTER_IDX m_idx, player_type *target_ptr, EnumClassFlagGroup<RF_ABILITY> &ability_flags)
 {
     msr_type tmp_msr;
     msr_type *msr_ptr = initialize_msr_type(target_ptr, &tmp_msr, m_idx, ability_flags);

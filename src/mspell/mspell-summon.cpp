@@ -21,6 +21,9 @@
 #include "spell/spells-summon.h"
 #include "spell/summon-types.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "view/display-messages.h"
 
 /* summoning number */
@@ -134,6 +137,9 @@ MonsterSpellResult spell_RF6_S_KIN(player_type *target_ptr, POSITION y, POSITION
     case MON_ZOMBI_SERPENT:
         count += summon_guardian(target_ptr, y, x, rlev, m_idx, t_idx, target_type);
         break;
+    case MON_TIAMAT:
+        count += summon_HIGHEST_DRAGON(target_ptr, y, x, m_idx);
+        break;
     case MON_CALDARM:
         count += summon_LOCKE_CLONE(target_ptr, y, x, m_idx);
         break;
@@ -160,6 +166,9 @@ MonsterSpellResult spell_RF6_S_KIN(player_type *target_ptr, POSITION y, POSITION
         break;
     case MON_QUEEN_VESPOID:
         count += summon_VESPOID(target_ptr, y, x, rlev, m_idx);
+        break;
+    case MON_YENDOR_WIZARD_1:
+        count += summon_YENDER_WIZARD(target_ptr, y, x, m_idx);
         break;
     default:
         count += summon_Kin(target_ptr, y, x, rlev, m_idx);
@@ -593,15 +602,18 @@ MonsterSpellResult spell_RF6_S_DRAGON(player_type *target_ptr, POSITION y, POSIT
 
     floor_type *floor_ptr = target_ptr->current_floor_ptr;
     DEPTH rlev = monster_level_idx(floor_ptr, m_idx);
+    bool mon_to_mon = (TARGET_TYPE == MONSTER_TO_MONSTER);
+    bool mon_to_player = (TARGET_TYPE == MONSTER_TO_PLAYER);
     int count = 0;
-    for (int k = 0; k < 1; k++) {
-        count += summon_specific(target_ptr, m_idx, y, x, rlev, SUMMON_DRAGON, PM_ALLOW_GROUP);
-    }
+    if (mon_to_player)
+        count += summon_specific(target_ptr, m_idx, y, x, rlev, SUMMON_DRAGON, (PM_ALLOW_GROUP | PM_ALLOW_UNIQUE));
+
+    if (mon_to_mon)
+        count += summon_specific(target_ptr, m_idx, y, x, rlev, SUMMON_DRAGON, (PM_ALLOW_GROUP | monster_u_mode(floor_ptr, m_idx)));
 
     if (target_ptr->blind && count)
         msg_print(_("何かが間近に現れた音がする。", "You hear something appear nearby."));
 
-    bool mon_to_mon = (TARGET_TYPE == MONSTER_TO_MONSTER);
     if (monster_near_player(floor_ptr, m_idx, t_idx) && !see_monster(target_ptr, t_idx) && count && mon_to_mon)
         floor_ptr->monster_noise = TRUE;
 

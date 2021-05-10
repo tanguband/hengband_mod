@@ -1,4 +1,9 @@
-﻿#include "main/game-data-initializer.h"
+﻿/*!
+ * @file game-data-initializer.cpp
+ * @brief 変愚蛮怒のゲームデータ初期化定義
+ */
+
+#include "main/game-data-initializer.h"
 #include "cmd-io/macro-util.h"
 #include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
@@ -10,7 +15,10 @@
 #include "object/object-kind.h"
 #include "system/alloc-entries.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "term/gameterm.h"
 #include "util/angband-files.h"
 #include "util/quarks.h"
@@ -61,10 +69,6 @@ errr init_other(player_type *player_ptr)
     C_MAKE(macro__cmd, MACRO_MAX, bool);
     C_MAKE(macro__buf, FILE_READ_BUFF_SIZE, char);
     quark_init();
-
-    C_MAKE(message__ptr, MESSAGE_MAX, u32b);
-    C_MAKE(message__buf, MESSAGE_BUF, char);
-    message__tail = MESSAGE_BUF;
 
     for (int i = 0; option_info[i].o_desc; i++) {
         int os = option_info[i].o_set;

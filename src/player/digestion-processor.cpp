@@ -9,15 +9,16 @@
 #include "object-enchant/trc-types.h"
 #include "player-info/avatar.h"
 #include "player/player-damage.h"
+#include "player/player-status.h"
 #include "player/special-defense-types.h"
 #include "status/bad-status-setter.h"
+#include "system/player-type-definition.h"
 #include "view/display-messages.h"
 #include "world/world.h"
 
 /*!
  * @brief 10ゲームターンが進行するごとにプレイヤーの腹を減らす
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @return なし
  */
 void starve_player(player_type *creature_ptr)
 {
@@ -32,7 +33,7 @@ void starve_player(player_type *creature_ptr)
             digestion += 20;
         if (creature_ptr->special_defense & (KAMAE_MASK | KATA_MASK))
             digestion += 20;
-        if (creature_ptr->cursed & TRC_FAST_DIGEST)
+        if (creature_ptr->cursed.has(TRC::FAST_DIGEST))
             digestion += 30;
 
         if (creature_ptr->slow_digest)

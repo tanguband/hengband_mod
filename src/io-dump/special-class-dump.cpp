@@ -4,6 +4,8 @@
  * @author Hourier
  */
 
+#include <vector>
+
 #include "io-dump/special-class-dump.h"
 #include "blue-magic/blue-magic-checker.h"
 #include "cmd-item/cmd-magiceat.h"
@@ -13,19 +15,17 @@
 #include "mspell/monster-power-table.h"
 #include "object/object-kind-hook.h"
 #include "object/object-kind.h"
+#include "system/player-type-definition.h"
 #include "util/flag-group.h"
 
-#include <vector>
-
 typedef struct {
-    FlagGroup<RF_ABILITY> ability_flags;
+    EnumClassFlagGroup<RF_ABILITY> ability_flags;
 } learnt_spell_table;
 
 /*!
  * @brief 魔力喰いを持つクラスの情報をダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_magic_eater(player_type *creature_ptr, FILE *fff)
 {
@@ -86,7 +86,6 @@ static void dump_magic_eater(player_type *creature_ptr, FILE *fff)
  * @brief 鍛冶師のエッセンス情報をダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_smith(player_type *creature_ptr, FILE *fff)
 {
@@ -119,7 +118,6 @@ static void dump_smith(player_type *creature_ptr, FILE *fff)
  * @param col 行数
  * @param spell_type 魔法の種類
  * @param learnt_spell_ptr 学習済魔法のテーブル
- * @return なし
  */
 static void add_monster_spell_type(char p[][80], int col, blue_magic_type spell_type, learnt_spell_table *learnt_spell_ptr)
 {
@@ -152,7 +150,6 @@ static void add_monster_spell_type(char p[][80], int col, blue_magic_type spell_
  * @brief 青魔道士の学習済魔法をダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_blue_mage(player_type *creature_ptr, FILE *fff)
 {
@@ -170,7 +167,7 @@ static void dump_blue_mage(player_type *creature_ptr, FILE *fff)
         add_monster_spell_type(p, col, static_cast<blue_magic_type>(spell_type), &learnt_magic);
 
         std::vector<RF_ABILITY> learnt_spells;
-        FlagGroup<RF_ABILITY>::get_flags(learnt_magic.ability_flags, std::back_inserter(learnt_spells));
+        EnumClassFlagGroup<RF_ABILITY>::get_flags(learnt_magic.ability_flags, std::back_inserter(learnt_spells));
 
         col++;
         bool pcol = FALSE;
@@ -218,7 +215,6 @@ static void dump_blue_mage(player_type *creature_ptr, FILE *fff)
  * @brief プレイヤーの職業能力情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 void dump_aux_class_special(player_type *creature_ptr, FILE *fff)
 {

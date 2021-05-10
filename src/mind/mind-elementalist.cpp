@@ -4,11 +4,10 @@
 
 #include "mind-elementalist.h"
 #include "action/action-limited.h"
-#include "cmd-action/cmd-spell.h"
 #include "cmd-action/cmd-mind.h"
+#include "cmd-action/cmd-spell.h"
 #include "cmd-io/cmd-gameoption.h"
 #include "core/asking-player.h"
-#include "core/hp-mp-processor.h"
 #include "core/player-redraw-types.h"
 #include "core/stuff-handler.h"
 #include "core/window-redrawer.h"
@@ -18,34 +17,39 @@
 #include "effect/spells-effect-util.h"
 #include "floor/cave.h"
 #include "floor/floor-util.h"
+#include "floor/geometry.h"
 #include "game-option/disturbance-options.h"
 #include "game-option/input-options.h"
 #include "game-option/text-display-options.h"
 #include "grid/feature-flag-types.h"
+#include "grid/grid.h"
+#include "hpmp/hp-mp-processor.h"
 #include "io/command-repeater.h"
 #include "io/input-key-acceptor.h"
 #include "io/input-key-requester.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
 #include "mind/mind-explanations-table.h"
-#include "monster/monster-describer.h"
+#include "mind/mind-mindcrafter.h"
 #include "monster-race/monster-race.h"
+#include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags3.h"
 #include "monster-race/race-flags7.h"
-#include "monster-race/race-flags-resistance.h"
-#include "mind/mind-mindcrafter.h"
-#include "player/player-status-table.h"
+#include "monster/monster-describer.h"
 #include "player-info/avatar.h"
+#include "player-info/equipment-info.h"
+#include "player-status/player-energy.h"
 #include "player-status/player-status-base.h"
+#include "player/player-status-table.h"
 #include "racial/racial-util.h"
 #include "spell-kind/earthquake.h"
+#include "spell-kind/magic-item-recharger.h"
+#include "spell-kind/spells-beam.h"
 #include "spell-kind/spells-charm.h"
 #include "spell-kind/spells-detection.h"
 #include "spell-kind/spells-genocide.h"
 #include "spell-kind/spells-launcher.h"
 #include "spell-kind/spells-lite.h"
-#include "spell-kind/magic-item-recharger.h"
-#include "spell-kind/spells-beam.h"
 #include "spell-kind/spells-sight.h"
 #include "spell-kind/spells-teleport.h"
 #include "spell-kind/spells-world.h"
@@ -53,16 +57,19 @@
 #include "status/base-status.h"
 #include "system/floor-type-definition.h"
 #include "system/game-option-types.h"
-#include "util/bit-flags-calculator.h"
-#include "util/buffer-shaper.h"
-#include "util/int-char-converter.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/grid-selector.h"
 #include "target/target-getter.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
+#include "util/bit-flags-calculator.h"
+#include "util/buffer-shaper.h"
+#include "util/int-char-converter.h"
 #include "view/display-messages.h"
-#include <string>
 #include <array>
+#include <string>
 #include <unordered_map>
 
 /*!
@@ -317,7 +324,8 @@ spells_type get_element_type(int realm_idx, int n)
  * @param n 属性の何番目か
  * @return 属性タイプ
  */
-static spells_type get_element_spells_type(player_type *caster_ptr, int n) {
+static spells_type get_element_spells_type(player_type *caster_ptr, int n)
+{
     auto realm = element_types.at(static_cast<ElementRealm>(caster_ptr->element));
     auto t = realm.type.at(n);
     if (realm.extra.find(t) != realm.extra.end()) {
@@ -618,7 +626,7 @@ static PERCENTAGE decide_element_chance(player_type *caster_ptr, mind_type spell
     chance -= 3 * (caster_ptr->lev - spell.min_lev);
     chance += caster_ptr->to_m_chance;
     chance -= 3 * (adj_mag_stat[caster_ptr->stat_index[A_WIS]] - 1);
-    
+
     PERCENTAGE minfail = adj_mag_fail[caster_ptr->stat_index[A_WIS]];
     if (chance < minfail)
         chance = minfail;
@@ -694,13 +702,11 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
     }
 
     if (only_browse)
-        (void)strnfmt(out_val, 78, 
-            _("(%^s %c-%c, '*'で一覧, ESC) どの%sについて知りますか？", "(%^ss %c-%c, *=List, ESC=exit) Use which %s? "),
-            p, I2A(0), I2A(num - 1), p);
+        (void)strnfmt(out_val, 78, _("(%^s %c-%c, '*'で一覧, ESC) どの%sについて知りますか？", "(%^ss %c-%c, *=List, ESC=exit) Use which %s? "), p, I2A(0),
+            I2A(num - 1), p);
     else
-        (void)strnfmt(out_val, 78, 
-            _("(%^s %c-%c, '*'で一覧, ESC) どの%sを使いますか？", "(%^ss %c-%c, *=List, ESC=exit) Use which %s? "),
-            p, I2A(0), I2A(num - 1), p);
+        (void)strnfmt(
+            out_val, 78, _("(%^s %c-%c, '*'で一覧, ESC) どの%sを使いますか？", "(%^ss %c-%c, *=List, ESC=exit) Use which %s? "), p, I2A(0), I2A(num - 1), p);
 
     if (use_menu && !only_browse)
         screen_save();
@@ -776,8 +782,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
 
                     concptr s = get_element_name(caster_ptr->element, elem);
                     sprintf(name, spell.name, s);
-                    strcat(desc,
-                        format("%-30s%2d %4d %3d%%%s", name, spell.min_lev, mana_cost, chance, comment));
+                    strcat(desc, format("%-30s%2d %4d %3d%%%s", name, spell.min_lev, mana_cost, chance, comment));
                     prt(desc, y + i + 1, x);
                 }
 
@@ -870,14 +875,12 @@ static bool try_cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx,
 
     if (randint1(100) < chance / 2) {
         int plev = caster_ptr->lev;
-        msg_print(_("元素の力が制御できない氾流となって解放された！",
-            "Elemental power unleashes its power in an uncontrollable storm!"));
-        project(caster_ptr, PROJECT_WHO_UNCTRL_POWER, 2 + plev / 10, caster_ptr->y, caster_ptr->x, plev * 2,
-            get_element_types(caster_ptr->element)[0],
+        msg_print(_("元素の力が制御できない氾流となって解放された！", "Elemental power unleashes its power in an uncontrollable storm!"));
+        project(caster_ptr, PROJECT_WHO_UNCTRL_POWER, 2 + plev / 10, caster_ptr->y, caster_ptr->x, plev * 2, get_element_types(caster_ptr->element)[0],
             PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID | PROJECT_ITEM);
         caster_ptr->csp = MAX(0, caster_ptr->csp - caster_ptr->msp * 10 / (20 + randint1(10)));
 
-        take_turn(caster_ptr, 100);
+        PlayerEnergy(caster_ptr).set_player_turn_energy(100);
         set_bits(caster_ptr->redraw, PR_MANA);
         set_bits(caster_ptr->window_flags, PW_PLAYER | PW_SPELL);
 
@@ -890,7 +893,6 @@ static bool try_cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx,
 /*!
  * @brief 元素魔法コマンドのメインルーチン
  * @param caster_ptr プレイヤー情報への参照ポインタ
- * @return なし
  */
 void do_cmd_element(player_type *caster_ptr)
 {
@@ -924,7 +926,7 @@ void do_cmd_element(player_type *caster_ptr)
         }
     }
 
-    take_turn(caster_ptr, 100);
+    PlayerEnergy(caster_ptr).set_player_turn_energy(100);
     set_bits(caster_ptr->redraw, PR_MANA);
     set_bits(caster_ptr->window_flags, PW_PLAYER | PW_SPELL);
 }
@@ -932,7 +934,6 @@ void do_cmd_element(player_type *caster_ptr)
 /*!
  * @brief 現在プレイヤーが使用可能な元素魔法の一覧表示
  * @param caster_ptr プレイヤー情報への参照ポインタ
- * @return なし
  */
 void do_cmd_element_browse(player_type *caster_ptr)
 {
@@ -1012,7 +1013,7 @@ bool is_elemental_genocide_effective(monster_race *r_ptr, spells_type type)
 }
 
 /*!
- * @brief 元素魔法の単体抹殺の効果を発動する 
+ * @brief 元素魔法の単体抹殺の効果を発動する
  * @param caster_ptr プレイヤー情報への参照ポインタ
  * @param em_ptr 魔法効果情報への参照ポインタ
  * @return 効果処理を続けるかどうか
@@ -1054,7 +1055,7 @@ process_result effect_monster_elemental_genocide(player_type *caster_ptr, effect
  * @param realm 領域
  * @param lev プレイヤーレベル
  * @return 見合うならTRUE、そうでなければFALSE
- * @detail
+ * @details
  * レベルに応じて取得する耐性などの判定に使用する
  */
 bool has_element_resist(player_type *creature_ptr, ElementRealm realm, PLAYER_LEVEL lev)
@@ -1071,7 +1072,6 @@ bool has_element_resist(player_type *creature_ptr, ElementRealm realm, PLAYER_LE
  * @param i 位置
  * @param n 最後尾の位置
  * @param color 表示色
- * @return なし
  */
 static void display_realm_cursor(int i, int n, term_color_type color)
 {
@@ -1238,76 +1238,88 @@ byte select_element_realm(player_type *creature_ptr)
  * @brief クラスパワー情報を追加
  * @param creature_ptr プレイヤー情報への参照ポインタ
  * @param rc_ptr レイシャルパワー情報への参照ポインタ
- * @return なし
  */
 void switch_element_racial(player_type *creature_ptr, rc_type *rc_ptr)
 {
     auto plev = creature_ptr->lev;
     auto realm = static_cast<ElementRealm>(creature_ptr->element);
+    rpi_type rpi;
     switch (realm) {
     case ElementRealm::FIRE:
-        strcpy(rc_ptr->power_desc[rc_ptr->num].racial_name, _("ライト・エリア", "Light area"));
-        rc_ptr->power_desc[rc_ptr->num].min_level = 3;
-        rc_ptr->power_desc[rc_ptr->num].cost = 5;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 10;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(_("ライト・エリア", "Light area"));
+        rpi.text = _("光源が照らしている範囲か部屋全体を永久に明るくする。", "Lights up nearby area and the inside of a room permanently.");
+        rpi.min_level = 3;
+        rpi.cost = 5;
+        rpi.stat = A_WIS;
+        rpi.fail = 10;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     case ElementRealm::ICE:
-        strcpy(rc_ptr->power_desc[rc_ptr->num].racial_name, _("周辺フリーズ", "Sleep monsters"));
-        rc_ptr->power_desc[rc_ptr->num].min_level = 10;
-        rc_ptr->power_desc[rc_ptr->num].cost = 15;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 25;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(_("周辺フリーズ", "Sleep monsters"));
+        rpi.info = format("%s%d", KWD_POWER, 20 + plev * 3 / 2);
+        rpi.text = _("視界内の全てのモンスターを眠らせる。抵抗されると無効。", "Attempts to put all monsters in sight to sleep.");
+        rpi.min_level = 10;
+        rpi.cost = 15;
+        rpi.stat = A_WIS;
+        rpi.fail = 25;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     case ElementRealm::SKY:
-        strcpy(rc_ptr->power_desc[rc_ptr->num].racial_name, _("魔力充填", "Recharging"));
-        rc_ptr->power_desc[rc_ptr->num].min_level = 20;
-        rc_ptr->power_desc[rc_ptr->num].cost = 15;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 25;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(_("魔力充填", "Recharging"));
+        rpi.info = format("%s%d", KWD_POWER, 120);
+        rpi.text = _("杖/魔法棒の充填回数を増やすか、充填中のロッドの充填時間を減らす。", "Recharges staffs, wands or rods.");
+        rpi.min_level = 20;
+        rpi.cost = 15;
+        rpi.stat = A_WIS;
+        rpi.fail = 25;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     case ElementRealm::SEA:
-        strcpy(rc_ptr->power_desc[rc_ptr->num].racial_name, _("岩石溶解", "Stone to mud"));
-        rc_ptr->power_desc[rc_ptr->num].min_level = 5;
-        rc_ptr->power_desc[rc_ptr->num].cost = 5;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 10;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(_("岩石溶解", "Stone to mud"));
+        rpi.text = _("壁を溶かして床にする。", "Turns one rock square to mud.");
+        rpi.min_level = 5;
+        rpi.cost = 5;
+        rpi.stat = A_WIS;
+        rpi.fail = 10;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     case ElementRealm::DARKNESS:
-        sprintf(rc_ptr->power_desc[rc_ptr->num].racial_name, _("闇の扉(半径%d)", "Door to darkness(rad %d)"), 15 + plev / 2);
-        rc_ptr->power_desc[rc_ptr->num].min_level = 5;
-        rc_ptr->power_desc[rc_ptr->num].cost = 5 + plev / 7;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 20;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(format(_("闇の扉", "Door to darkness"), 15 + plev / 2));
+        rpi.info = format("%s%d", KWD_SPHERE, 15 + plev / 2);
+        rpi.min_level = 5;
+        rpi.cost = 5 + plev / 7;
+        rpi.stat = A_WIS;
+        rpi.fail = 20;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     case ElementRealm::CHAOS:
-        strcpy(rc_ptr->power_desc[rc_ptr->num].racial_name, _("現実変容", "Alter reality"));
-        rc_ptr->power_desc[rc_ptr->num].min_level = 35;
-        rc_ptr->power_desc[rc_ptr->num].cost = 30;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 40;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(_("現実変容", "Alter reality"));
+        rpi.text = _("現在の階を再構成する。", "Recreates current dungeon level.");
+        rpi.min_level = 35;
+        rpi.cost = 30;
+        rpi.stat = A_WIS;
+        rpi.fail = 40;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     case ElementRealm::EARTH:
-        strcpy(rc_ptr->power_desc[rc_ptr->num].racial_name, _("地震", "Earthquake"));
-        rc_ptr->power_desc[rc_ptr->num].min_level = 25;
-        rc_ptr->power_desc[rc_ptr->num].cost = 15;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 20;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(_("地震", "Earthquake"));
+        rpi.info = format("%s%d", KWD_SPHERE, 10);
+        rpi.text
+            = _("周囲のダンジョンを揺らし、壁と床をランダムに入れ変える。", "Shakes dungeon structure, and results in random swapping of floors and walls.");
+        rpi.min_level = 25;
+        rpi.cost = 15;
+        rpi.stat = A_WIS;
+        rpi.fail = 20;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     case ElementRealm::DEATH:
-        strcpy(rc_ptr->power_desc[rc_ptr->num].racial_name, _("増殖阻止", "Sterilization"));
-        rc_ptr->power_desc[rc_ptr->num].min_level = 5;
-        rc_ptr->power_desc[rc_ptr->num].cost = 5;
-        rc_ptr->power_desc[rc_ptr->num].stat = A_WIS;
-        rc_ptr->power_desc[rc_ptr->num].fail = 20;
-        rc_ptr->power_desc[rc_ptr->num++].number = -4;
+        rpi = rpi_type(_("増殖阻止", "Sterilization"));
+        rpi.text = _("この階の増殖するモンスターが増殖できなくなる。", "Prevents any breeders on current level from breeding.");
+        rpi.min_level = 5;
+        rpi.cost = 5;
+        rpi.stat = A_WIS;
+        rpi.fail = 20;
+        rc_ptr->add_power(rpi, RC_IDX_CLASS_1);
         break;
     default:
         break;
@@ -1373,7 +1385,7 @@ bool switch_element_execution(player_type *creature_ptr)
  * @param x 指定のx座標
  * @return 暗いならTRUE、そうでないならFALSE
  */
-static bool is_target_grid_dark(floor_type* f_ptr, POSITION y, POSITION x)
+static bool is_target_grid_dark(floor_type *f_ptr, POSITION y, POSITION x)
 {
     if (any_bits(f_ptr->grid_array[y][x].info, CAVE_MNLT))
         return FALSE;
@@ -1411,7 +1423,7 @@ static bool is_target_grid_dark(floor_type* f_ptr, POSITION y, POSITION x)
  * @breif 暗いところ限定での次元の扉
  * @param caster_ptr プレイヤー情報への参照ポインタ
  */
-static bool door_to_darkness(player_type* caster_ptr, POSITION dist)
+static bool door_to_darkness(player_type *caster_ptr, POSITION dist)
 {
     POSITION y = caster_ptr->y;
     POSITION x = caster_ptr->x;
@@ -1436,7 +1448,7 @@ static bool door_to_darkness(player_type* caster_ptr, POSITION dist)
         break;
     }
 
-    bool flag = cave_player_teleportable_bold(caster_ptr, y, x, TELEPORT_SPONTANEOUS)  && is_target_grid_dark(f_ptr, y, x);
+    bool flag = cave_player_teleportable_bold(caster_ptr, y, x, TELEPORT_SPONTANEOUS) && is_target_grid_dark(f_ptr, y, x);
     if (flag) {
         teleport_player_to(caster_ptr, y, x, TELEPORT_SPONTANEOUS);
     } else {

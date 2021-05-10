@@ -1,6 +1,7 @@
 ﻿#include "load/load-zangband.h"
 #include "cmd-building/cmd-building.h"
 #include "dungeon/dungeon.h"
+#include "dungeon/quest.h"
 #include "game-option/option-flags.h"
 #include "info-reader/fixed-map-parser.h"
 #include "load/angband-version-comparer.h"
@@ -18,6 +19,8 @@
 #include "realm/realm-types.h"
 #include "spell/spells-status.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/player-type-definition.h"
 #include "system/system-variables.h"
 #include "world/world.h"
 
@@ -87,9 +90,9 @@ void set_zangband_realm(player_type* creature_ptr)
 void set_zangband_skill(player_type *creature_ptr)
 {
     if (creature_ptr->pclass != CLASS_BEASTMASTER)
-        creature_ptr->skill_exp[GINOU_RIDING] /= 2;
+        creature_ptr->skill_exp[SKILL_RIDING] /= 2;
 
-    creature_ptr->skill_exp[GINOU_RIDING] = MIN(creature_ptr->skill_exp[GINOU_RIDING], s_info[creature_ptr->pclass].s_max[GINOU_RIDING]);
+    creature_ptr->skill_exp[SKILL_RIDING] = MIN(creature_ptr->skill_exp[SKILL_RIDING], s_info[creature_ptr->pclass].s_max[SKILL_RIDING]);
 }
 
 void set_zangband_spells(player_type* creature_ptr)

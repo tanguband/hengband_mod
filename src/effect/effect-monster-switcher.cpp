@@ -17,6 +17,7 @@
 #include "effect/effect-monster-resist-hurt.h"
 #include "effect/effect-monster-spirit.h"
 #include "effect/effect-monster-util.h"
+#include "grid/grid.h"
 #include "mind/mind-elementalist.h"
 #include "monster-floor/monster-death.h"
 #include "monster-race/monster-race-hook.h"
@@ -31,6 +32,9 @@
 #include "player/player-damage.h"
 #include "spell-kind/spells-genocide.h"
 #include "spell/spell-types.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 
@@ -139,7 +143,7 @@ process_result effect_monster_hand_doom(effect_monster_type *em_ptr)
  * @brief 剣術「幻惑」の効果をモンスターに与える
  * @param caster_ptr プレイヤーの情報へのポインタ
  * @param effect_monster_type モンスターの効果情報へのポインタ
- * @detail
+ * @details
  * 精神のないモンスター、寝ているモンスターには無効。
  * 3回試行し、それぞれ2/5で失敗。
  * 寝た場合は試行終了。

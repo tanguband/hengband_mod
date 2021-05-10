@@ -1,4 +1,5 @@
-﻿#include "io-dump/character-dump.h"
+﻿#include <string>
+
 #include "artifact/fixed-art-types.h"
 #include "cmd-building/cmd-building.h"
 #include "dungeon/dungeon.h"
@@ -8,6 +9,7 @@
 #include "game-option/birth-options.h"
 #include "game-option/game-play-options.h"
 #include "inventory/inventory-slot-types.h"
+#include "io-dump/character-dump.h"
 #include "io-dump/player-status-dump.h"
 #include "io-dump/special-class-dump.h"
 #include "io/mutations-dump.h"
@@ -24,6 +26,7 @@
 #include "monster/smart-learn-types.h"
 #include "object/object-info.h"
 #include "pet/pet-util.h"
+#include "player-info/alignment.h"
 #include "player-info/avatar.h"
 #include "player/player-status-flags.h"
 #include "player/player-status-table.h"
@@ -34,17 +37,19 @@
 #include "system/angband-version.h"
 #include "system/building-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/int-char-converter.h"
 #include "util/sort.h"
 #include "view/display-messages.h"
 #include "world/world.h"
-#include <string>
 
 /*!
  * @brief プレイヤーのペット情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_pet(player_type *master_ptr, FILE *fff)
 {
@@ -100,7 +105,6 @@ static void dump_aux_pet(player_type *master_ptr, FILE *fff)
  * @brief クエスト情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_quest(player_type *creature_ptr, FILE *fff)
 {
@@ -126,7 +130,6 @@ static void dump_aux_quest(player_type *creature_ptr, FILE *fff)
  * @brief 死の直前メッセージ並びに遺言をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_last_message(player_type *creature_ptr, FILE *fff)
 {
@@ -153,7 +156,6 @@ static void dump_aux_last_message(player_type *creature_ptr, FILE *fff)
 /*!
  * @brief 帰還場所情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_recall(FILE *fff)
 {
@@ -178,7 +180,6 @@ static void dump_aux_recall(FILE *fff)
 /*!
  * @brief オプション情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_options(FILE *fff)
 {
@@ -233,7 +234,6 @@ static void dump_aux_options(FILE *fff)
  * @brief 闘技場の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_arena(player_type *creature_ptr, FILE *fff)
 {
@@ -281,7 +281,6 @@ static void dump_aux_arena(player_type *creature_ptr, FILE *fff)
 /*!
  * @brief 撃破モンスターの情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_monsters(player_type *creature_ptr, FILE *fff)
 {
@@ -348,9 +347,16 @@ static void dump_aux_monsters(player_type *creature_ptr, FILE *fff)
     ang_sort(creature_ptr, who, &why, uniq_total, ang_sort_comp_hook, ang_sort_swap_hook);
     fprintf(fff, _("\n《上位%ld体のユニーク・モンスター》\n", "\n< Unique monsters top %ld >\n"), MIN(uniq_total, 10));
 
+    char buf[80];
     for (MONRACE_IDX k = uniq_total - 1; k >= 0 && k >= uniq_total - 10; k--) {
         monster_race *r_ptr = &r_info[who[k]];
-        fprintf(fff, _("  %-40s (レベル%3d)\n", "  %-40s (level %3d)\n"), r_ptr->name.c_str(), (int)r_ptr->level);
+        if (r_ptr->defeat_level && r_ptr->defeat_time)
+            sprintf(buf, _(" - レベル%2d - %d:%02d:%02d", " - level %2d - %d:%02d:%02d"), r_ptr->defeat_level, r_ptr->defeat_time / (60 * 60),
+                (r_ptr->defeat_time / 60) % 60, r_ptr->defeat_time % 60);
+        else
+            buf[0] = '\0';
+
+        fprintf(fff, _("  %-40s (レベル%3d)%s\n", "  %-40s (level %3d)%s\n"), r_ptr->name.c_str(), (int)r_ptr->level, buf);
     }
 
     C_KILL(who, max_r_idx, s16b);
@@ -360,7 +366,6 @@ static void dump_aux_monsters(player_type *creature_ptr, FILE *fff)
  * @brief 元種族情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_race_history(player_type *creature_ptr, FILE *fff)
 {
@@ -389,7 +394,6 @@ static void dump_aux_race_history(player_type *creature_ptr, FILE *fff)
  * @brief 元魔法領域情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_realm_history(player_type *creature_ptr, FILE *fff)
 {
@@ -410,7 +414,6 @@ static void dump_aux_realm_history(player_type *creature_ptr, FILE *fff)
  * @brief 徳の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_virtues(player_type *creature_ptr, FILE *fff)
 {
@@ -439,7 +442,7 @@ static void dump_aux_virtues(player_type *creature_ptr, FILE *fff)
             fprintf(fff, "%s ???\n", stat_names[v_nr]);
     }
 
-    std::string alg = your_alignment(creature_ptr);
+    std::string alg = PlayerAlignment(creature_ptr).get_alignment_description();
     fprintf(fff, _("\n属性 : %s\n", "\nYour alignment : %s\n"), alg.c_str());
     fprintf(fff, "\n");
     dump_virtues(creature_ptr, fff);
@@ -449,7 +452,6 @@ static void dump_aux_virtues(player_type *creature_ptr, FILE *fff)
  * @brief 突然変異の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_mutations(player_type *creature_ptr, FILE *fff)
 {
@@ -463,7 +465,6 @@ static void dump_aux_mutations(player_type *creature_ptr, FILE *fff)
  * @brief 所持品の情報をファイルにダンプする
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_equipment_inventory(player_type *creature_ptr, FILE *fff)
 {
@@ -497,7 +498,6 @@ static void dump_aux_equipment_inventory(player_type *creature_ptr, FILE *fff)
 /*!
  * @brief 我が家と博物館のオブジェクト情報をファイルにダンプする
  * @param fff ファイルポインタ
- * @return なし
  */
 static void dump_aux_home_museum(player_type *creature_ptr, FILE *fff)
 {
@@ -561,12 +561,11 @@ static concptr get_check_sum(void)
  * @param fff ファイルポインタ
  * @return エラーコード
  */
-void make_character_dump(player_type *creature_ptr, FILE *fff, void (*update_playtime)(void), display_player_pf display_player)
+void make_character_dump(player_type *creature_ptr, FILE *fff, display_player_pf display_player)
 {
     char title[127];
     put_version(title);
     fprintf(fff, _("  [%s キャラクタ情報]\n\n", "  [%s Character Dump]\n\n"), title);
-    (*update_playtime)();
 
     dump_aux_player_status(creature_ptr, fff, display_player);
     dump_aux_last_message(creature_ptr, fff);

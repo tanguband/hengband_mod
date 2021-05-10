@@ -9,7 +9,9 @@
 #include "mutation/mutation-flag-types.h"
 #include "object-enchant/tr-types.h"
 #include "object/object-flags.h"
+#include "player-info/equipment-info.h"
 #include "player/attack-defense-types.h"
+#include "player/digestion-processor.h"
 #include "player/player-race.h"
 #include "player/player-skill.h"
 #include "player/player-status-flags.h"
@@ -19,6 +21,10 @@
 #include "realm/realm-types.h"
 #include "spell-realm/spells-hex.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
 /*
@@ -276,14 +282,14 @@ s16b PlayerSpeed::riding_value()
     }
 
     if (riding_m_ptr->mspeed > 110) {
-        result = (s16b)((speed - 110) * (this->owner_ptr->skill_exp[GINOU_RIDING] * 3 + this->owner_ptr->lev * 160L - 10000L) / (22000L));
+        result = (s16b)((speed - 110) * (this->owner_ptr->skill_exp[SKILL_RIDING] * 3 + this->owner_ptr->lev * 160L - 10000L) / (22000L));
         if (result < 0)
             result = 0;
     } else {
         result = speed - 110;
     }
 
-    result += (this->owner_ptr->skill_exp[GINOU_RIDING] + this->owner_ptr->lev * 160L) / 3200;
+    result += (this->owner_ptr->skill_exp[SKILL_RIDING] + this->owner_ptr->lev * 160L) / 3200;
 
     if (monster_fast_remaining(riding_m_ptr))
         result += 10;
@@ -311,8 +317,8 @@ s16b PlayerSpeed::inventory_weight_value()
         monster_race *riding_r_ptr = &r_info[riding_m_ptr->r_idx];
         count = 1500 + riding_r_ptr->level * 25;
 
-        if (this->owner_ptr->skill_exp[GINOU_RIDING] < RIDING_EXP_SKILLED) {
-            weight += (this->owner_ptr->wt * 3 * (RIDING_EXP_SKILLED - this->owner_ptr->skill_exp[GINOU_RIDING])) / RIDING_EXP_SKILLED;
+        if (this->owner_ptr->skill_exp[SKILL_RIDING] < RIDING_EXP_SKILLED) {
+            weight += (this->owner_ptr->wt * 3 * (RIDING_EXP_SKILLED - this->owner_ptr->skill_exp[SKILL_RIDING])) / RIDING_EXP_SKILLED;
         }
 
         if (weight > count) {

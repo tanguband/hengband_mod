@@ -64,7 +64,7 @@ static void write_item_flags(object_type *o_ptr, BIT_FLAGS *flags)
     if (o_ptr->art_flags[4])
         *flags |= SAVE_ITEM_ART_FLAGS4;
 
-    if (o_ptr->curse_flags)
+    if (o_ptr->curse_flags.any())
         *flags |= SAVE_ITEM_CURSE_FLAGS;
 
     if (o_ptr->held_m_idx)
@@ -93,6 +93,9 @@ static void write_item_flags(object_type *o_ptr, BIT_FLAGS *flags)
 
     if (o_ptr->art_name)
         *flags |= SAVE_ITEM_ART_NAME;
+
+    if (o_ptr->stack_idx)
+        *flags |= SAVE_ITEM_STACK_IDX;
 
     wr_u32b(*flags);
 }
@@ -149,7 +152,7 @@ static void write_item_info(object_type *o_ptr, const BIT_FLAGS flags)
         wr_u32b(o_ptr->art_flags[4]);
 
     if (flags & SAVE_ITEM_CURSE_FLAGS)
-        wr_u32b(o_ptr->curse_flags);
+        wr_FlagGroup(o_ptr->curse_flags, wr_byte);
 
     if (flags & SAVE_ITEM_HELD_M_IDX)
         wr_s16b(o_ptr->held_m_idx);
@@ -171,12 +174,14 @@ static void write_item_info(object_type *o_ptr, const BIT_FLAGS flags)
 
     if (flags & SAVE_ITEM_FEELING)
         wr_byte(o_ptr->feeling);
+
+    if (flags & SAVE_ITEM_STACK_IDX)
+        wr_s16b(o_ptr->stack_idx);
 }
 
 /*!
  * @brief アイテムオブジェクトを書き込む / Write an "item" record
  * @param o_ptr アイテムオブジェクト保存元ポインタ
- * @return なし
  */
 void wr_item(object_type *o_ptr)
 {
@@ -206,7 +211,6 @@ void wr_item(object_type *o_ptr)
 /*!
  * @brief セーブデータにアイテムの鑑定情報を書き込む / Write an "perception" record
  * @param k_idx ベースアイテムのID
- * @return なし
  */
 void wr_perception(KIND_OBJECT_IDX k_idx)
 {

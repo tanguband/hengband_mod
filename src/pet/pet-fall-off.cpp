@@ -10,7 +10,10 @@
 #include "core/stuff-handler.h"
 #include "core/window-redrawer.h"
 #include "floor/cave.h"
+#include "floor/geometry.h"
 #include "grid/feature.h"
+#include "grid/grid.h"
+#include "monster-attack/monster-attack-util.h"
 #include "monster-race/monster-race.h"
 #include "monster/monster-describer.h"
 #include "pet/pet-util.h"
@@ -18,6 +21,9 @@
 #include "player/player-move.h"
 #include "player/player-skill.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/target-checker.h"
 #include "view/display-messages.h"
 
@@ -25,7 +31,6 @@
  * @brief モンスターから直接攻撃を受けた時に落馬するかどうかを判定し、判定アウトならば落馬させる
  * @param creature_ptr プレーヤーへの参照ポインタ
  * @param monap_ptr モンスターからプレーヤーへの直接攻撃構造体への参照ポインタ
- * @return なし
  */
 void check_fall_off_horse(player_type *creature_ptr, monap_type *monap_ptr)
 {
@@ -52,8 +57,8 @@ static bool calc_fall_off_possibility(player_type *creature_ptr, const HIT_POINT
     if (force)
         return TRUE;
 
-    int cur = creature_ptr->skill_exp[GINOU_RIDING];
-    int max = s_info[creature_ptr->pclass].s_max[GINOU_RIDING];
+    int cur = creature_ptr->skill_exp[SKILL_RIDING];
+    int max = s_info[creature_ptr->pclass].s_max[SKILL_RIDING];
     int ridinglevel = r_ptr->level;
 
     int fall_off_level = r_ptr->level;
@@ -67,7 +72,7 @@ static bool calc_fall_off_possibility(player_type *creature_ptr, const HIT_POINT
         else
             inc += 1;
 
-        creature_ptr->skill_exp[GINOU_RIDING] = MIN(max, cur + inc);
+        creature_ptr->skill_exp[SKILL_RIDING] = MIN(max, cur + inc);
     }
 
     if (randint0(dam / 2 + fall_off_level * 2) >= cur / 30 + 10)

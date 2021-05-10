@@ -4,8 +4,38 @@
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
 #include "monster-race/race-flags7.h"
+#include "player-attack/player-attack-util.h"
+#include "player-info/equipment-info.h"
 #include "sv-definition/sv-weapon-types.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "view/display-messages.h"
+
+/*!
+ * @brief クリティカルダメージを適用する
+ *
+ * @param k クリティカルの強度を決定する値
+ * @param base_dam クリティカル適用前のダメージ
+ * @return クリティカルを適用したダメージと、クリティカル発生時に表示するメッセージのタプルを返す
+ */
+std::tuple<HIT_POINT, concptr> apply_critical_norm_damage(int k, HIT_POINT base_dam)
+{
+    if (k < 400) {
+        return { 2 * base_dam + 5, _("手ごたえがあった！", "It was a good hit!") };
+    }
+    if (k < 700) {
+        return { 2 * base_dam + 10, _("かなりの手ごたえがあった！", "It was a great hit!") };
+    }
+    if (k < 900) {
+        return { 3 * base_dam + 15, _("会心の一撃だ！", "It was a superb hit!") };
+    }
+    if (k < 1300) {
+        return { 3 * base_dam + 20, _("最高の会心の一撃だ！", "It was a *GREAT* hit!") };
+    }
+    return { ((7 * base_dam) / 2) + 25, _("比類なき最高の会心の一撃だ！", "It was a *SUPERB* hit!") };
+}
 
 /*!
  * @brief プレイヤーからモンスターへの打撃クリティカル判定 /
@@ -37,34 +67,9 @@ HIT_POINT critical_norm(player_type *attacker_ptr, WEIGHT weight, int plus, HIT_
     if (impact || (mode == HISSATSU_MAJIN) || (mode == HISSATSU_3DAN))
         k += randint1(650);
 
-    if (k < 400) {
-        msg_print(_("手ごたえがあった！", "It was a good hit!"));
-
-        dam = 2 * dam + 5;
-        return dam;
-    }
-
-    if (k < 700) {
-        msg_print(_("かなりの手ごたえがあった！", "It was a great hit!"));
-        dam = 2 * dam + 10;
-        return dam;
-    }
-
-    if (k < 900) {
-        msg_print(_("会心の一撃だ！", "It was a superb hit!"));
-        dam = 3 * dam + 15;
-        return dam;
-    }
-
-    if (k < 1300) {
-        msg_print(_("最高の会心の一撃だ！", "It was a *GREAT* hit!"));
-        dam = 3 * dam + 20;
-        return dam;
-    }
-
-    msg_print(_("比類なき最高の会心の一撃だ！", "It was a *SUPERB* hit!"));
-    dam = ((7 * dam) / 2) + 25;
-    return dam;
+    auto [critical_dam, msg] = apply_critical_norm_damage(k, dam);
+    msg_print(msg);
+    return critical_dam;
 }
 
 /*!
@@ -116,7 +121,6 @@ int calc_monster_critical(DICE_NUMBER dice, DICE_SID sides, HIT_POINT dam)
  * @brief 忍者ヒットで急所を突く
  * @param attacker_ptr プレーヤーへの参照ポインタ
  * @param pa_ptr 直接攻撃構造体への参照ポインタ
- * @return なし
  * @details 闇討ち＆追討ちを実施した後に致命傷チェックを行う
  * チェックを通ったら、ユニークならば2倍ダメージ、それ以外は一撃死
  * @todo 3つの処理をdetailsに書くよりは関数自体を分割すべきだが、一旦後回しにする。他の項目と一緒に処理する
@@ -153,7 +157,6 @@ static void ninja_critical(player_type *attacker_ptr, player_attack_type *pa_ptr
  * @brief 急所を突く
  * @param attacker_ptr プレーヤーへの参照ポインタ
  * @param pa_ptr 直接攻撃構造体への参照ポインタ
- * @return なし
  */
 void critical_attack(player_type *attacker_ptr, player_attack_type *pa_ptr)
 {

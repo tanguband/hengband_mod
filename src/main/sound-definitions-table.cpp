@@ -1,4 +1,8 @@
-﻿#include "system/angband.h"
+﻿/*!
+ * @file sound-definitions-table.cpp
+ * @brief 設定ファイル用の効果音名定義
+ */
+
 #include "main/sound-definitions-table.h"
 
 const concptr angband_sound_name[SOUND_MAX] =

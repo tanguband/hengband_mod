@@ -1,4 +1,9 @@
-﻿#include "artifact/random-art-characteristics.h"
+﻿/*!
+ * @file random-art-characteristics.cpp
+ * @brief ランダムアーティファクトのバイアス付加処理実装
+ */
+
+#include "artifact/random-art-characteristics.h"
 #include "flavor/object-flavor.h"
 #include "game-option/cheat-types.h"
 #include "io/files-util.h"
@@ -6,6 +11,7 @@
 #include "object-enchant/trc-types.h"
 #include "object/object-flags.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "wizard/wizard-messages.h"
 
@@ -27,7 +33,7 @@ static void pval_subtraction(object_type *o_ptr)
 static void add_negative_flags(object_type *o_ptr)
 {
     if (one_in_(4))
-        o_ptr->curse_flags |= TRC_PERMA_CURSE;
+        o_ptr->curse_flags.set(TRC::PERMA_CURSE);
 
     if (one_in_(3))
         add_flag(o_ptr->art_flags, TR_TY_CURSE);
@@ -64,12 +70,11 @@ static void add_negative_flags(object_type *o_ptr)
  * @attention プレイヤーの職業依存処理あり。
  * @param player_ptr プレーヤーへの参照ポインタ
  * @param o_ptr 対象のオブジェクト構造体ポインタ
- * @return なし
  */
 void curse_artifact(player_type *player_ptr, object_type *o_ptr)
 {
     pval_subtraction(o_ptr);
-    o_ptr->curse_flags |= (TRC_HEAVY_CURSE | TRC_CURSED);
+    o_ptr->curse_flags.set({ TRC::HEAVY_CURSE, TRC::CURSED });
     remove_flag(o_ptr->art_flags, TR_BLESSED);
     add_negative_flags(o_ptr);
     if ((player_ptr->pclass != CLASS_WARRIOR) && (player_ptr->pclass != CLASS_ARCHER) && (player_ptr->pclass != CLASS_CAVALRY)
@@ -127,7 +132,6 @@ static concptr get_random_art_filename(const bool armour, const int power)
  * @param return_name 名前を返すための文字列参照ポインタ
  * @param armour 対象のオブジェクトが防具が否か
  * @param power 銘の基準となるオブジェクトの価値レベル(0=呪い、1=低位、2=中位、3以上=高位)
- * @return なし
  */
 void get_random_name(object_type *o_ptr, char *return_name, bool armour, int power)
 {

@@ -5,21 +5,22 @@
 /**
  * @brief フラグ集合を扱う、FlagGroupクラス
  *
- * @tparam FlagType 扱うフラグ集合を定義したenum class型
+ * @tparam FlagType 扱うフラグ集合を定義したenum型 もしくは enum class型
+ * @tparam FlagTypeに列挙される値の最大値+1
  */
-template <typename FlagType>
+template <typename FlagType, FlagType MAX>
 class FlagGroup {
 private:
     /** フラグ集合のフラグ数 */
-    static constexpr auto FLAG_TYPE_MAX = static_cast<size_t>(FlagType::MAX);
+    static constexpr auto FLAG_TYPE_MAX = static_cast<size_t>(MAX);
 
 public:
     /**
      * @brief フラグ集合に含まれるフラグの種類数を返す
      *
-     * @return constexpr size_t フラグ集合に含まれるフラグの種類数
+     * @return フラグ集合に含まれるフラグの種類数
      */
-    constexpr size_t size() const noexcept
+    [[nodiscard]] constexpr size_t size() const noexcept
     {
         return FLAG_TYPE_MAX;
     };
@@ -29,7 +30,7 @@ public:
      *
      * すべてのフラグがOFFの状態のFlagGroupクラスのインスタンスを生成する
      */
-    FlagGroup<FlagType>() = default;
+    FlagGroup() = default;
 
     /**
      * @brief FlagGroupクラスのコンストラクタ
@@ -39,7 +40,7 @@ public:
      *
      * @param il ONの状態で生成するフラグを指定した initializer_list
      */
-    FlagGroup<FlagType>(std::initializer_list<FlagType> il)
+    FlagGroup(std::initializer_list<FlagType> il)
     {
         set(il);
     }
@@ -55,7 +56,7 @@ public:
      * @param last 範囲の終了位置を示す入力イテレータ
      */
     template <typename InputIter>
-    FlagGroup<FlagType>(InputIter first, InputIter last)
+    FlagGroup(InputIter first, InputIter last)
     {
         set(first, last);
     }
@@ -63,9 +64,9 @@ public:
     /**
      * @brief フラグ集合に含まれるフラグをすべてOFFにする
      *
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &clear() noexcept
+    FlagGroup<FlagType, MAX> &clear() noexcept
     {
         bs_.reset();
         return *this;
@@ -77,9 +78,9 @@ public:
      * @param flag 値をセットするフラグを指定する
      * @param val セットする値。trueならフラグをON、falseならフラグをOFFにする。
      *            引数を省略した場合はフラグをONにする。
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &set(FlagType flag, bool val = true)
+    FlagGroup<FlagType, MAX> &set(FlagType flag, bool val = true)
     {
         bs_.set(static_cast<size_t>(flag), val);
         return *this;
@@ -91,10 +92,10 @@ public:
      * @tparam InputIter 入力イテレータの型
      * @param first 範囲の開始位置を示す入力イテレータ
      * @param last 範囲の終了位置を示す入力イテレータ
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
     template <typename InputIter>
-    FlagGroup<FlagType> &set(InputIter first, InputIter last)
+    FlagGroup<FlagType, MAX> &set(InputIter first, InputIter last)
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
@@ -109,9 +110,9 @@ public:
      * @brief 指定したFlagGroupのインスンタンスのONになっているフラグをONにする
      *
      * @param rhs ONにするフラグがONになっているFlagGroupのインスタンス
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &set(const FlagGroup<FlagType> &rhs)
+    FlagGroup<FlagType, MAX> &set(const FlagGroup<FlagType, MAX> &rhs)
     {
         bs_ |= rhs.bs_;
         return *this;
@@ -121,9 +122,9 @@ public:
      * @brief 指定したinitializer_listに含まれるフラグをONにする
      *
      * @param list ONにするフラグを列挙したinitializer_list
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &set(std::initializer_list<FlagType> list)
+    FlagGroup<FlagType, MAX> &set(std::initializer_list<FlagType> list)
     {
         return set(std::begin(list), std::end(list));
     }
@@ -132,9 +133,9 @@ public:
      * @brief 指定したフラグをOFFにする
      *
      * @param flag OFFにするフラグを指定する
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &reset(FlagType flag)
+    FlagGroup<FlagType, MAX> &reset(FlagType flag)
     {
         bs_.reset(static_cast<size_t>(flag));
         return *this;
@@ -146,10 +147,10 @@ public:
      * @tparam InputIter 入力イテレータの型
      * @param first 範囲の開始位置を示す入力イテレータ
      * @param last 範囲の終了位置を示す入力イテレータ
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
     template <typename InputIter>
-    FlagGroup<FlagType> &reset(InputIter first, InputIter last)
+    FlagGroup<FlagType, MAX> &reset(InputIter first, InputIter last)
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
@@ -164,9 +165,9 @@ public:
      * @brief 指定したFlagGroupのインスンタンスのONになっているフラグをOFFにする
      *
      * @param rhs OFFにするフラグがONになっているFlagGroupのインスタンス
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &reset(const FlagGroup<FlagType> &rhs)
+    FlagGroup<FlagType, MAX> &reset(const FlagGroup<FlagType, MAX> &rhs)
     {
         bs_ &= ~rhs.bs_;
         return *this;
@@ -176,9 +177,9 @@ public:
      * @brief 指定したinitializer_listに含まれるフラグをOFFにする
      *
      * @param list OFFにするフラグを列挙したinitializer_list
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &reset(std::initializer_list<FlagType> list)
+    FlagGroup<FlagType, MAX> &reset(std::initializer_list<FlagType> list)
     {
         return reset(std::begin(list), std::end(list));
     }
@@ -187,9 +188,9 @@ public:
      * @brief 指定したフラグがONかOFFか調べる
      *
      * @param f 調べるフラグを指定する
-     * @return bool 指定したフラグがONならtrue、OFFならfalse
+     * @return 指定したフラグがONならtrue、OFFならfalse
      */
-    bool has(FlagType f) const
+    [[nodiscard]] bool has(FlagType f) const
     {
         return bs_.test(static_cast<size_t>(f));
     }
@@ -198,9 +199,9 @@ public:
      * @brief 指定したフラグがOFFかONか調べる
      *
      * @param f 調べるフラグを指定する
-     * @return bool 指定したフラグがOFFならtrue、ONならfalse
+     * @return 指定したフラグがOFFならtrue、ONならfalse
      */
-    bool has_not(FlagType f) const
+    [[nodiscard]] bool has_not(FlagType f) const
     {
         return !has(f);
     }
@@ -208,10 +209,10 @@ public:
     /**
      * @brief フラグ集合のいずれかのフラグがONかどうかを調べる
      *
-     * @return bool フラグ集合のいずれかのフラグがONならtrue
-     *              フラグ集合のすべてのフラグがOFFならfalse
+     * @return フラグ集合のいずれかのフラグがONならtrue
+     *         フラグ集合のすべてのフラグがOFFならfalse
      */
-    bool any() const noexcept
+    [[nodiscard]] bool any() const noexcept
     {
         return bs_.any();
     }
@@ -219,10 +220,10 @@ public:
     /**
      * @brief フラグ集合のすべてのフラグがOFFかどうかを調べる
      *
-     * @return bool フラグ集合のすべてのフラグがOFFならtrue
-     *              フラグ集合のいずれかのフラグがONならfalse
+     * @return フラグ集合のすべてのフラグがOFFならtrue
+     *         フラグ集合のいずれかのフラグがONならfalse
      */
-    bool none() const noexcept
+    [[nodiscard]] bool none() const noexcept
     {
         return bs_.none();
     }
@@ -233,10 +234,10 @@ public:
      * @tparam InputIter 入力イテレータの型
      * @param first 範囲の開始位置を示す入力イテレータ
      * @param last 範囲の終了位置を示す入力イテレータ
-     * @return bool すべてのフラグがONであればtrue、そうでなければfalse
+     * @return すべてのフラグがONであればtrue、そうでなければfalse
      */
     template <typename InputIter>
-    bool has_all_of(InputIter first, InputIter last) const
+    [[nodiscard]] bool has_all_of(InputIter first, InputIter last) const
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
@@ -253,9 +254,9 @@ public:
      * @brief 指定したinitializer_listに含まれるフラグがすべてONかどうかを調べる
      *
      * @param list 調べるフラグを列挙したinitializer_list
-     * @return bool すべてのフラグがONであればtrue、そうでなければfalse
+     * @return すべてのフラグがONであればtrue、そうでなければfalse
      */
-    bool has_all_of(std::initializer_list<FlagType> list) const
+    [[nodiscard]] bool has_all_of(std::initializer_list<FlagType> list) const
     {
         return has_all_of(std::begin(list), std::end(list));
     }
@@ -264,9 +265,9 @@ public:
      * @brief 引数で指定したFlagGroupのインスンタンスのONになっているフラグがすべてONかどうかを調べる
      *
      * @param rhs FlagGroupのインスタンス
-     * @return bool すべてのフラグがONであればtrue、そうでなければfalse
+     * @return すべてのフラグがONであればtrue、そうでなければfalse
      */
-    bool has_all_of(const FlagGroup<FlagType> &rhs) const
+    [[nodiscard]] bool has_all_of(const FlagGroup<FlagType, MAX> &rhs) const
     {
         return (bs_ & rhs.bs_) == rhs.bs_;
     }
@@ -277,10 +278,10 @@ public:
      * @tparam InputIter 入力イテレータの型
      * @param first 範囲の開始位置を示す入力イテレータ
      * @param last 範囲の終了位置を示す入力イテレータ
-     * @return bool いずれかのフラグがONであればtrue、そうでなければfalse
+     * @return いずれかのフラグがONであればtrue、そうでなければfalse
      */
     template <typename InputIter>
-    bool has_any_of(InputIter first, InputIter last) const
+    [[nodiscard]] bool has_any_of(InputIter first, InputIter last) const
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
@@ -297,9 +298,9 @@ public:
      * @brief 指定したinitializer_listに含まれるフラグのいずれかがONかどうかを調べる
      *
      * @param list 調べるフラグを列挙したinitializer_list
-     * @return bool いずれかのフラグがONであればtrue、そうでなければfalse
+     * @return いずれかのフラグがONであればtrue、そうでなければfalse
      */
-    bool has_any_of(std::initializer_list<FlagType> list) const
+    [[nodiscard]] bool has_any_of(std::initializer_list<FlagType> list) const
     {
         return has_any_of(std::begin(list), std::end(list));
     }
@@ -308,11 +309,11 @@ public:
      * @brief 引数で指定したFlagGroupのインスンタンスのONになっているフラグのいずれかがONかどうかを調べる
      *
      * @param rhs FlagGroupのインスタンス
-     * @return bool いずれかのフラグがONであればtrue、そうでなければfalse
+     * @return いずれかのフラグがONであればtrue、そうでなければfalse
      */
-    bool has_any_of(const FlagGroup<FlagType> &rhs) const
+    [[nodiscard]] bool has_any_of(const FlagGroup<FlagType, MAX> &rhs) const
     {
-        return (bs_ & rhs.bs_) != 0;
+        return (bs_ & rhs.bs_).any();
     }
 
     /**
@@ -321,10 +322,10 @@ public:
      * @tparam InputIter 入力イテレータの型
      * @param first 範囲の開始位置を示す入力イテレータ
      * @param last 範囲の終了位置を示す入力イテレータ
-     * @return bool すべてのフラグがOFFであればtrue、そうでなければfalse
+     * @return すべてのフラグがOFFであればtrue、そうでなければfalse
      */
     template <typename InputIter>
-    bool has_none_of(InputIter first, InputIter last) const
+    [[nodiscard]] bool has_none_of(InputIter first, InputIter last) const
     {
         static_assert(std::is_same<typename std::iterator_traits<InputIter>::value_type, FlagType>::value, "Iterator value type is invalid");
 
@@ -335,9 +336,9 @@ public:
      * @brief 指定したinitializer_listに含まれるフラグがすべてOFFかどうかを調べる
      *
      * @param list 調べるフラグを列挙したinitializer_list
-     * @return bool すべてのフラグがOFFであればtrue、そうでなければfalse
+     * @return すべてのフラグがOFFであればtrue、そうでなければfalse
      */
-    bool has_none_of(std::initializer_list<FlagType> list) const
+    [[nodiscard]] bool has_none_of(std::initializer_list<FlagType> list) const
     {
         return !has_any_of(list);
     }
@@ -346,9 +347,9 @@ public:
      * @brief 引数で指定したFlagGroupのインスンタンスのONになっているフラグがすべてOFFかどうかを調べる
      *
      * @param rhs FlagGroupのインスタンス
-     * @return bool すべてのフラグがOFFであればtrue、そうでなければfalse
+     * @return すべてのフラグがOFFであればtrue、そうでなければfalse
      */
-    bool has_none_of(const FlagGroup<FlagType> &rhs) const
+    [[nodiscard]] bool has_none_of(const FlagGroup<FlagType, MAX> &rhs) const
     {
         return !has_any_of(rhs);
     }
@@ -356,9 +357,9 @@ public:
     /**
      * @brief フラグ集合のONになっているフラグの数を返す
      *
-     * @return size_t ONになっているフラグの数
+     * @return ONになっているフラグの数
      */
-    size_t count() const noexcept
+    [[nodiscard]] size_t count() const noexcept
     {
         return bs_.count();
     }
@@ -369,9 +370,9 @@ public:
      * フラグ集合の上位番号から順に、フラグがONなら1、OFFなら0で表した文字列を返す。
      * 例: 5つのフラグ集合で、0:ON、1:OFF、2:OFF、3:ON、4:OFFの場合、"01001"
      *
-     * @return std::string フラグ集合の状態を表した文字列
+     * @return フラグ集合の状態を表した文字列
      */
-    std::string str() const
+    [[nodiscard]] std::string str() const
     {
         return bs_.to_string();
     }
@@ -380,9 +381,9 @@ public:
      * @brief フラグ集合 *this と rhs が等値かどうかを調べる
      *
      * @param rhs 比較するフラグ集合
-     * @return bool すべてのフラグの状態が等しければtrue、そうでなければfalse
+     * @return すべてのフラグの状態が等しければtrue、そうでなければfalse
      */
-    bool operator==(const FlagGroup<FlagType> &rhs) const noexcept
+    [[nodiscard]] bool operator==(const FlagGroup<FlagType, MAX> &rhs) const noexcept
     {
         return bs_ == rhs.bs_;
     }
@@ -391,9 +392,9 @@ public:
      * @brief フラグ集合 *this と rhs が非等値かどうかを調べる
      *
      * @param rhs 比較するフラグ集合
-     * @return bool いずれかのフラグの状態が等しくなければtrue、そうでなければfalse
+     * @return いずれかのフラグの状態が等しくなければtrue、そうでなければfalse
      */
-    bool operator!=(const FlagGroup<FlagType> &rhs) const noexcept
+    [[nodiscard]] bool operator!=(const FlagGroup<FlagType, MAX> &rhs) const noexcept
     {
         return bs_ != rhs.bs_;
     }
@@ -404,9 +405,9 @@ public:
      * *this に対して、*this と rhs で共通してONのフラグをONのままにし、それ以外のフラグをOFFにする
      *
      * @param rhs 複合演算を行うフラグ集合
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &operator&=(const FlagGroup<FlagType> &rhs) noexcept
+    FlagGroup<FlagType, MAX> &operator&=(const FlagGroup<FlagType, MAX> &rhs) noexcept
     {
         bs_ &= rhs.bs_;
         return *this;
@@ -418,16 +419,23 @@ public:
      * *this に対して、*this と rhs でどちらか一方でもONのフラグをONにし、それ以外のフラグをOFFにする
      *
      * @param rhs 複合演算を行うフラグ集合
-     * @return FlagGroup<FlagType>& *thisを返す
+     * @return *thisを返す
      */
-    FlagGroup<FlagType> &operator|=(const FlagGroup<FlagType> &rhs) noexcept
+    FlagGroup<FlagType, MAX> &operator|=(const FlagGroup<FlagType, MAX> &rhs) noexcept
     {
         bs_ |= rhs.bs_;
         return *this;
     }
 
+    /**
+     * @brief フラグ集合のONになっているフラグを出力イテレータに書き込む
+     *
+     * @tparam OutputIter フラグを書き込む出力イテレータの型
+     * @param flag_group 対象のフラグ集合
+     * @param start フラグを書き込む出力イテレータ
+     */
     template <typename OutputIter>
-    static void get_flags(const FlagGroup<FlagType>& flag_group, OutputIter start)
+    static void get_flags(const FlagGroup<FlagType, MAX> &flag_group, OutputIter start)
     {
         for (size_t i = 0; i < flag_group.size(); i++) {
             if (flag_group.bs_.test(i)) {
@@ -443,7 +451,7 @@ public:
      * @param rd_byte_func セーブファイルから1バイトデータを読み出す関数(rd_byte)へのポインタ
      */
     template <typename Func>
-    friend void rd_FlagGroup(FlagGroup<FlagType> &fg, Func rd_byte_func)
+    friend void rd_FlagGroup(FlagGroup<FlagType, MAX> &fg, Func rd_byte_func)
     {
         uint8_t tmp_l, tmp_h;
         rd_byte_func(&tmp_l);
@@ -470,7 +478,7 @@ public:
      * @param wr_byte_func セーブファイルに1バイトデータを書き込む関数(wr_byte)へのポインタ
      */
     template <typename Func>
-    friend void wr_FlagGroup(const FlagGroup<FlagType> &fg, Func wr_byte_func)
+    friend void wr_FlagGroup(const FlagGroup<FlagType, MAX> &fg, Func wr_byte_func)
     {
         const auto fg_size = static_cast<uint16_t>((fg.bs_.size() + 7) / 8);
         wr_byte_func(fg_size & 0xff);
@@ -496,11 +504,11 @@ public:
      * @param fg フラグをセットするフラグ集合
      * @param dict 文字列からフラグへのマップ
      * @param what マップの検索キー
-     * @return bool 検索キーでフラグが見つかり、フラグをセットした場合 true
-     *              見つからなかった場合 false
+     * @return 検索キーでフラグが見つかり、フラグをセットした場合 true
+     *         見つからなかった場合 false
      */
     template <typename Map>
-    static bool grab_one_flag(FlagGroup<FlagType> &fg, const Map &dict, std::string_view what)
+    static bool grab_one_flag(FlagGroup<FlagType, MAX> &fg, const Map &dict, std::string_view what)
     {
         auto it = dict.find(what);
         if (it == dict.end())
@@ -516,7 +524,7 @@ private:
      */
     class reference {
     public:
-        reference(std::bitset<FlagGroup::FLAG_TYPE_MAX> &flags, size_t pos)
+        reference(std::bitset<FLAG_TYPE_MAX> &flags, size_t pos)
             : bs_(flags)
             , pos_(pos)
         {
@@ -534,13 +542,13 @@ private:
             return *this;
         }
 
-        operator bool() const
+        [[nodiscard]] operator bool() const
         {
             return bs_[pos_];
         }
 
     private:
-        std::bitset<FlagGroup::FLAG_TYPE_MAX> &bs_;
+        std::bitset<FLAG_TYPE_MAX> &bs_;
         size_t pos_;
     };
 
@@ -549,9 +557,9 @@ public:
      * @brief 指定したフラグへのアクセスを提供するプロキシオブジェクトを取得する
      *
      * @param f プロキシオブジェクトを取得するフラグ
-     * @return reference 指定したフラグへのアクセスを提供するプロキシオブジェクト
+     * @return 指定したフラグへのアクセスを提供するプロキシオブジェクト
      */
-    reference operator[](FlagType f)
+    [[nodiscard]] reference operator[](FlagType f)
     {
         return reference(bs_, static_cast<size_t>(f));
     }
@@ -562,6 +570,16 @@ private:
 };
 
 /**
+ * @brief enum clsas 型に対してFlagGroupクラスを使用するエイリアステンプレート
+ *
+ * FlagGroupクラスのテンプレート引数に、使用する型として FlagType、列挙値の最大値として FlagType::MAX を渡す。
+ *
+ * @tparam FlagType FlagGroupクラスを使用する enum class 型
+ */
+template <typename FlagType>
+using EnumClassFlagGroup = FlagGroup<FlagType, FlagType::MAX>;
+
+/**
  * @brief フラグ集合 lhs と rhs に対して論理積(AND)を取ったフラグ集合を生成する
  *
  * lhs と rhs で共通してONのフラグがON、それ以外のフラグがOFFのフラグ集合を生成する
@@ -569,12 +587,12 @@ private:
  * @tparam FlagType 扱うフラグ集合を定義したenum class型
  * @param lhs フラグ集合1
  * @param rhs フラグ集合2
- * @return FlagGroup<FlagType> lhs と rhs の論理積を取ったフラグ集合
+ * @return lhs と rhs の論理積を取ったフラグ集合
  */
-template <typename FlagType>
-FlagGroup<FlagType> operator&(const FlagGroup<FlagType> &lhs, const FlagGroup<FlagType> &rhs) noexcept
+template <typename FlagType, FlagType MAX>
+[[nodiscard]] FlagGroup<FlagType, MAX> operator&(const FlagGroup<FlagType, MAX> &lhs, const FlagGroup<FlagType, MAX> &rhs) noexcept
 {
-    return FlagGroup<FlagType>(lhs) &= rhs;
+    return FlagGroup<FlagType, MAX>(lhs) &= rhs;
 }
 
 /**
@@ -585,10 +603,10 @@ FlagGroup<FlagType> operator&(const FlagGroup<FlagType> &lhs, const FlagGroup<Fl
  * @tparam FlagType 扱うフラグ集合を定義したenum class型
  * @param lhs フラグ集合1
  * @param rhs フラグ集合2
- * @return FlagGroup<FlagType> lhs と rhs の論理積を取ったフラグ集合
+ * @return lhs と rhs の論理積を取ったフラグ集合
  */
-template <typename FlagType>
-FlagGroup<FlagType> operator|(const FlagGroup<FlagType> &lhs, const FlagGroup<FlagType> &rhs) noexcept
+template <typename FlagType, FlagType MAX>
+[[nodiscard]] FlagGroup<FlagType, MAX> operator|(const FlagGroup<FlagType, MAX> &lhs, const FlagGroup<FlagType, MAX> &rhs) noexcept
 {
-    return FlagGroup<FlagType>(lhs) |= rhs;
+    return FlagGroup<FlagType, MAX>(lhs) |= rhs;
 }

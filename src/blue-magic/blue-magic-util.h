@@ -1,4 +1,8 @@
 ﻿#pragma once
+/*!
+ * @file blue-magic-util.h
+ * @brief 青魔法の構造体、初期化処理ヘッダ
+ */
 
 #include "system/angband.h"
 
@@ -15,6 +19,7 @@ typedef struct bmc_type {
     BIT_FLAGS g_mode;
 } bmc_type;
 
+typedef struct player_type player_type;
 typedef PLAYER_LEVEL (*get_pseudo_monstetr_level_pf)(player_type *caster_ptr);
 bmc_type *initialize_blue_magic_type(
     player_type *caster_ptr, bmc_type *bmc_ptr, const bool success, get_pseudo_monstetr_level_pf get_pseudo_monstetr_level);

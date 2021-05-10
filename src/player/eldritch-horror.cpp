@@ -25,6 +25,9 @@
 #include "status/bad-status-setter.h"
 #include "status/base-status.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/monster-type-definition.h"
+#include "system/player-type-definition.h"
 #include "view/display-messages.h"
 #include "world/world.h"
 #ifdef JP
@@ -55,7 +58,6 @@ static concptr decide_horror_message(monster_race *r_ptr)
  * @brief エルドリッチホラー持ちのモンスターを見た時の反応 (モンスター名版)
  * @param m_name モンスター名
  * @param r_ptr モンスター情報への参照ポインタ
- * @return なし
  * @todo m_nameとdescで何が違うのかは良く分からない
  */
 static void see_eldritch_horror(GAME_TEXT *m_name, monster_race *r_ptr)
@@ -69,7 +71,6 @@ static void see_eldritch_horror(GAME_TEXT *m_name, monster_race *r_ptr)
  * @brief エルドリッチホラー持ちのモンスターを見た時の反応 (モンスター名版)
  * @param desc モンスター名 (エルドリッチホラー持ちの全モンスターからランダム…のはず)
  * @param r_ptr モンスターへの参照ポインタ
- * @return なし
  */
 static void feel_eldritch_horror(concptr desc, monster_race *r_ptr)
 {
@@ -82,7 +83,6 @@ static void feel_eldritch_horror(concptr desc, monster_race *r_ptr)
  * @brief ELDRITCH_HORRORによるプレイヤーの精神破壊処理
  * @param m_ptr ELDRITCH_HORRORを引き起こしたモンスターの参照ポインタ。薬・罠・魔法の影響ならNULL
  * @param necro 暗黒領域魔法の詠唱失敗によるものならばTRUEを返す
- * @return なし
  */
 void sanity_blast(player_type *creature_ptr, monster_type *m_ptr, bool necro)
 {
@@ -131,15 +131,15 @@ void sanity_blast(player_type *creature_ptr, monster_type *m_ptr, bool necro)
         }
 
         see_eldritch_horror(m_name, r_ptr);
-        if (is_specific_player_race(creature_ptr, RACE_IMP) || is_specific_player_race(creature_ptr, RACE_BALROG)
-            || (mimic_info[creature_ptr->mimic_form].MIMIC_FLAGS & MIMIC_IS_DEMON) || current_world_ptr->wizard)
+        switch (player_race_life(creature_ptr)) {
+        case PlayerRaceLife::DEMON:
             return;
-
-        if (is_specific_player_race(creature_ptr, RACE_SKELETON) || is_specific_player_race(creature_ptr, RACE_ZOMBIE)
-            || is_specific_player_race(creature_ptr, RACE_VAMPIRE) || is_specific_player_race(creature_ptr, RACE_SPECTRE)
-            || (mimic_info[creature_ptr->mimic_form].MIMIC_FLAGS & MIMIC_IS_UNDEAD)) {
+        case PlayerRaceLife::UNDEAD:
             if (saving_throw(25 + creature_ptr->lev))
                 return;
+            break;
+        default:
+            break;
         }
     } else if (!necro) {
         monster_race *r_ptr;
@@ -182,32 +182,17 @@ void sanity_blast(player_type *creature_ptr, monster_type *m_ptr, bool necro)
         }
 
         feel_eldritch_horror(desc, r_ptr);
-        if (!creature_ptr->mimic_form) {
-            switch (creature_ptr->prace) {
-            case RACE_IMP:
-            case RACE_BALROG:
-                if (saving_throw(20 + creature_ptr->lev))
-                    return;
-                break;
-            case RACE_SKELETON:
-            case RACE_ZOMBIE:
-            case RACE_SPECTRE:
-            case RACE_VAMPIRE:
-                if (saving_throw(10 + creature_ptr->lev))
-                    return;
-                break;
-
-            default:
-                break;
-            }
-        } else {
-            if (mimic_info[creature_ptr->mimic_form].MIMIC_FLAGS & MIMIC_IS_DEMON) {
-                if (saving_throw(20 + creature_ptr->lev))
-                    return;
-            } else if (mimic_info[creature_ptr->mimic_form].MIMIC_FLAGS & MIMIC_IS_UNDEAD) {
-                if (saving_throw(10 + creature_ptr->lev))
-                    return;
-            }
+        switch (player_race_life(creature_ptr)) {
+        case PlayerRaceLife::DEMON:
+            if (saving_throw(20 + creature_ptr->lev))
+                return;
+            break;
+        case PlayerRaceLife::UNDEAD:
+            if (saving_throw(10 + creature_ptr->lev))
+                return;
+            break;
+        default:
+            break;
         }
     } else {
         msg_print(_("ネクロノミコンを読んで正気を失った！", "Your sanity is shaken by reading the Necronomicon!"));

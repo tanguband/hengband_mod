@@ -8,8 +8,10 @@
 #include "core/speed-table.h"
 #include "core/stuff-handler.h"
 #include "core/window-redrawer.h"
+#include "dungeon/dungeon.h"
 #include "floor/floor-save-util.h"
 #include "floor/floor-util.h"
+#include "floor/geometry.h"
 #include "floor/wild.h"
 #include "game-option/disturbance-options.h"
 #include "game-option/map-screen-options.h"
@@ -35,6 +37,7 @@
 #include "monster/monster-update.h"
 #include "monster/monster-util.h"
 #include "mutation/mutation-investor-remover.h"
+#include "player-status/player-energy.h"
 #include "player/attack-defense-types.h"
 #include "player/eldritch-horror.h"
 #include "player/player-skill.h"
@@ -44,6 +47,8 @@
 #include "spell-realm/spells-song.h"
 #include "status/action-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
@@ -92,7 +97,6 @@ bool continuous_action_running(player_type *creature_ptr)
 
 /*!
  * @brief プレイヤーの行動処理 / Process the player
- * @return なし
  * @note
  * Notice the annoying code to handle "pack overflow", which\n
  * must come first just in case somebody manages to corrupt\n
@@ -177,7 +181,7 @@ void process_player(player_type *creature_ptr)
 
         if (monster_stunned_remaining(m_ptr)) {
             if (set_monster_stunned(creature_ptr, creature_ptr->riding,
-                    (randint0(r_ptr->level) < creature_ptr->skill_exp[GINOU_RIDING]) ? 0 : (monster_stunned_remaining(m_ptr) - 1))) {
+                    (randint0(r_ptr->level) < creature_ptr->skill_exp[SKILL_RIDING]) ? 0 : (monster_stunned_remaining(m_ptr) - 1))) {
                 GAME_TEXT m_name[MAX_NLEN];
                 monster_desc(creature_ptr, m_name, m_ptr, 0);
                 msg_format(_("%^sを朦朧状態から立ち直らせた。", "%^s is no longer stunned."), m_name);
@@ -186,7 +190,7 @@ void process_player(player_type *creature_ptr)
 
         if (monster_confused_remaining(m_ptr)) {
             if (set_monster_confused(creature_ptr, creature_ptr->riding,
-                    (randint0(r_ptr->level) < creature_ptr->skill_exp[GINOU_RIDING]) ? 0 : (monster_confused_remaining(m_ptr) - 1))) {
+                    (randint0(r_ptr->level) < creature_ptr->skill_exp[SKILL_RIDING]) ? 0 : (monster_confused_remaining(m_ptr) - 1))) {
                 GAME_TEXT m_name[MAX_NLEN];
                 monster_desc(creature_ptr, m_name, m_ptr, 0);
                 msg_format(_("%^sを混乱状態から立ち直らせた。", "%^s is no longer confused."), m_name);
@@ -195,7 +199,7 @@ void process_player(player_type *creature_ptr)
 
         if (monster_fear_remaining(m_ptr)) {
             if (set_monster_monfear(creature_ptr, creature_ptr->riding,
-                    (randint0(r_ptr->level) < creature_ptr->skill_exp[GINOU_RIDING]) ? 0 : (monster_fear_remaining(m_ptr) - 1))) {
+                    (randint0(r_ptr->level) < creature_ptr->skill_exp[SKILL_RIDING]) ? 0 : (monster_fear_remaining(m_ptr) - 1))) {
                 GAME_TEXT m_name[MAX_NLEN];
                 monster_desc(creature_ptr, m_name, m_ptr, 0);
                 msg_format(_("%^sを恐怖から立ち直らせた。", "%^s is no longer afraid."), m_name);
@@ -260,13 +264,14 @@ void process_player(player_type *creature_ptr)
         if (!command_new)
             command_see = FALSE;
 
-        free_turn(creature_ptr);
+        PlayerEnergy energy(creature_ptr);
+        energy.reset_player_turn();
         if (creature_ptr->phase_out) {
             move_cursor_relative(creature_ptr->y, creature_ptr->x);
             command_cmd = SPECIAL_KEY_BUILDING;
             process_command(creature_ptr);
         } else if ((creature_ptr->paralyzed || creature_ptr->stun >= 100) && !cheat_immortal) {
-            take_turn(creature_ptr, 100);
+            energy.set_player_turn_energy(100);
         } else if (creature_ptr->action == ACTION_REST) {
             if (creature_ptr->resting > 0) {
                 creature_ptr->resting--;
@@ -275,9 +280,9 @@ void process_player(player_type *creature_ptr)
                 creature_ptr->redraw |= (PR_STATE);
             }
 
-            take_turn(creature_ptr, 100);
+            energy.set_player_turn_energy(100);
         } else if (creature_ptr->action == ACTION_FISH) {
-            take_turn(creature_ptr, 100);
+            energy.set_player_turn_energy(100);
         } else if (creature_ptr->running) {
             run_step(creature_ptr, 0);
         } else if (travel.run) {
@@ -404,7 +409,6 @@ void process_player(player_type *creature_ptr)
 
 /*!
  * @brief プレイヤーの行動エネルギーが充填される（＝プレイヤーのターンが回る）毎に行われる処理  / process the effects per 100 energy at player speed.
- * @return なし
  */
 void process_upkeep_with_speed(player_type *creature_ptr)
 {

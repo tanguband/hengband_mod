@@ -16,12 +16,14 @@
 #include "autopick/autopick-inserter-killer.h"
 #include "autopick/autopick-methods-table.h"
 #include "autopick/autopick-reader-writer.h"
+#include "autopick/autopick-util.h"
 #include "core/asking-player.h"
 #include "core/show-file.h"
 #include "game-option/input-options.h"
 #include "game-option/keymap-directory-getter.h"
 #include "player/player-class.h"
 #include "player/player-race.h"
+#include "system/player-type-definition.h"
 #include "term/term-color-types.h"
 
 /*
@@ -68,7 +70,8 @@ ape_quittance do_editor_command(player_type *player_ptr, text_body_type *tb, int
             tb->dirty_flags |= DIRTY_ALL;
         }
 
-        insert_return_code(tb);
+        if (!insert_return_code(tb))
+            break;
         tb->cy++;
         tb->cx = 0;
         tb->dirty_flags |= DIRTY_ALL;
@@ -267,7 +270,8 @@ ape_quittance do_editor_command(player_type *player_ptr, text_body_type *tb, int
             buf[i] = '\0';
             chain = chain->next;
             if (chain || tb->yank_eol) {
-                insert_return_code(tb);
+                if (!insert_return_code(tb))
+                    break;
                 string_free(tb->lines_list[tb->cy]);
                 tb->lines_list[tb->cy] = string_make(buf);
                 tb->cx = 0;
@@ -504,7 +508,8 @@ ape_quittance do_editor_command(player_type *player_ptr, text_body_type *tb, int
         }
 
         tb->cx = 0;
-        insert_return_code(tb);
+        if (!insert_return_code(tb))
+            break;
         string_free(tb->lines_list[tb->cy]);
         tb->lines_list[tb->cy] = autopick_line_from_entry_kill(entry);
         tb->dirty_flags |= DIRTY_SCREEN;
@@ -515,7 +520,8 @@ ape_quittance do_editor_command(player_type *player_ptr, text_body_type *tb, int
             break;
 
         tb->cx = 0;
-        insert_return_code(tb);
+        if (!insert_return_code(tb))
+            break;
         string_free(tb->lines_list[tb->cy]);
         tb->lines_list[tb->cy] = string_make(tb->last_destroyed);
         tb->dirty_flags |= DIRTY_ALL;
@@ -523,6 +529,8 @@ ape_quittance do_editor_command(player_type *player_ptr, text_body_type *tb, int
         break;
     }
     case EC_INSERT_BLOCK: {
+        if (!can_insert_line(tb, 2))
+            break;
         char expression[80];
         sprintf(expression, "?:[AND [EQU $RACE %s] [EQU $CLASS %s] [GEQ $LEVEL %02d]]",
 #ifdef JP

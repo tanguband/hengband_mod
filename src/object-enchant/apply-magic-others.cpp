@@ -23,6 +23,9 @@
 #include "sv-definition/sv-lite-types.h"
 #include "sv-definition/sv-other-types.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 
@@ -32,7 +35,6 @@
  * @param owner_ptr プレーヤーへの参照ポインタ
  * @param o_ptr 強化を与えたいオブジェクトの構造体参照ポインタ
  * @param power 生成ランク
- * @return なし
  * @details
  * Hack -- note the special code for various items
  */
@@ -146,7 +148,7 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
 
         o_ptr->pval = i;
         if (one_in_(6))
-            o_ptr->curse_flags |= TRC_CURSED;
+            o_ptr->curse_flags.set(TRC::CURSED);
 
         break;
     }

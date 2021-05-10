@@ -26,6 +26,7 @@
 #include "flavor/object-flavor-types.h"
 #include "floor/cave.h"
 #include "floor/floor-object.h"
+#include "floor/geometry.h"
 #include "grid/grid.h"
 #include "inventory/inventory-slot-types.h"
 #include "io/input-key-requester.h"
@@ -49,18 +50,26 @@
 #include "spell-kind/spells-sight.h"
 #include "spell-kind/spells-teleport.h"
 #include "spell-realm/spells-hex.h"
+#include "spell-realm/spells-song.h"
 #include "spell/spell-types.h"
 #include "spell/spells-execution.h"
 #include "spell/spells-status.h"
 #include "spell/technic-info-table.h"
 #include "status/action-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "target/grid-selector.h"
 #include "target/target-getter.h"
 #include "term/screen-processor.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 #include "world/world.h"
+
+#ifdef JP
+#else
+#include "player-info/equipment-info.h"
+#endif
 
 /*!
  * @brief 呪術領域の武器呪縛の対象にできる武器かどうかを返す。 / An "item_tester_hook" for offer
@@ -225,16 +234,16 @@ concptr do_hex_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mode)
             } else {
                 int curse_rank = 0;
                 msg_format(_("恐怖の暗黒オーラがあなたの%sを包み込んだ！", "A terrible black aura blasts your %s!"), o_name);
-                o_ptr->curse_flags |= (TRC_CURSED);
+                o_ptr->curse_flags.set(TRC::CURSED);
 
                 if (object_is_artifact(o_ptr) || object_is_ego(o_ptr)) {
 
                     if (one_in_(3))
-                        o_ptr->curse_flags |= (TRC_HEAVY_CURSE);
+                        o_ptr->curse_flags.set(TRC::HEAVY_CURSE);
                     if (one_in_(666)) {
-                        o_ptr->curse_flags |= (TRC_TY_CURSE);
+                        o_ptr->curse_flags.set(TRC::TY_CURSE);
                         if (one_in_(666))
-                            o_ptr->curse_flags |= (TRC_PERMA_CURSE);
+                            o_ptr->curse_flags.set(TRC::PERMA_CURSE);
 
                         add_flag(o_ptr->art_flags, TR_AGGRAVATE);
                         add_flag(o_ptr->art_flags, TR_VORPAL);
@@ -244,7 +253,7 @@ concptr do_hex_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mode)
                     }
                 }
 
-                o_ptr->curse_flags |= get_curse(caster_ptr, curse_rank, o_ptr);
+                o_ptr->curse_flags.set(get_curse(caster_ptr, curse_rank, o_ptr));
             }
 
             caster_ptr->update |= (PU_BONUS);
@@ -296,9 +305,9 @@ concptr do_hex_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mode)
             if ((hex_revenge_turn(caster_ptr) <= 0) || (power >= 200)) {
                 msg_print(_("我慢が解かれた！", "My patience is at an end!"));
                 if (power) {
-                    project(
-                        caster_ptr, 0, rad, caster_ptr->y, caster_ptr->x, power, GF_HELL_FIRE, (PROJECT_STOP | PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL));
+                    project(caster_ptr, 0, rad, caster_ptr->y, caster_ptr->x, power, GF_HELL_FIRE, (PROJECT_STOP | PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL));
                 }
+
                 if (current_world_ptr->wizard) {
                     msg_format(_("%d点のダメージを返した。", "You return %d damage."), power);
                 }
@@ -533,16 +542,16 @@ concptr do_hex_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mode)
             } else {
                 int curse_rank = 0;
                 msg_format(_("恐怖の暗黒オーラがあなたの%sを包み込んだ！", "A terrible black aura blasts your %s!"), o_name);
-                o_ptr->curse_flags |= (TRC_CURSED);
+                o_ptr->curse_flags.set(TRC::CURSED);
 
                 if (object_is_artifact(o_ptr) || object_is_ego(o_ptr)) {
 
                     if (one_in_(3))
-                        o_ptr->curse_flags |= (TRC_HEAVY_CURSE);
+                        o_ptr->curse_flags.set(TRC::HEAVY_CURSE);
                     if (one_in_(666)) {
-                        o_ptr->curse_flags |= (TRC_TY_CURSE);
+                        o_ptr->curse_flags.set(TRC::TY_CURSE);
                         if (one_in_(666))
-                            o_ptr->curse_flags |= (TRC_PERMA_CURSE);
+                            o_ptr->curse_flags.set(TRC::PERMA_CURSE);
 
                         add_flag(o_ptr->art_flags, TR_AGGRAVATE);
                         add_flag(o_ptr->art_flags, TR_RES_POIS);
@@ -553,7 +562,7 @@ concptr do_hex_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mode)
                     }
                 }
 
-                o_ptr->curse_flags |= get_curse(caster_ptr, curse_rank, o_ptr);
+                o_ptr->curse_flags.set(get_curse(caster_ptr, curse_rank, o_ptr));
             }
 
             caster_ptr->update |= (PU_BONUS);
@@ -586,7 +595,7 @@ concptr do_hex_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mode)
                 exe_spell(caster_ptr, REALM_HEX, spell, SPELL_STOP);
                 casting_hex_flags(caster_ptr) &= ~(1UL << spell);
                 casting_hex_num(caster_ptr)--;
-                if (!SINGING_SONG_ID(caster_ptr))
+                if (get_singing_song_id(caster_ptr) == 0)
                     set_action(caster_ptr, ACTION_NONE);
             }
         }
@@ -707,21 +716,21 @@ concptr do_hex_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mode)
             object_flags(caster_ptr, o_ptr, f);
 
             caster_ptr->csp += (caster_ptr->lev / 5) + randint1(caster_ptr->lev / 5);
-            if (has_flag(f, TR_TY_CURSE) || (o_ptr->curse_flags & TRC_TY_CURSE))
+            if (has_flag(f, TR_TY_CURSE) || o_ptr->curse_flags.has(TRC::TY_CURSE))
                 caster_ptr->csp += randint1(5);
             if (caster_ptr->csp > caster_ptr->msp)
                 caster_ptr->csp = caster_ptr->msp;
 
-            if (o_ptr->curse_flags & TRC_PERMA_CURSE) {
+            if (o_ptr->curse_flags.has(TRC::PERMA_CURSE)) {
                 /* Nothing */
-            } else if (o_ptr->curse_flags & TRC_HEAVY_CURSE) {
+            } else if (o_ptr->curse_flags.has(TRC::HEAVY_CURSE)) {
                 if (one_in_(7)) {
                     msg_print(_("呪いを全て吸い取った。", "A heavy curse vanished."));
-                    o_ptr->curse_flags = 0L;
+                    o_ptr->curse_flags.clear();
                 }
-            } else if ((o_ptr->curse_flags & (TRC_CURSED)) && one_in_(3)) {
+            } else if (o_ptr->curse_flags.has(TRC::CURSED) && one_in_(3)) {
                 msg_print(_("呪いを全て吸い取った。", "A curse vanished."));
-                o_ptr->curse_flags = 0L;
+                o_ptr->curse_flags.clear();
             }
 
             add = FALSE;

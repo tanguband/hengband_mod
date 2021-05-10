@@ -21,6 +21,7 @@
 #include "status/body-improvement.h"
 #include "status/buff-setter.h"
 #include "status/sight-setter.h"
+#include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "view/display-messages.h"
 
@@ -233,7 +234,7 @@ concptr do_sorcery_spell(player_type *caster_ptr, SPELL_IDX spell, spell_type mo
         if (name)
             return _("スロウ・モンスター", "Slow Monster");
         if (desc)
-            return _("モンスター1体を減速さる。抵抗されると無効。", "Attempts to slow a monster.");
+            return _("モンスター1体を減速させる。抵抗されると無効。", "Attempts to slow a monster.");
 
         {
             int power = plev;

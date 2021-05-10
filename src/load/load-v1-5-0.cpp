@@ -8,7 +8,9 @@
 #include "load/load-v1-5-0.h"
 #include "cmd-item/cmd-smith.h"
 #include "dungeon/dungeon.h"
+#include "floor/floor-object.h"
 #include "game-option/birth-options.h"
+#include "grid/feature.h"
 #include "grid/grid.h"
 #include "grid/trap.h"
 #include "load/angband-version-comparer.h"
@@ -38,7 +40,9 @@
 #include "sv-definition/sv-lite-types.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/monster-race-definition.h"
 #include "system/object-type-definition.h"
+#include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "util/quarks.h"
 #include "world/world-object.h"
@@ -54,7 +58,6 @@ const int QUEST_ROYAL_CRYPT = 28; // 王家の墓.
 /*!
  * @brief アイテムオブジェクト1件を読み込む / Read an object
  * @param o_ptr アイテムオブジェクト読み取り先ポインタ
- * @return なし
  */
 void rd_item_old(player_type *player_ptr, object_type *o_ptr)
 {
@@ -125,30 +128,36 @@ void rd_item_old(player_type *player_ptr, object_type *o_ptr)
     }
 
     if (h_older_than(1, 0, 11)) {
-        o_ptr->curse_flags = 0L;
+        o_ptr->curse_flags.clear();
         if (o_ptr->ident & 0x40) {
-            o_ptr->curse_flags |= TRC_CURSED;
+            o_ptr->curse_flags.set(TRC::CURSED);
             if (o_ptr->art_flags[2] & 0x40000000L)
-                o_ptr->curse_flags |= TRC_HEAVY_CURSE;
+                o_ptr->curse_flags.set(TRC::HEAVY_CURSE);
             if (o_ptr->art_flags[2] & 0x80000000L)
-                o_ptr->curse_flags |= TRC_PERMA_CURSE;
+                o_ptr->curse_flags.set(TRC::PERMA_CURSE);
             if (object_is_fixed_artifact(o_ptr)) {
                 artifact_type *a_ptr = &a_info[o_ptr->name1];
                 if (a_ptr->gen_flags.has(TRG::HEAVY_CURSE))
-                    o_ptr->curse_flags |= TRC_HEAVY_CURSE;
+                    o_ptr->curse_flags.set(TRC::HEAVY_CURSE);
                 if (a_ptr->gen_flags.has(TRG::PERMA_CURSE))
-                    o_ptr->curse_flags |= TRC_PERMA_CURSE;
+                    o_ptr->curse_flags.set(TRC::PERMA_CURSE);
             } else if (object_is_ego(o_ptr)) {
                 ego_item_type *e_ptr = &e_info[o_ptr->name2];
                 if (e_ptr->gen_flags.has(TRG::HEAVY_CURSE))
-                    o_ptr->curse_flags |= TRC_HEAVY_CURSE;
+                    o_ptr->curse_flags.set(TRC::HEAVY_CURSE);
                 if (e_ptr->gen_flags.has(TRG::PERMA_CURSE))
-                    o_ptr->curse_flags |= TRC_PERMA_CURSE;
+                    o_ptr->curse_flags.set(TRC::PERMA_CURSE);
             }
         }
         o_ptr->art_flags[2] &= (0x1FFFFFFFL);
     } else {
-        rd_u32b(&o_ptr->curse_flags);
+        u32b tmp32u;
+        rd_u32b(&tmp32u);
+        std::bitset<32> rd_bits_cursed_flags(tmp32u);
+        for (size_t i = 0; i < std::min(o_ptr->curse_flags.size(), rd_bits_cursed_flags.size()); i++) {
+            auto f = static_cast<TRC>(i);
+            o_ptr->curse_flags[f] = rd_bits_cursed_flags[i];
+        }
     }
 
     rd_s16b(&o_ptr->held_m_idx);
@@ -334,7 +343,6 @@ void rd_item_old(player_type *player_ptr, object_type *o_ptr)
  * @brief モンスターを読み込む / Read a monster
  * @param player_ptr プレーヤーへの参照ポインタ
  * @param m_ptr モンスター保存先ポインタ
- * @return なし
  */
 void rd_monster_old(player_type *player_ptr, monster_type *m_ptr)
 {
@@ -428,17 +436,17 @@ void rd_monster_old(player_type *player_ptr, monster_type *m_ptr)
 
     u32b tmp32u;
     rd_u32b(&tmp32u);
-    std::bitset<32> rd_bits(tmp32u);
-    for (size_t i = 0; i < std::min(m_ptr->smart.size(), rd_bits.size()); i++) {
+    std::bitset<32> rd_bits_smart(tmp32u);
+    for (size_t i = 0; i < std::min(m_ptr->smart.size(), rd_bits_smart.size()); i++) {
         auto f = static_cast<SM>(i);
-        m_ptr->smart[f] = rd_bits[i];
+        m_ptr->smart[f] = rd_bits_smart[i];
     }
 
     // 3.0.0Alpha10以前のSM_CLONED(ビット位置22)、SM_PET(23)、SM_FRIEDLY(28)をMFLAG2に移行する
     // ビット位置の定義はなくなるので、ビット位置の値をハードコードする。
-    m_ptr->mflag2[MFLAG2::CLONED] = rd_bits[22];
-    m_ptr->mflag2[MFLAG2::PET] = rd_bits[23];
-    m_ptr->mflag2[MFLAG2::FRIENDLY] = rd_bits[28];
+    m_ptr->mflag2[MFLAG2::CLONED] = rd_bits_smart[22];
+    m_ptr->mflag2[MFLAG2::PET] = rd_bits_smart[23];
+    m_ptr->mflag2[MFLAG2::FRIENDLY] = rd_bits_smart[28];
     m_ptr->smart.reset(static_cast<SM>(22)).reset(static_cast<SM>(23)).reset(static_cast<SM>(28));
 
     if (h_older_than(0, 4, 5)) {
@@ -456,10 +464,10 @@ void rd_monster_old(player_type *player_ptr, monster_type *m_ptr)
     } else {
         rd_byte(&tmp8u);
         constexpr auto base = static_cast<int>(MFLAG2::KAGE);
-        std::bitset<7> rd_bits(tmp8u);
-        for (size_t i = 0; i < std::min(m_ptr->mflag2.size(), rd_bits.size()); ++i) {
+        std::bitset<7> rd_bits_mflag2(tmp8u);
+        for (size_t i = 0; i < std::min(m_ptr->mflag2.size(), rd_bits_mflag2.size()); ++i) {
             auto f = static_cast<MFLAG2>(base + i);
-            m_ptr->mflag2[f] = rd_bits[i];
+            m_ptr->mflag2[f] = rd_bits_mflag2[i];
         }
     }
 
@@ -539,7 +547,6 @@ void set_old_lore(monster_race *r_ptr, BIT_FLAGS f4, const MONRACE_IDX r_idx)
 /*!
  * @brief ダンジョン情報を読み込む / Read the dungeon (old method)
  * @param player_ptr プレーヤーへの参照ポインタ
- * @return なし
  * @details
  * The monsters/objects must be loaded in the same order
  * that they were stored, since the actual indexes matter.
@@ -750,18 +757,9 @@ errr rd_dungeon_old(player_type *player_ptr)
         object_type *o_ptr;
         o_ptr = &floor_ptr->o_list[o_idx];
         rd_item(player_ptr, o_ptr);
-        if (object_is_held_monster(o_ptr)) {
-            monster_type *m_ptr;
-            m_ptr = &floor_ptr->m_list[o_ptr->held_m_idx];
-            o_ptr->next_o_idx = m_ptr->hold_o_idx;
-            m_ptr->hold_o_idx = o_idx;
-            continue;
-        }
 
-        grid_type *g_ptr;
-        g_ptr = &floor_ptr->grid_array[o_ptr->iy][o_ptr->ix];
-        o_ptr->next_o_idx = g_ptr->o_idx;
-        g_ptr->o_idx = o_idx;
+        auto &list = get_o_idx_list_contains(floor_ptr, o_idx);
+        list.add(floor_ptr, o_idx);
     }
 
     rd_u16b(&limit);

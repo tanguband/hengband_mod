@@ -148,13 +148,12 @@ hengband_SOURCES = \
 	core/disturbance.cpp core/disturbance.h \
 	core/game-closer.cpp core/game-closer.h \
 	core/game-play.cpp core/game-play.h \
-	core/hp-mp-processor.cpp core/hp-mp-processor.h \
-	core/hp-mp-regenerator.cpp core/hp-mp-regenerator.h \
 	core/magic-effects-timeout-reducer.cpp core/magic-effects-timeout-reducer.h \
 	core/object-compressor.cpp core/object-compressor.h \
 	core/player-processor.cpp core/player-processor.h \
 	core/player-redraw-types.h \
 	core/player-update-types.h \
+	core/score-util.cpp core/score-util.h \
 	core/scores.cpp core/scores.h \
 	core/show-file.cpp core/show-file.h \
 	core/special-internal-keys.h \
@@ -165,6 +164,7 @@ hengband_SOURCES = \
 	core/window-redrawer.cpp core/window-redrawer.h \
 	\
 	dungeon/dungeon.cpp dungeon/dungeon.h \
+	dungeon/dungeon-flag-mask.h \
 	dungeon/dungeon-flag-types.h \
 	dungeon/dungeon-processor.cpp dungeon/dungeon-processor.h \
 	dungeon/quest.h dungeon/quest.cpp \
@@ -255,6 +255,9 @@ hengband_SOURCES = \
 	grid/object-placer.cpp grid/object-placer.h \
 	grid/stair.cpp grid/stair.h \
 	grid/trap.cpp grid/trap.h \
+	\
+	hpmp/hp-mp-processor.cpp hpmp/hp-mp-processor.h \
+	hpmp/hp-mp-regenerator.cpp hpmp/hp-mp-regenerator.h \
 	\
 	info-reader/artifact-reader.cpp info-reader/artifact-reader.h \
 	info-reader/dungeon-info-tokens-table.cpp info-reader/dungeon-info-tokens-table.h \
@@ -516,7 +519,6 @@ hengband_SOURCES = \
 	mspell/mspell-lite.cpp mspell/mspell-lite.h \
 	mspell/mspell-summon.cpp mspell/mspell-summon.h \
 	mspell/mspell-util.cpp mspell/mspell-util.h \
-	mspell/mspell-type.h \
 	mspell/mspell-damage-calculator.cpp mspell/mspell-damage-calculator.h \
 	mspell/mspell-learn-checker.cpp mspell/mspell-learn-checker.h \
 	mspell/mspell-floor.cpp mspell/mspell-floor.h \
@@ -541,7 +543,7 @@ hengband_SOURCES = \
 	object/item-tester-hooker.cpp object/item-tester-hooker.h \
 	object/object-broken.cpp object/object-broken.h \
 	object/object-flags.cpp object/object-flags.h \
-	object/object-generator.cpp object/object-generator.h \
+	object/object-index-list.cpp object/object-index-list.h \
 	object/object-info.cpp object/object-info.h \
 	object/object-kind.cpp object/object-kind.h \
 	object/object-kind-hook.cpp object/object-kind-hook.h \
@@ -566,11 +568,13 @@ hengband_SOURCES = \
 	\
 	object-enchant/activation-info-table.cpp object-enchant/activation-info-table.h \
 	object-enchant/apply-magic.cpp object-enchant/apply-magic.h \
-	object-enchant/apply-magic-accessory.cpp object-enchant/apply-magic-accessory.h \
+	object-enchant/apply-magic-amulet.cpp object-enchant/apply-magic-amulet.h \
 	object-enchant/apply-magic-armor.cpp object-enchant/apply-magic-armor.h \
 	object-enchant/apply-magic-others.cpp object-enchant/apply-magic-others.h \
+	object-enchant/apply-magic-ring.cpp object-enchant/apply-magic-ring.h \
 	object-enchant/apply-magic-weapon.cpp object-enchant/apply-magic-weapon.h \
 	object-enchant/dragon-breaths-table.cpp object-enchant/dragon-breaths-table.h \
+	object-enchant/enchanter-base.h \
 	object-enchant/object-boost.cpp object-enchant/object-boost.h \
 	object-enchant/object-curse.cpp object-enchant/object-curse.h \
 	object-enchant/object-ego.cpp object-enchant/object-ego.h \
@@ -611,7 +615,7 @@ hengband_SOURCES = \
 	player/permanent-resistances.cpp player/permanent-resistances.h \
 	player/temporary-resistances.cpp player/temporary-resistances.h \
 	player/digestion-processor.cpp player/digestion-processor.h \
-	player/player-classes-types.h \
+	player/player-class-types.h \
 	player/player-class.cpp player/player-class.h \
 	player/player-damage.cpp player/player-damage.h \
 	player/player-move.cpp player/player-move.h \
@@ -624,48 +628,44 @@ hengband_SOURCES = \
 	player/player-status-flags.cpp player/player-status-flags.h \
 	player/player-status-table.cpp player/player-status-table.h \
 	player/player-status-resist.cpp player/player-status-resist.h \
-	player/player-personalities-types.h \
+	player/player-personality-types.h \
 	player/player-sex.cpp player/player-sex.h \
 	player/player-view.cpp player/player-view.h \
 	player/special-defense-types.h \
+	\
+	player-ability/player-ability-types.h \
+	player-ability/player-charisma.cpp player-ability/player-charisma.h \
+	player-ability/player-constitution.cpp player-ability/player-constitution.h \
+	player-ability/player-dexterity.cpp player-ability/player-dexterity.h \
+	player-ability/player-intelligence.cpp player-ability/player-intelligence.h \
+	player-ability/player-strength.cpp player-ability/player-strength.h \
+	player-ability/player-wisdom.cpp player-ability/player-wisdom.h \
 	\
 	player-attack/player-attack-util.h \
 	player-attack/attack-chaos-effect.cpp player-attack/attack-chaos-effect.h \
 	player-attack/blood-sucking-processor.cpp player-attack/blood-sucking-processor.h \
 	player-attack/player-attack.cpp player-attack/player-attack.h \
 	\
-	player-status/player-status-base.h \
-	player-status/player-speed.h \
-	player-status/player-stealth.h \
-	player-status/player-basic-statistics.h \
-	player-status/player-strength.h \
-	player-status/player-intelligence.h \
-	player-status/player-wisdom.h \
-	player-status/player-dextarity.h \
-	player-status/player-constitution.h \
-	player-status/player-charisma.h \
-	player-status/player-status-base.cpp \
-	player-status/player-speed.cpp \
-	player-status/player-stealth.cpp \
-	player-status/player-basic-statistics.cpp \
-	player-status/player-strength.cpp \
-	player-status/player-intelligence.cpp \
-	player-status/player-wisdom.cpp \
-	player-status/player-dextarity.cpp \
-	player-status/player-constitution.cpp \
-	player-status/player-charisma.cpp \
-	\
 	player-info/avatar.h player-info/avatar.cpp \
 	player-info/base-status-info.cpp player-info/base-status-info.h \
-	player-info/base-status-types.h \
 	player-info/body-improvement-info.cpp player-info/body-improvement-info.h \
 	player-info/class-ability-info.cpp player-info/class-ability-info.h \
+	player-info/equipment-info.cpp player-info/equipment-info.h \
 	player-info/mutation-info.cpp player-info/mutation-info.h \
+	player-info/alignment.cpp player-info/alignment.h \
 	player-info/race-ability-info.cpp player-info/race-ability-info.h \
 	player-info/resistance-info.cpp player-info/resistance-info.h \
 	player-info/self-info.cpp player-info/self-info.h \
 	player-info/self-info-util.cpp player-info/self-info-util.h \
 	player-info/weapon-effect-info.cpp player-info/weapon-effect-info.h \
+	\
+	player-status/player-hand-types.h \
+	player-status/player-infravision.cpp player-status/player-infravision.h \
+	player-status/player-basic-statistics.cpp player-status/player-basic-statistics.h \
+	player-status/player-energy.cpp player-status/player-energy.h \
+	player-status/player-speed.cpp player-status/player-speed.h \
+	player-status/player-status-base.cpp player-status/player-status-base.h \
+	player-status/player-stealth.cpp player-status/player-stealth.h \
 	\
 	racial/class-racial-switcher.cpp racial/class-racial-switcher.h \
 	racial/mutation-racial-selector.cpp racial/mutation-racial-selector.h \
@@ -834,7 +834,8 @@ hengband_SOURCES = \
 	system/h-define.h system/h-system.h system/h-type.h \
 	system/monster-race-definition.h \
 	system/monster-type-definition.h \
-	system/object-type-definition.h \
+	system/object-type-definition.cpp system/object-type-definition.h \
+	system/player-type-definition.cpp system/player-type-definition.h \
 	system/system-variables.cpp system/system-variables.h \
 	system/gamevalue.h \
 	\
@@ -883,6 +884,7 @@ hengband_SOURCES = \
 	view/display-player-misc-info.cpp view/display-player-misc-info.h \
 	view/display-player-middle.cpp view/display-player-middle.h \
 	view/display-player.cpp view/display-player.h \
+	view/display-scores.cpp view/display-scores.h \
 	view/display-self-info.cpp view/display-self-info.h \
 	view/display-store.cpp view/display-store.h \
 	view/display-util.cpp view/display-util.h \
@@ -923,6 +925,8 @@ hengband_SOURCES = \
 
 EXTRA_hengband_SOURCES = \
 	angband.ico angband.rc ang_eng.rc ang_jp.rc maid-x11.cpp main-win.cpp \
+	main-win/commandline-win.cpp main-win/commandline-win.h \
+	main-win/graphics-win.cpp main-win/graphics-win.h \
 	main-win/main-win-bg.cpp main-win/main-win-bg.h \
 	main-win/main-win-cfg-reader.cpp main-win/main-win-cfg-reader.h \
 	main-win/main-win-define.h \
@@ -933,8 +937,9 @@ EXTRA_hengband_SOURCES = \
 	main-win/main-win-music.cpp main-win/main-win-music.h \
 	main-win/main-win-sound.cpp main-win/main-win-sound.h \
 	main-win/main-win-tokenizer.cpp main-win/main-win-tokenizer.h \
+	main-win/main-win-utils.cpp main-win/main-win-utils.h \
 	main-win/main-win-windows.h \
-	makefile.bcc makefile.std term/readdib.cpp term/readdib.h wall.bmp \
+	wall.bmp \
 	stdafx.cpp stdafx.h
 
 EXTRA_DIST = \

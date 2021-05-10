@@ -3,8 +3,9 @@
 #include "system/angband.h"
 
 #include "object-enchant/trg-types.h"
-#include "system/object-type-definition.h"
+#include "object/tval-types.h"
 #include "util/flag-group.h"
+#include "system/system-variables.h"
 
 #include <string>
 #include <vector>
@@ -34,7 +35,7 @@ typedef struct object_kind {
 
     BIT_FLAGS flags[TR_FLAG_SIZE]{}; /*!< ベースアイテムの基本特性ビット配列 / Flags */
 
-    FlagGroup<TRG> gen_flags; /*!< ベースアイテムの生成特性ビット配列 / flags for generate */
+    EnumClassFlagGroup<TRG> gen_flags; /*!< ベースアイテムの生成特性ビット配列 / flags for generate */
 
     DEPTH locale[4]{}; /*!< ベースアイテムの生成階テーブル / Allocation level(s) */
     PROB chance[4]{}; /*!< ベースアイテムの生成確率テーブル / Allocation chance(s) */
@@ -59,4 +60,5 @@ typedef struct object_kind {
 extern std::vector<object_kind> k_info;
 extern KIND_OBJECT_IDX max_k_idx;
 
+typedef struct object_type object_type;
 SYMBOL_CODE object_char(object_type *o_ptr);
