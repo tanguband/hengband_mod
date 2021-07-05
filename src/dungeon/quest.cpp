@@ -73,6 +73,8 @@ void determine_random_questor(player_type *player_ptr, quest_type *q_ptr)
 
         if (!(r_ptr->flags1 & RF1_UNIQUE))
             continue;
+        if (r_ptr->flags8 & RF8_NO_QUEST)
+            continue;
         if (r_ptr->flags1 & RF1_QUESTOR)
             continue;
         if (r_ptr->rarity > 100)
@@ -328,7 +330,7 @@ void do_cmd_quest(player_type *player_ptr)
         return;
     if (is_echizen(player_ptr))
         msg_print(_("『とにかく入ってみようぜぇ。』", "\"Let's go in anyway.\""));
-    else if (player_ptr->pseikaku == PERSONALITY_CHARGEMAN)
+    else if (is_chargeman(player_ptr))
         msg_print(_("『全滅してやるぞ！』", "\"I'll annihilate THEM!\""));
 
     /* Player enters a new quest */
