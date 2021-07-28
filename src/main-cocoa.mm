@@ -86,16 +86,16 @@ enum
 };
 
 /* Delay handling of pre-emptive "quit" event */
-static BOOL quit_when_ready = FALSE;
+static BOOL quit_when_ready = NO;
 
 /* Set to indicate the game is over and we can quit without delay */
-static Boolean game_is_finished = FALSE;
+static BOOL game_is_finished = NO;
 
 /* Our frames per second (e.g. 60). A value of 0 means unthrottled. */
 static int frames_per_second;
 
 /* Force a new game or not? */
-static bool new_game = FALSE;
+static bool new_game = false;
 
 @class AngbandView;
 
@@ -2149,7 +2149,7 @@ static BOOL graphics_will_be_enabled(void)
 /**
  * Hack -- game in progress
  */
-static Boolean game_in_progress = FALSE;
+static BOOL game_in_progress = NO;
 
 
 #pragma mark Prototypes
@@ -2162,7 +2162,6 @@ static NSString* AngbandCorrectedDirectoryPath(NSString *originalPath);
 static void prepare_paths_and_directories(void);
 static void load_prefs(void);
 static void init_windows(void);
-static void handle_open_when_ready(void);
 static void play_sound(int event);
 static void send_key(const char key);
 static BOOL check_events(int wait);
@@ -2181,7 +2180,7 @@ static void record_current_savefile(void);
 /**
  * Note when "open"/"new" become valid
  */
-static bool initialized = FALSE;
+static BOOL initialized = NO;
 
 /* Methods for getting the appropriate NSUserDefaults */
 @interface NSUserDefaults (AngbandDefaults)
@@ -4128,11 +4127,6 @@ static int compare_nsrect_yorigin_greater(const void *ap, const void *bp)
 
 @end
 
-/**
- * Delay handling of double-clicked savefiles
- */
-Boolean open_when_ready = FALSE;
-
 
 
 /**
@@ -4214,7 +4208,7 @@ static void Term_init_cocoa(term_type *t)
 
 	/* Handle graphics */
 	t->higher_pict = !! use_graphics;
-	t->always_pict = FALSE;
+	t->always_pict = false;
 
 	NSDisableScreenUpdates();
 
@@ -4543,7 +4537,7 @@ static errr Term_xtra_cocoa_react(void)
 		if (! pict_image) {
 		    new_mode = NULL;
 		    if (use_bigtile) {
-			arg_bigtile = FALSE;
+			arg_bigtile = false;
 		    }
 		    [[NSUserDefaults angbandDefaults]
 			setInteger:GRAPHICS_NONE
@@ -5032,26 +5026,6 @@ static void wakeup_event_loop(void)
 
 
 /**
- * Handle the "open_when_ready" flag
- */
-static void handle_open_when_ready(void)
-{
-    /* Check the flag XXX XXX XXX make a function for this */
-    if (open_when_ready && initialized && !game_in_progress)
-    {
-        /* Forget */
-        open_when_ready = FALSE;
-        
-        /* Game is in progress */
-        game_in_progress = TRUE;
-        
-        /* Wait for a keypress */
-        pause_line(Term->hgt - 1);
-    }
-}
-
-
-/**
  * Handle quit_when_ready, by Peter Ammon,
  * slightly modified to check inkey_flag.
  */
@@ -5064,11 +5038,11 @@ static void quit_calmly(void)
     if (inkey_flag)
     {
         /* Hack -- Forget messages and term */
-        msg_flag = FALSE;
-        Term->mapped_flag = FALSE;
+        msg_flag = false;
+        Term->mapped_flag = false;
 
         /* Save the game */
-        do_cmd_save_game(p_ptr, FALSE);
+        do_cmd_save_game(p_ptr, 0);
         record_current_savefile();
 
         /* Quit */
@@ -5125,11 +5099,7 @@ static void AngbandHandleEventMouseDown( NSEvent *event )
 		x = floor( p.x / tileSize.width );
 		y = floor( p.y / tileSize.height );
 
-		/*
-		 * Being safe about this, since xcode doesn't seem to like the
-		 * bool_hack stuff
-		 */
-		BOOL displayingMapInterface = ((int)inkey_flag != 0);
+		BOOL displayingMapInterface = (inkey_flag) ? YES : NO;
 
 		/* Sidebar plus border == thirteen characters; top row is reserved. */
 		/* Coordinates run from (0,0) to (cols-1, rows-1). */
@@ -5238,7 +5208,7 @@ static BOOL send_event(NSEvent *event)
                 case kVK_Escape: ch = 27; break;
                 case kVK_Tab: ch = '\t'; break;
                 case kVK_Delete: ch = '\b'; break;
-	        case kVK_ANSI_KeypadEnter: ch = '\r'; kp = TRUE; break;
+	        case kVK_ANSI_KeypadEnter: ch = '\r'; kp = 1; break;
             }
 
             /* Hide the mouse pointer */
@@ -5334,7 +5304,7 @@ static void send_key(char key)
 }
 
 /**
- * Check for Events, return TRUE if we process any
+ * Check for Events, return YES if we process any
  */
 static BOOL check_events(int wait)
 {
@@ -5542,16 +5512,16 @@ static term_type *term_data_link(int i)
     term_init(newterm, columns, rows, 256 /* keypresses, for some reason? */);
 
     /* Use a "software" cursor */
-    newterm->soft_cursor = TRUE;
+    newterm->soft_cursor = true;
 
     /* Disable the per-row flush notifications since they are not used. */
-    newterm->never_frosh = TRUE;
+    newterm->never_frosh = true;
 
     /*
      * Differentiate between BS/^h, Tab/^i, ... so ^h and ^j work under the
      * roguelike command set.
      */
-    /* newterm->complex_input = TRUE; */
+    /* newterm->complex_input = true; */
 
     /* Erase with "white space" */
     newterm->attr_blank = TERM_WHITE;
@@ -5657,19 +5627,19 @@ static void load_prefs(void)
     graf_mode_req = [defs integerForKey:AngbandGraphicsDefaultsKey];
     if (graphics_will_be_enabled() &&
 	[defs boolForKey:AngbandBigTileDefaultsKey] == YES) {
-	use_bigtile = TRUE;
-	arg_bigtile = TRUE;
+	use_bigtile = true;
+	arg_bigtile = true;
     } else {
-	use_bigtile = FALSE;
-	arg_bigtile = FALSE;
+	use_bigtile = false;
+	arg_bigtile = false;
     }
 
     /* Use sounds; set the Angband global */
     if ([defs boolForKey:AngbandSoundDefaultsKey] == YES) {
-	use_sound = TRUE;
+	use_sound = true;
 	[AngbandSoundCatalog sharedSounds].enabled = YES;
     } else {
-	use_sound = FALSE;
+	use_sound = false;
 	[AngbandSoundCatalog sharedSounds].enabled = NO;
     }
 
@@ -5726,8 +5696,8 @@ static void init_windows(void)
 - (IBAction)newGame:sender
 {
     /* Game is in progress */
-    game_in_progress = TRUE;
-    new_game = TRUE;
+    game_in_progress = YES;
+    new_game = true;
 }
 
 - (IBAction)editFont:sender
@@ -5846,7 +5816,7 @@ static void init_windows(void)
 	    record_current_savefile();
 
 	    /* Game is in progress */
-	    game_in_progress = TRUE;
+	    game_in_progress = YES;
 	}
     }
 }
@@ -5854,10 +5824,10 @@ static void init_windows(void)
 - (IBAction)saveGame:sender
 {
     /* Hack -- Forget messages */
-    msg_flag = FALSE;
+    msg_flag = false;
     
     /* Save the game */
-    do_cmd_save_game(p_ptr, FALSE);
+    do_cmd_save_game(p_ptr, 0);
     
     /*
      * Record the current save file so we can select it by default next time.
@@ -5900,16 +5870,27 @@ static void init_windows(void)
 	p_ptr->player_egid = getegid();
 
 	/* Initialise game */
-	init_angband(p_ptr, FALSE);
+	init_angband(p_ptr, false);
 
 	/* Load possible graphics modes */
 	init_graphics_modes();
 
-	/* We are now initialized */
-	initialized = TRUE;
+	/*
+	 * Reevaluate whether to use bigtiles (the tests in load_prefs() were
+	 * done before init_graphics_modes()).
+	 */
+	if (graphics_will_be_enabled()
+			&& [[NSUserDefaults angbandDefaults]
+				boolForKey:AngbandBigTileDefaultsKey] == YES
+			&& ! use_bigtile) {
+		arg_bigtile = true;
+		term_activate(angband_term[0]);
+		term_resize(angband_term[0]->wid, angband_term[0]->hgt);
+		redraw_for_tiles_or_term0_font();
+	}
 
-	/* Handle "open_when_ready" */
-	handle_open_when_ready();
+	/* We are now initialized */
+	initialized = YES;
 
 	/* Handle pending events (most notably update) and flush input */
 	term_flush();
@@ -5945,7 +5926,7 @@ static void init_windows(void)
      * even handler as appropriate
      */
     term_fresh();
-    play_game(p_ptr, new_game, FALSE);
+    play_game(p_ptr, new_game, false);
 
     quit(NULL);
 }
@@ -6054,11 +6035,11 @@ static void init_windows(void)
 
     if (! graphics_will_be_enabled()) {
 	if (use_bigtile) {
-	    arg_bigtile = FALSE;
+	    arg_bigtile = false;
 	}
     } else if ([[NSUserDefaults angbandDefaults] boolForKey:AngbandBigTileDefaultsKey] == YES &&
 	       ! use_bigtile) {
-	arg_bigtile = TRUE;
+	arg_bigtile = true;
     }
 
     if (arg_bigtile != use_bigtile) {
@@ -6085,11 +6066,11 @@ static void init_windows(void)
     /* Toggle the state and update the Angband global and preferences. */
     if (is_on) {
 	sender.state = NSOffState;
-	use_sound = FALSE;
+	use_sound = false;
 	[AngbandSoundCatalog sharedSounds].enabled = NO;
     } else {
 	sender.state = NSOnState;
-	use_sound = TRUE;
+	use_sound = true;
 	[AngbandSoundCatalog sharedSounds].enabled = YES;
     }
     [[NSUserDefaults angbandDefaults] setBool:(! is_on)
@@ -6105,7 +6086,7 @@ static void init_windows(void)
     [[NSUserDefaults angbandDefaults] setBool:(! is_on)
 				      forKey:AngbandBigTileDefaultsKey];
     if (graphics_are_enabled()) {
-	arg_bigtile = (is_on) ? FALSE : TRUE;
+	arg_bigtile = (is_on) ? false : true;
 	if (arg_bigtile != use_bigtile) {
 	    term_activate(angband_term[0]);
 	    term_resize(angband_term[0]->wid, angband_term[0]->hgt);
@@ -6265,15 +6246,15 @@ static void init_windows(void)
      * Once beginGame finished, the game is over - that's how Angband works,
      * and we should quit
      */
-    game_is_finished = TRUE;
+    game_is_finished = YES;
     [NSApp terminate:self];
 }
 
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender
 {
-    if (p_ptr->playing == FALSE || game_is_finished == TRUE)
+    if (!p_ptr->playing || game_is_finished)
     {
-        quit_when_ready = true;
+        quit_when_ready = YES;
         return NSTerminateNow;
     }
     else if (! inkey_flag)
@@ -6284,14 +6265,14 @@ static void init_windows(void)
     else
     {
         /* Stop playing */
-        /* player->upkeep->playing = FALSE; */
+        /* player->upkeep->playing = false; */
 
         /*
          * Post an escape event so that we can return from our get-key-event
          * function
          */
         wakeup_event_loop();
-        quit_when_ready = true;
+        quit_when_ready = YES;
         /*
          * Must return Cancel, not Later, because we need to get out of the
          * run loop and back to Angband's loop
@@ -6382,7 +6363,7 @@ static void init_windows(void)
 	return;
     }
 
-    game_in_progress = TRUE;
+    game_in_progress = YES;
 
     /*
      * Wake us up in case this arrives while we're sitting at the Welcome
