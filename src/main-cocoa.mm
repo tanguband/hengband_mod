@@ -56,6 +56,9 @@
 #define kVK_Escape 0x35
 #define kVK_ANSI_KeypadEnter 0x4C
 
+static NSString * const FallbackFontName = @_("HiraMaruProN-W4", "Menlo");
+static float FallbackFontSizeMain = 13.0f;
+static float FallbackFontSizeSub = 10.0f;
 static NSString * const AngbandDirectoryNameLib = @"lib";
 static NSString * const AngbandDirectoryNameBase = @VERSION_NAME;
 
@@ -1999,11 +2002,11 @@ static void draw_image_tile(
  * for future changes to the set of flags without needed to update it here
  * (unless the underlying types change).
  */
-static u32b AngbandMaskForValidSubwindowFlags(void)
+static uint32_t AngbandMaskForValidSubwindowFlags(void)
 {
     int windowFlagBits = sizeof(*(window_flag)) * CHAR_BIT;
     int maxBits = MIN( 32, windowFlagBits );
-    u32b mask = 0;
+    uint32_t mask = 0;
 
     for( int i = 0; i < maxBits; i++ )
     {
@@ -2027,7 +2030,7 @@ static void AngbandUpdateWindowVisibility(void)
      * Because this function is called frequently, we'll make the mask static.
      * It doesn't change between calls, as the flags themselves are hardcoded
      */
-    static u32b validWindowFlagsMask = 0;
+    static uint32_t validWindowFlagsMask = 0;
     BOOL anyChanged = NO;
 
     if( validWindowFlagsMask == 0 )
@@ -4141,7 +4144,7 @@ static int compare_nsrect_yorigin_greater(const void *ap, const void *bp)
  */
 static void set_color_for_index(int idx)
 {
-    u16b rv, gv, bv;
+    byte rv, gv, bv;
     
     /* Extract the R,G,B data */
     rv = angband_color_table[idx][1];
@@ -4203,6 +4206,7 @@ static wchar_t convert_two_byte_eucjp_to_utf32_native(const char *cp)
 static void Term_init_cocoa(term_type *t)
 {
     @autoreleasepool {
+	NSUserDefaults *defs = [NSUserDefaults angbandDefaults];
 	AngbandContext *context = [[AngbandContext alloc] init];
 
 	/* Give the term ownership of the context */
@@ -4231,7 +4235,7 @@ static void Term_init_cocoa(term_type *t)
 
 	/* Set its font. */
 	NSString *fontName =
-	    [[NSUserDefaults angbandDefaults]
+	    [defs
 		stringForKey:[NSString stringWithFormat:@"FontName-%d", termIdx]];
 	if (! fontName) fontName = [[AngbandContext defaultFont] fontName];
 
@@ -4239,10 +4243,10 @@ static void Term_init_cocoa(term_type *t)
 	 * Use a smaller default font for the other windows, but only if the
 	 * font hasn't been explicitly set.
 	 */
-	float fontSize =
-	    (termIdx > 0) ? 10.0 : [[AngbandContext defaultFont] pointSize];
+	float fontSize = (termIdx > 0) ?
+            FallbackFontSizeSub : [[AngbandContext defaultFont] pointSize];
 	NSNumber *fontSizeNumber =
-	    [[NSUserDefaults angbandDefaults]
+	    [defs
 		valueForKey: [NSString stringWithFormat: @"FontSize-%d", termIdx]];
 
 	if( fontSizeNumber != nil )
@@ -4250,8 +4254,25 @@ static void Term_init_cocoa(term_type *t)
 	    fontSize = [fontSizeNumber floatValue];
 	}
 
-	[context setSelectionFont:[NSFont fontWithName:fontName size:fontSize]
-		 adjustTerminal: NO];
+	NSFont *newFont = [NSFont fontWithName:fontName size:fontSize];
+	if (!newFont) {
+	    float fallbackSize = (termIdx > 0) ?
+		FallbackFontSizeSub : FallbackFontSizeMain;
+
+	    newFont = [NSFont fontWithName:FallbackFontName size:fallbackSize];
+	    if (!newFont) {
+		newFont = [NSFont systemFontOfSize:fallbackSize];
+		if (!newFont) {
+		    newFont = [NSFont systemFontOfSize:0.0];
+		}
+	    }
+	    /* Override the bad preferences. */
+	    [defs setValue:[newFont fontName]
+		forKey:[NSString stringWithFormat:@"FontName-%d", termIdx]];
+	    [defs setFloat:[newFont pointSize]
+		forKey:[NSString stringWithFormat:@"FontSize-%d", termIdx]];
+	}
+	[context setSelectionFont:newFont adjustTerminal: NO];
 
 	NSArray *terminalDefaults =
 	    [[NSUserDefaults standardUserDefaults]
@@ -5611,12 +5632,8 @@ static void load_prefs(void)
     }
 
     NSDictionary *defaults = [[NSDictionary alloc] initWithObjectsAndKeys:
-#ifdef JP
-                              @"HiraMaruProN-W4", @"FontName-0",
-#else
-                              @"Menlo", @"FontName-0",
-#endif
-                              [NSNumber numberWithFloat:13.f], @"FontSize-0",
+                              FallbackFontName, @"FontName-0",
+                              [NSNumber numberWithFloat:FallbackFontSizeMain], @"FontSize-0",
                               [NSNumber numberWithInt:60], AngbandFrameRateDefaultsKey,
                               [NSNumber numberWithBool:YES], AngbandSoundDefaultsKey,
                               [NSNumber numberWithInt:GRAPHICS_NONE], AngbandGraphicsDefaultsKey,
@@ -5652,9 +5669,19 @@ static void load_prefs(void)
     [AngbandContext
 	setDefaultFont:[NSFont fontWithName:[defs valueForKey:@"FontName-0"]
 			       size:[defs floatForKey:@"FontSize-0"]]];
-    if (! [AngbandContext defaultFont])
+    if (! [AngbandContext defaultFont]) {
 	[AngbandContext
-	    setDefaultFont:[NSFont fontWithName:@"Menlo" size:13.]];
+	    setDefaultFont:[NSFont fontWithName:FallbackFontName
+	    size:FallbackFontSizeMain]];
+	if (! [AngbandContext defaultFont]) {
+	    [AngbandContext
+		setDefaultFont:[NSFont systemFontOfSize:FallbackFontSizeMain]];
+	    if (! [AngbandContext defaultFont]) {
+		[AngbandContext
+		    setDefaultFont:[NSFont systemFontOfSize:0.0]];
+	    }
+	}
+    }
 }
 
 /**
