@@ -59,7 +59,7 @@ static errr load_town_quest(player_type *creature_ptr)
     if (load_town_result != 0)
         return load_town_result;
 
-    u16b max_quests_load;
+    uint16_t max_quests_load;
     byte max_rquests_load;
     errr load_quest_result = load_quest_info(&max_quests_load, &max_rquests_load);
     if (load_quest_result != 0)
@@ -113,7 +113,7 @@ static void load_player_world(player_type *creature_ptr)
     rd_extra(creature_ptr);
 
     if (creature_ptr->energy_need < -999)
-        creature_ptr->timewalk = TRUE;
+        creature_ptr->timewalk = true;
 
     if (arg_fiddle)
         load_note(_("特別情報をロードしました", "Loaded extra information"));
@@ -121,7 +121,7 @@ static void load_player_world(player_type *creature_ptr)
 
 static errr load_hp(player_type *creature_ptr)
 {
-    u16b tmp16u;
+    uint16_t tmp16u;
     rd_u16b(&tmp16u);
     if (tmp16u > PY_MAX_LEVEL) {
         load_note(format(_("ヒットポイント配列が大きすぎる(%u)！", "Too many (%u) hitpoint entries!"), tmp16u));
@@ -129,7 +129,7 @@ static errr load_hp(player_type *creature_ptr)
     }
 
     for (int i = 0; i < tmp16u; i++) {
-        s16b tmp16s;
+        int16_t tmp16s;
         rd_s16b(&tmp16s);
         creature_ptr->player_hp[i] = (HIT_POINT)tmp16s;
     }
@@ -159,8 +159,8 @@ static void load_spells(player_type *creature_ptr)
 
 static errr verify_checksum()
 {
-    u32b n_v_check = v_check;
-    u32b o_v_check;
+    uint32_t n_v_check = v_check;
+    uint32_t o_v_check;
     rd_u32b(&o_v_check);
     if (o_v_check == n_v_check)
         return 0;
@@ -171,8 +171,8 @@ static errr verify_checksum()
 
 static errr verify_encoded_checksum()
 {
-    u32b n_x_check = x_check;
-    u32b o_x_check;
+    uint32_t n_x_check = x_check;
+    uint32_t o_x_check;
     rd_u32b(&o_x_check);
     if (o_x_check == n_x_check)
         return 0;
@@ -216,7 +216,7 @@ static errr exe_reading_savefile(player_type *creature_ptr)
         return load_hp_result;
 
     sp_ptr = &sex_info[creature_ptr->psex];
-    rp_ptr = &race_info[creature_ptr->prace];
+    rp_ptr = &race_info[static_cast<int>(creature_ptr->prace)];
     cp_ptr = &class_info[creature_ptr->pclass];
     ap_ptr = &personality_info[creature_ptr->pseikaku];
 
@@ -239,7 +239,7 @@ static errr exe_reading_savefile(player_type *creature_ptr)
     if (h_older_than(0, 4, 10))
         set_zangband_pet(creature_ptr);
     else
-        rd_s16b(&creature_ptr->pet_extra_flags);
+        rd_u16b(&creature_ptr->pet_extra_flags);
 
     if (!h_older_than(1, 0, 9)) {
         char *buf;
@@ -296,16 +296,16 @@ bool load_savedata(player_type *player_ptr, bool *new_game)
 {
     concptr what = "generic";
     current_world_ptr->game_turn = 0;
-    player_ptr->is_dead = FALSE;
+    player_ptr->is_dead = false;
     if (!savefile[0])
-        return TRUE;
+        return true;
 
 #ifndef WINDOWS
     if (access(savefile, 0) < 0) {
         msg_print(_("セーブファイルがありません。", "Savefile does not exist."));
         msg_print(NULL);
-        *new_game = TRUE;
-        return TRUE;
+        *new_game = true;
+        return true;
     }
 #endif
 
@@ -341,7 +341,7 @@ bool load_savedata(player_type *player_ptr, bool *new_game)
     if (err) {
         msg_format("%s: %s", what, savefile);
         msg_print(NULL);
-        return FALSE;
+        return false;
     }
 
     current_world_ptr->sf_extra = fake_ver[3];
@@ -367,23 +367,23 @@ bool load_savedata(player_type *player_ptr, bool *new_game)
             current_world_ptr->h_ver_major, current_world_ptr->h_ver_minor, current_world_ptr->h_ver_patch, current_world_ptr->h_ver_extra);
 
         msg_print(NULL);
-        return FALSE;
+        return false;
     }
 
     if (player_ptr->is_dead) {
-        *new_game = TRUE;
+        *new_game = true;
         if (arg_wizard) {
-            current_world_ptr->character_loaded = TRUE;
-            return TRUE;
+            current_world_ptr->character_loaded = true;
+            return true;
         }
 
-        player_ptr->is_dead = FALSE;
+        player_ptr->is_dead = false;
         current_world_ptr->sf_lives++;
-        return TRUE;
+        return true;
     }
 
-    current_world_ptr->character_loaded = TRUE;
-    u32b tmp = counts_read(player_ptr, 2);
+    current_world_ptr->character_loaded = true;
+    uint32_t tmp = counts_read(player_ptr, 2);
     if (tmp > player_ptr->count)
         player_ptr->count = tmp;
 
@@ -391,5 +391,5 @@ bool load_savedata(player_type *player_ptr, bool *new_game)
         counts_write(player_ptr, 2, ++player_ptr->count);
 
     counts_write(player_ptr, 1, current_world_ptr->play_time);
-    return TRUE;
+    return true;
 }

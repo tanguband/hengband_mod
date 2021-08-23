@@ -19,6 +19,7 @@
 #include "player/player-status-flags.h"
 #include "player/player-status.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -60,25 +61,25 @@ static bool see_wall(player_type *creature_ptr, DIRECTION dir, POSITION y, POSIT
     x += ddx[dir];
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if (!in_bounds2(floor_ptr, y, x))
-        return FALSE;
+        return false;
 
     grid_type *g_ptr;
     g_ptr = &floor_ptr->grid_array[y][x];
-    if (!(g_ptr->info & CAVE_MARK))
-        return FALSE;
+    if (!g_ptr->is_mark())
+        return false;
 
-    s16b feat = get_feat_mimic(g_ptr);
+    int16_t feat = g_ptr->get_feat_mimic();
     feature_type *f_ptr = &f_info[feat];
     if (!player_can_enter(creature_ptr, feat, 0))
-        return !has_flag(f_ptr->flags, FF_DOOR);
+        return f_ptr->flags.has_not(FF::DOOR);
 
-    if (has_flag(f_ptr->flags, FF_AVOID_RUN) && !ignore_avoid_run)
-        return TRUE;
+    if (f_ptr->flags.has(FF::AVOID_RUN) && !ignore_avoid_run)
+        return true;
 
-    if (!has_flag(f_ptr->flags, FF_MOVE) && !has_flag(f_ptr->flags, FF_CAN_FLY))
-        return !has_flag(f_ptr->flags, FF_DOOR);
+    if (f_ptr->flags.has_none_of({FF::MOVE, FF::CAN_FLY}))
+        return f_ptr->flags.has_not(FF::DOOR);
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -102,38 +103,38 @@ static void run_init(player_type *creature_ptr, DIRECTION dir)
 {
     find_current = dir;
     find_prevdir = dir;
-    find_openarea = TRUE;
-    find_breakright = find_breakleft = FALSE;
-    bool deepleft = FALSE;
-    bool deepright = FALSE;
-    bool shortright = FALSE;
-    bool shortleft = FALSE;
+    find_openarea = true;
+    find_breakright = find_breakleft = false;
+    bool deepleft = false;
+    bool deepright = false;
+    bool shortright = false;
+    bool shortleft = false;
     creature_ptr->run_py = creature_ptr->y;
     creature_ptr->run_px = creature_ptr->x;
     int row = creature_ptr->y + ddy[dir];
     int col = creature_ptr->x + ddx[dir];
-    ignore_avoid_run = cave_has_flag_bold(creature_ptr->current_floor_ptr, row, col, FF_AVOID_RUN);
+    ignore_avoid_run = cave_has_flag_bold(creature_ptr->current_floor_ptr, row, col, FF::AVOID_RUN);
     int i = chome[dir];
     if (see_wall(creature_ptr, cycle[i + 1], creature_ptr->y, creature_ptr->x)) {
-        find_breakleft = TRUE;
-        shortleft = TRUE;
+        find_breakleft = true;
+        shortleft = true;
     } else if (see_wall(creature_ptr, cycle[i + 1], row, col)) {
-        find_breakleft = TRUE;
-        deepleft = TRUE;
+        find_breakleft = true;
+        deepleft = true;
     }
 
     if (see_wall(creature_ptr, cycle[i - 1], creature_ptr->y, creature_ptr->x)) {
-        find_breakright = TRUE;
-        shortright = TRUE;
+        find_breakright = true;
+        shortright = true;
     } else if (see_wall(creature_ptr, cycle[i - 1], row, col)) {
-        find_breakright = TRUE;
-        deepright = TRUE;
+        find_breakright = true;
+        deepright = true;
     }
 
     if (!find_breakleft || !find_breakright)
         return;
 
-    find_openarea = FALSE;
+    find_openarea = false;
     if (dir & 0x01) {
         if (deepleft && !deepright) {
             find_prevdir = cycle[i - 1];
@@ -170,15 +171,15 @@ static bool see_nothing(player_type *creature_ptr, DIRECTION dir, POSITION y, PO
 
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if (!in_bounds2(floor_ptr, y, x))
-        return TRUE;
+        return true;
 
-    if (floor_ptr->grid_array[y][x].info & (CAVE_MARK))
-        return FALSE;
+    if (floor_ptr->grid_array[y][x].is_mark())
+        return false;
 
     if (player_can_see_bold(creature_ptr, y, x))
-        return FALSE;
+        return false;
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -195,7 +196,7 @@ static bool run_test(player_type *creature_ptr)
     int max = (prev_dir & 0x01) + 1;
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if ((disturb_trap_detect || alert_trap_detect) && creature_ptr->dtrap && !(floor_ptr->grid_array[creature_ptr->y][creature_ptr->x].info & CAVE_IN_DETECT)) {
-        creature_ptr->dtrap = FALSE;
+        creature_ptr->dtrap = false;
         if (!(floor_ptr->grid_array[creature_ptr->y][creature_ptr->x].info & CAVE_UNSAFE)) {
             if (alert_trap_detect) {
                 msg_print(_("* 注意:この先はトラップの感知範囲外です！ *", "*Leaving trap detect region!*"));
@@ -203,7 +204,7 @@ static bool run_test(player_type *creature_ptr)
 
             if (disturb_trap_detect) {
                 /* Break Run */
-                return TRUE;
+                return true;
             }
         }
     }
@@ -216,50 +217,50 @@ static bool run_test(player_type *creature_ptr)
         int col = creature_ptr->x + ddx[new_dir];
         grid_type *g_ptr;
         g_ptr = &floor_ptr->grid_array[row][col];
-        FEAT_IDX feat = get_feat_mimic(g_ptr);
+        FEAT_IDX feat = g_ptr->get_feat_mimic();
         feature_type *f_ptr;
         f_ptr = &f_info[feat];
         if (g_ptr->m_idx) {
             monster_type *m_ptr = &floor_ptr->m_list[g_ptr->m_idx];
             if (m_ptr->ml)
-                return TRUE;
+                return true;
         }
 
         for (const auto this_o_idx : g_ptr->o_idx_list) {
             object_type *o_ptr;
             o_ptr = &floor_ptr->o_list[this_o_idx];
             if (o_ptr->marked & OM_FOUND)
-                return TRUE;
+                return true;
         }
 
-        bool inv = TRUE;
-        if (g_ptr->info & (CAVE_MARK)) {
-            bool notice = has_flag(f_ptr->flags, FF_NOTICE);
-            if (notice && has_flag(f_ptr->flags, FF_MOVE)) {
-                if (find_ignore_doors && has_flag(f_ptr->flags, FF_DOOR) && has_flag(f_ptr->flags, FF_CLOSE)) {
-                    notice = FALSE;
-                } else if (find_ignore_stairs && has_flag(f_ptr->flags, FF_STAIRS)) {
-                    notice = FALSE;
-                } else if (has_flag(f_ptr->flags, FF_LAVA) && (has_immune_fire(creature_ptr) || is_invuln(creature_ptr))) {
-                    notice = FALSE;
-                } else if (has_flag(f_ptr->flags, FF_WATER) && has_flag(f_ptr->flags, FF_DEEP)
+        bool inv = true;
+        if (g_ptr->is_mark()) {
+            bool notice = f_ptr->flags.has(FF::NOTICE);
+            if (notice && f_ptr->flags.has(FF::MOVE)) {
+                if (find_ignore_doors && f_ptr->flags.has_all_of({FF::DOOR, FF::CLOSE})) {
+                    notice = false;
+                } else if (find_ignore_stairs && f_ptr->flags.has(FF::STAIRS)) {
+                    notice = false;
+                } else if (f_ptr->flags.has(FF::LAVA) && (has_immune_fire(creature_ptr) || is_invuln(creature_ptr))) {
+                    notice = false;
+                } else if (f_ptr->flags.has_all_of({FF::WATER, FF::DEEP})
                     && (creature_ptr->levitation || creature_ptr->can_swim || (calc_inventory_weight(creature_ptr) <= calc_weight_limit(creature_ptr)))) {
-                    notice = FALSE;
+                    notice = false;
                 }
             }
 
             if (notice)
-                return TRUE;
+                return true;
 
-            inv = FALSE;
+            inv = false;
         }
 
         if (!inv && see_wall(creature_ptr, 0, row, col)) {
             if (find_openarea) {
                 if (i < 0) {
-                    find_breakright = TRUE;
+                    find_breakright = true;
                 } else if (i > 0) {
-                    find_breakleft = TRUE;
+                    find_breakleft = true;
                 }
             }
 
@@ -275,10 +276,10 @@ static bool run_test(player_type *creature_ptr)
         }
 
         if (option2)
-            return TRUE;
+            return true;
 
         if (option != cycle[chome[prev_dir] + i - 1])
-            return TRUE;
+            return true;
 
         if (new_dir & 0x01) {
             check_dir = cycle[chome[prev_dir] + i - 2];
@@ -295,20 +296,20 @@ static bool run_test(player_type *creature_ptr)
         for (int i = -max; i < 0; i++) {
             if (!see_wall(creature_ptr, cycle[chome[prev_dir] + i], creature_ptr->y, creature_ptr->x)) {
                 if (find_breakright)
-                    return TRUE;
+                    return true;
             } else {
                 if (find_breakleft)
-                    return TRUE;
+                    return true;
             }
         }
 
         for (int i = max; i > 0; i--) {
             if (!see_wall(creature_ptr, cycle[chome[prev_dir] + i], creature_ptr->y, creature_ptr->x)) {
                 if (find_breakleft)
-                    return TRUE;
+                    return true;
             } else {
                 if (find_breakright)
-                    return TRUE;
+                    return true;
             }
         }
 
@@ -316,7 +317,7 @@ static bool run_test(player_type *creature_ptr)
     }
 
     if (!option)
-        return TRUE;
+        return true;
 
     if (!option2) {
         find_current = option;
@@ -337,7 +338,7 @@ static bool run_test(player_type *creature_ptr)
             return see_wall(creature_ptr, find_current, creature_ptr->y, creature_ptr->x);
         }
 
-        return TRUE;
+        return true;
     }
 
     if (find_cut) {
@@ -360,18 +361,18 @@ static bool run_test(player_type *creature_ptr)
 void run_step(player_type *creature_ptr, DIRECTION dir)
 {
     if (dir) {
-        ignore_avoid_run = TRUE;
+        ignore_avoid_run = true;
         if (see_wall(creature_ptr, dir, creature_ptr->y, creature_ptr->x)) {
             sound(SOUND_HITWALL);
             msg_print(_("その方向には走れません。", "You cannot run in that direction."));
-            disturb(creature_ptr, FALSE, FALSE);
+            disturb(creature_ptr, false, false);
             return;
         }
 
         run_init(creature_ptr, dir);
     } else {
         if (run_test(creature_ptr)) {
-            disturb(creature_ptr, FALSE, FALSE);
+            disturb(creature_ptr, false, false);
             return;
         }
     }
@@ -380,10 +381,10 @@ void run_step(player_type *creature_ptr, DIRECTION dir)
         return;
 
     PlayerEnergy(creature_ptr).set_player_turn_energy(100);
-    exe_movement(creature_ptr, find_current, FALSE, FALSE);
+    exe_movement(creature_ptr, find_current, false, false);
     if (player_bold(creature_ptr, creature_ptr->run_py, creature_ptr->run_px)) {
         creature_ptr->run_py = 0;
         creature_ptr->run_px = 0;
-        disturb(creature_ptr, FALSE, FALSE);
+        disturb(creature_ptr, false, false);
     }
 }

@@ -18,8 +18,10 @@
 #include "monster/monster-info.h"
 #include "monster/monster-list.h"
 #include "monster/monster-util.h"
+#include "room/door-definition.h"
 #include "room/space-finder.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -132,19 +134,19 @@ static bool ang_sort_comp_nest_mon_info(player_type *player_ptr, vptr u, vptr v,
     int z2 = nest_mon_info[b].used;
 
     if (z1 < z2)
-        return FALSE;
+        return false;
     if (z1 > z2)
-        return TRUE;
+        return true;
 
     if (r1_ptr->level < r2_ptr->level)
-        return TRUE;
+        return true;
     if (r1_ptr->level > r2_ptr->level)
-        return FALSE;
+        return false;
 
     if (r1_ptr->mexp < r2_ptr->mexp)
-        return TRUE;
+        return true;
     if (r1_ptr->mexp > r2_ptr->mexp)
-        return FALSE;
+        return false;
 
     return w1 <= w2;
 }
@@ -187,6 +189,14 @@ std::vector<nest_pit_type> nest_types = {
 };
 
 /*!
+ * @todo intをenumに変更する
+ */
+static void add_cave_info(grid_type *g_ptr, int cave_mask)
+{
+    g_ptr->info |= cave_mask;
+}
+
+/*!
  * @brief タイプ5の部屋…nestを生成する / Type 5 -- Monster nests
  * @param player_ptr プレーヤーへの参照ポインタ
  * @details
@@ -222,7 +232,7 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
 
     /* No type available */
     if (cur_nest_type < 0)
-        return FALSE;
+        return false;
 
     n_ptr = &nest_types[cur_nest_type];
 
@@ -254,7 +264,7 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
 
         /* Notice failure */
         if (!r_idx || !attempts)
-            return FALSE;
+            return false;
 
         /* Note the alignment */
         if (r_ptr->flags3 & RF3_EVIL)
@@ -262,13 +272,13 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
         if (r_ptr->flags3 & RF3_GOOD)
             align.sub_align |= SUB_ALIGN_GOOD;
 
-        nest_mon_info[i].r_idx = (s16b)r_idx;
-        nest_mon_info[i].used = FALSE;
+        nest_mon_info[i].r_idx = (int16_t)r_idx;
+        nest_mon_info[i].used = false;
     }
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
     if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25))
-        return FALSE;
+        return false;
 
     /* Large room */
     y1 = yval - 4;
@@ -321,7 +331,7 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
     }
     for (y = y1; y <= y2; y++) {
         for (x = x1; x <= x2; x++) {
-            add_cave_info(floor_ptr, y, x, CAVE_ICKY);
+            add_cave_info(&floor_ptr->grid_array[y][x], CAVE_ICKY);
         }
     }
 
@@ -342,7 +352,7 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
     }
 
     msg_format_wizard(
-        player_ptr, CHEAT_DUNGEON, _("モンスター部屋(nest)(%s%s)を生成します。", "Monster nest (%s%s)"), n_ptr->name, pit_subtype_string(cur_nest_type, TRUE));
+        player_ptr, CHEAT_DUNGEON, _("モンスター部屋(nest)(%s%s)を生成します。", "Monster nest (%s%s)"), n_ptr->name, pit_subtype_string(cur_nest_type, true));
 
     /* Place some monsters */
     for (y = yval - 2; y <= yval + 2; y++) {
@@ -355,7 +365,7 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
             /* Place that "random" monster (no groups) */
             (void)place_monster_aux(player_ptr, 0, y, x, r_idx, 0L);
 
-            nest_mon_info[i].used = TRUE;
+            nest_mon_info[i].used = true;
         }
     }
 
@@ -377,7 +387,7 @@ bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr)
         }
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -449,7 +459,7 @@ bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr)
 
     /* No type available */
     if (cur_pit_type < 0)
-        return FALSE;
+        return false;
 
     n_ptr = &pit_types[cur_pit_type];
 
@@ -481,7 +491,7 @@ bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr)
 
         /* Notice failure */
         if (!r_idx || !attempts)
-            return FALSE;
+            return false;
 
         /* Note the alignment */
         if (r_ptr->flags3 & RF3_EVIL)
@@ -494,7 +504,7 @@ bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr)
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
     if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25))
-        return FALSE;
+        return false;
 
     /* Large room */
     y1 = yval - 4;
@@ -546,7 +556,7 @@ bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr)
     }
     for (y = y1; y <= y2; y++) {
         for (x = x1; x <= x2; x++) {
-            add_cave_info(floor_ptr, y, x, CAVE_ICKY);
+            add_cave_info(&floor_ptr->grid_array[y][x], CAVE_ICKY);
         }
     }
 
@@ -586,7 +596,7 @@ bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr)
     }
 
     msg_format_wizard(
-        player_ptr, CHEAT_DUNGEON, _("モンスター部屋(pit)(%s%s)を生成します。", "Monster pit (%s%s)"), n_ptr->name, pit_subtype_string(cur_pit_type, FALSE));
+        player_ptr, CHEAT_DUNGEON, _("モンスター部屋(pit)(%s%s)を生成します。", "Monster pit (%s%s)"), n_ptr->name, pit_subtype_string(cur_pit_type, false));
 
     /* Select the entries */
     for (i = 0; i < 8; i++) {
@@ -641,7 +651,7 @@ bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr)
     /* Center monster */
     place_monster_aux(player_ptr, 0, yval, xval, what[7], PM_NO_KAGE);
 
-    return TRUE;
+    return true;
 }
 
 // clang-format off
@@ -680,13 +690,13 @@ static bool vault_aux_trapped_pit(player_type *player_ptr, MONRACE_IDX r_idx)
     monster_race *r_ptr = &r_info[r_idx];
 
     if (!vault_monster_okay(player_ptr, r_idx))
-        return FALSE;
+        return false;
 
     /* No wall passing monster */
     if (r_ptr->flags2 & (RF2_PASS_WALL | RF2_KILL_WALL))
-        return FALSE;
+        return false;
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -750,11 +760,11 @@ bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr)
 
     /* Only in Angband */
     if (floor_ptr->dungeon_idx != DUNGEON_ANGBAND)
-        return FALSE;
+        return false;
 
     /* No type available */
     if (cur_pit_type < 0)
-        return FALSE;
+        return false;
 
     n_ptr = &pit_types[cur_pit_type];
 
@@ -786,7 +796,7 @@ bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr)
 
         /* Notice failure */
         if (!r_idx || !attempts)
-            return FALSE;
+            return false;
 
         /* Note the alignment */
         if (r_ptr->flags3 & RF3_EVIL)
@@ -799,7 +809,7 @@ bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr)
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
     if (!find_space(player_ptr, dd_ptr, &yval, &xval, 13, 25))
-        return FALSE;
+        return false;
 
     /* Large room */
     y1 = yval - 5;
@@ -820,22 +830,22 @@ bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr)
     for (x = x1 + 3; x <= x2 - 3; x++) {
         g_ptr = &floor_ptr->grid_array[yval - 2][x];
         place_grid(player_ptr, g_ptr, GB_FLOOR);
-        add_cave_info(floor_ptr, yval - 2, x, CAVE_ICKY);
+        add_cave_info(&floor_ptr->grid_array[yval - 2][x], CAVE_ICKY);
 
         g_ptr = &floor_ptr->grid_array[yval + 2][x];
         place_grid(player_ptr, g_ptr, GB_FLOOR);
-        add_cave_info(floor_ptr, yval + 2, x, CAVE_ICKY);
+        add_cave_info(&floor_ptr->grid_array[yval + 2][x], CAVE_ICKY);
     }
 
     /* Place the floor area 2 */
     for (x = x1 + 5; x <= x2 - 5; x++) {
         g_ptr = &floor_ptr->grid_array[yval - 3][x];
         place_grid(player_ptr, g_ptr, GB_FLOOR);
-        add_cave_info(floor_ptr, yval - 3, x, CAVE_ICKY);
+        add_cave_info(&floor_ptr->grid_array[yval - 3][x], CAVE_ICKY);
 
         g_ptr = &floor_ptr->grid_array[yval + 3][x];
         place_grid(player_ptr, g_ptr, GB_FLOOR);
-        add_cave_info(floor_ptr, yval + 3, x, CAVE_ICKY);
+        add_cave_info(&floor_ptr->grid_array[yval + 3][x], CAVE_ICKY);
     }
 
     /* Corridor */
@@ -907,7 +917,7 @@ bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr)
     }
 
     msg_format_wizard(
-        player_ptr, CHEAT_DUNGEON, _("%s%sの罠ピットが生成されました。", "Trapped monster pit (%s%s)"), n_ptr->name, pit_subtype_string(cur_pit_type, FALSE));
+        player_ptr, CHEAT_DUNGEON, _("%s%sの罠ピットが生成されました。", "Trapped monster pit (%s%s)"), n_ptr->name, pit_subtype_string(cur_pit_type, false));
 
     /* Select the entries */
     for (i = 0; i < 8; i++) {
@@ -925,5 +935,5 @@ bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr)
         place_monster_aux(player_ptr, 0, y, x, what[place_table_trapped_pit[i][2]], PM_NO_KAGE);
     }
 
-    return TRUE;
+    return true;
 }

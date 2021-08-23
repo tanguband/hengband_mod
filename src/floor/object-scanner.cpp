@@ -2,12 +2,12 @@
 #include "floor/cave.h"
 #include "flavor/flavor-describer.h"
 #include "game-option/text-display-options.h"
-#include "grid/grid.h"
 #include "inventory/inventory-util.h"
 #include "io/input-key-requester.h"
 #include "object/item-tester-hooker.h"
 #include "object/object-mark-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "term/gameterm.h"
@@ -105,7 +105,7 @@ COMMAND_CODE show_floor_items(player_type *owner_ptr, int target_item, POSITION 
     ITEM_NUMBER floor_num;
     TERM_LEN wid, hgt;
     char floor_label[52 + 1];
-    bool dont_need_to_show_weights = TRUE;
+    bool dont_need_to_show_weights = true;
     term_get_size(&wid, &hgt);
     int len = MAX((*min_width), 20);
     floor_num = scan_floor_items(owner_ptr, floor_list, y, x, SCAN_FLOOR_ITEM_TESTER | SCAN_FLOOR_ONLY_MARKED, item_tester_tval);
@@ -121,7 +121,7 @@ COMMAND_CODE show_floor_items(player_type *owner_ptr, int target_item, POSITION 
             l += 9;
 
         if (o_ptr->tval != TV_GOLD)
-            dont_need_to_show_weights = FALSE;
+            dont_need_to_show_weights = false;
 
         if (l > len)
             len = l;

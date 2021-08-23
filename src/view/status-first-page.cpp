@@ -75,7 +75,7 @@ static bool calc_weapon_damage_limit(player_type *creature_ptr, int hand, int *d
     PLAYER_LEVEL level = creature_ptr->lev;
     if (hand > 0) {
         damage[hand] = 0;
-        return FALSE;
+        return false;
     }
 
     if (creature_ptr->pclass == CLASS_FORCETRAINER)
@@ -93,7 +93,7 @@ static bool calc_weapon_damage_limit(player_type *creature_ptr, int hand, int *d
     if (damage[hand] < 0)
         damage[hand] = 0;
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -107,7 +107,7 @@ static bool calc_weapon_damage_limit(player_type *creature_ptr, int hand, int *d
 static bool calc_weapon_one_hand(object_type *o_ptr, int hand, int *damage, int *basedam)
 {
     if (o_ptr->k_idx == 0)
-        return FALSE;
+        return false;
 
     *basedam = 0;
     damage[hand] += *basedam;
@@ -117,7 +117,7 @@ static bool calc_weapon_one_hand(object_type *o_ptr, int hand, int *damage, int 
     if (damage[hand] < 0)
         damage[hand] = 0;
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -128,7 +128,7 @@ static bool calc_weapon_one_hand(object_type *o_ptr, int hand, int *damage, int 
  * @param flgs オブジェクトフラグ群
  * @return 強化後の素手ダメージ
  */
-static int strengthen_basedam(player_type *creature_ptr, object_type *o_ptr, int basedam, BIT_FLAGS *flgs)
+static int strengthen_basedam(player_type *creature_ptr, object_type *o_ptr, int basedam, const TrFlags &flgs)
 {
     if (object_is_fully_known(o_ptr) && ((o_ptr->name1 == ART_VORPAL_BLADE) || (o_ptr->name1 == ART_CHAINSWORD))) {
         /* vorpal blade */
@@ -245,11 +245,11 @@ static void calc_two_hands(player_type *creature_ptr, int *damage, int *to_h)
 {
     object_type *o_ptr;
     o_ptr = &creature_ptr->inventory_list[INVEN_BOW];
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     for (int i = 0; i < 2; i++) {
         int basedam;
         damage[i] = creature_ptr->dis_to_d[i] * 100;
-        if (((creature_ptr->pclass == CLASS_MONK) || (creature_ptr->pclass == CLASS_FORCETRAINER)) && (empty_hands(creature_ptr, TRUE) & EMPTY_HAND_MAIN)) {
+        if (((creature_ptr->pclass == CLASS_MONK) || (creature_ptr->pclass == CLASS_FORCETRAINER)) && (empty_hands(creature_ptr, true) & EMPTY_HAND_MAIN)) {
             if (!calc_weapon_damage_limit(creature_ptr, i, damage, &basedam, o_ptr))
                 break;
 
@@ -261,9 +261,9 @@ static void calc_two_hands(player_type *creature_ptr, int *damage, int *to_h)
             continue;
 
         to_h[i] = 0;
-        bool poison_needle = FALSE;
+        bool poison_needle = false;
         if ((o_ptr->tval == TV_SWORD) && (o_ptr->sval == SV_POISON_NEEDLE))
-            poison_needle = TRUE;
+            poison_needle = true;
         if (object_is_known(o_ptr)) {
             damage[i] += o_ptr->to_d * 100;
             to_h[i] += o_ptr->to_h;

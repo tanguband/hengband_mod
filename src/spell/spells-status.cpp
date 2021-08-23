@@ -5,6 +5,7 @@
  */
 
 #include "spell/spells-status.h"
+#include "avatar/avatar.h"
 #include "cmd-action/cmd-spell.h"
 #include "cmd-item/cmd-magiceat.h"
 #include "core/player-redraw-types.h"
@@ -18,15 +19,15 @@
 #include "floor/floor-object.h"
 #include "floor/geometry.h"
 #include "grid/feature-flag-types.h"
-#include "grid/grid.h"
 #include "hpmp/hp-mp-processor.h"
 #include "inventory/inventory-object.h"
 #include "inventory/inventory-slot-types.h"
+#include "main/sound-definitions-table.h"
+#include "main/sound-of-music.h"
 #include "mind/mind-force-trainer.h"
 #include "monster/monster-describer.h"
 #include "object/object-kind-hook.h"
 #include "object/object-kind.h"
-#include "player-info/avatar.h"
 #include "player-status/player-energy.h"
 #include "player/attack-defense-types.h"
 #include "player/player-class.h"
@@ -43,6 +44,7 @@
 #include "status/shape-changer.h"
 #include "status/sight-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -197,10 +199,10 @@ bool time_walk(player_type *creature_ptr)
 {
     if (creature_ptr->timewalk) {
         msg_print(_("既に時は止まっている。", "Time is already stopped."));
-        return FALSE;
+        return false;
     }
 
-    creature_ptr->timewalk = TRUE;
+    creature_ptr->timewalk = true;
     msg_print(_("「時よ！」", "You yell 'Time!'"));
     //	msg_print(_("「『ザ・ワールド』！時は止まった！」", "You yell 'The World! Time has stopped!'"));
     msg_print(NULL);
@@ -210,7 +212,7 @@ bool time_walk(player_type *creature_ptr)
     creature_ptr->update |= (PU_MONSTERS);
     creature_ptr->window_flags |= (PW_OVERHEAD | PW_DUNGEON);
     handle_stuff(creature_ptr);
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -224,7 +226,7 @@ void roll_hitdice(player_type *creature_ptr, spell_operation options)
     HIT_POINT max_value = creature_ptr->hitdie + ((PY_MAX_LEVEL + 2) * (creature_ptr->hitdie + 1)) * 5 / 8;
 
     /* Rerate */
-    while (TRUE) {
+    while (true) {
         /* Pre-calculate level 1 hitdice */
         creature_ptr->player_hp[0] = (HIT_POINT)creature_ptr->hitdie;
 
@@ -241,6 +243,8 @@ void roll_hitdice(player_type *creature_ptr, spell_operation options)
         if ((creature_ptr->player_hp[PY_MAX_LEVEL - 1] >= min_value) && (creature_ptr->player_hp[PY_MAX_LEVEL - 1] <= max_value))
             break;
     }
+
+    creature_ptr->knowledge &= ~(KNOW_HPRATE);
 
     PERCENTAGE percent
         = (int)(((long)creature_ptr->player_hp[PY_MAX_LEVEL - 1] * 200L) / (2 * creature_ptr->hitdie + ((PY_MAX_LEVEL - 1 + 3) * (creature_ptr->hitdie + 1))));
@@ -263,7 +267,6 @@ void roll_hitdice(player_type *creature_ptr, spell_operation options)
     }
 
     msg_print(_("体力ランクが変わった。", "Life rate has changed."));
-    creature_ptr->knowledge &= ~(KNOW_HPRATE);
 }
 
 bool life_stream(player_type *creature_ptr, bool message, bool virtue_change)
@@ -286,104 +289,104 @@ bool life_stream(player_type *creature_ptr, bool message, bool virtue_change)
     (void)set_cut(creature_ptr, 0);
     (void)set_paralyzed(creature_ptr, 0);
     (void)restore_all_status(creature_ptr);
-    (void)set_shero(creature_ptr, 0, TRUE);
+    (void)set_shero(creature_ptr, 0, true);
     handle_stuff(creature_ptr);
     hp_player(creature_ptr, 5000);
 
-    return TRUE;
+    return true;
 }
 
 bool heroism(player_type *creature_ptr, int base)
 {
-    bool ident = FALSE;
+    bool ident = false;
     if (set_afraid(creature_ptr, 0))
-        ident = TRUE;
-    if (set_hero(creature_ptr, creature_ptr->hero + randint1(base) + base, FALSE))
-        ident = TRUE;
+        ident = true;
+    if (set_hero(creature_ptr, creature_ptr->hero + randint1(base) + base, false))
+        ident = true;
     if (hp_player(creature_ptr, 10))
-        ident = TRUE;
+        ident = true;
     return ident;
 }
 
 bool berserk(player_type *creature_ptr, int base)
 {
-    bool ident = FALSE;
+    bool ident = false;
     if (set_afraid(creature_ptr, 0))
-        ident = TRUE;
-    if (set_shero(creature_ptr, creature_ptr->shero + randint1(base) + base, FALSE))
-        ident = TRUE;
+        ident = true;
+    if (set_shero(creature_ptr, creature_ptr->shero + randint1(base) + base, false))
+        ident = true;
     if (hp_player(creature_ptr, 30))
-        ident = TRUE;
+        ident = true;
     return ident;
 }
 
 bool cure_light_wounds(player_type *creature_ptr, DICE_NUMBER dice, DICE_SID sides)
 {
-    bool ident = FALSE;
+    bool ident = false;
     if (hp_player(creature_ptr, damroll(dice, sides)))
-        ident = TRUE;
+        ident = true;
     if (set_blind(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_cut(creature_ptr, creature_ptr->cut - 10))
-        ident = TRUE;
-    if (set_shero(creature_ptr, 0, TRUE))
-        ident = TRUE;
+        ident = true;
+    if (set_shero(creature_ptr, 0, true))
+        ident = true;
     return ident;
 }
 
 bool cure_serious_wounds(player_type *creature_ptr, DICE_NUMBER dice, DICE_SID sides)
 {
-    bool ident = FALSE;
+    bool ident = false;
     if (hp_player(creature_ptr, damroll(dice, sides)))
-        ident = TRUE;
+        ident = true;
     if (set_blind(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_confused(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_cut(creature_ptr, (creature_ptr->cut / 2) - 50))
-        ident = TRUE;
-    if (set_shero(creature_ptr, 0, TRUE))
-        ident = TRUE;
+        ident = true;
+    if (set_shero(creature_ptr, 0, true))
+        ident = true;
     return ident;
 }
 
 bool cure_critical_wounds(player_type *creature_ptr, HIT_POINT pow)
 {
-    bool ident = FALSE;
+    bool ident = false;
     if (hp_player(creature_ptr, pow))
-        ident = TRUE;
+        ident = true;
     if (set_blind(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_confused(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_poisoned(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_stun(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_cut(creature_ptr, 0))
-        ident = TRUE;
-    if (set_shero(creature_ptr, 0, TRUE))
-        ident = TRUE;
+        ident = true;
+    if (set_shero(creature_ptr, 0, true))
+        ident = true;
     return ident;
 }
 
 bool true_healing(player_type *creature_ptr, HIT_POINT pow)
 {
-    bool ident = FALSE;
+    bool ident = false;
     if (hp_player(creature_ptr, pow))
-        ident = TRUE;
+        ident = true;
     if (set_blind(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_confused(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_poisoned(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_stun(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_cut(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     if (set_image(creature_ptr, 0))
-        ident = TRUE;
+        ident = true;
     return ident;
 }
 
@@ -407,11 +410,11 @@ bool restore_mana(player_type *creature_ptr, bool magic_eater)
 
         msg_print(_("頭がハッキリとした。", "You feel your head clear."));
         creature_ptr->window_flags |= (PW_PLAYER);
-        return TRUE;
+        return true;
     }
 
     if (creature_ptr->csp >= creature_ptr->msp)
-        return FALSE;
+        return false;
 
     creature_ptr->csp = creature_ptr->msp;
     creature_ptr->csp_frac = 0;
@@ -419,38 +422,38 @@ bool restore_mana(player_type *creature_ptr, bool magic_eater)
     creature_ptr->redraw |= (PR_MANA);
     creature_ptr->window_flags |= (PW_PLAYER);
     creature_ptr->window_flags |= (PW_SPELL);
-    return TRUE;
+    return true;
 }
 
 bool restore_all_status(player_type *creature_ptr)
 {
-    bool ident = FALSE;
+    bool ident = false;
     if (do_res_stat(creature_ptr, A_STR))
-        ident = TRUE;
+        ident = true;
     if (do_res_stat(creature_ptr, A_INT))
-        ident = TRUE;
+        ident = true;
     if (do_res_stat(creature_ptr, A_WIS))
-        ident = TRUE;
+        ident = true;
     if (do_res_stat(creature_ptr, A_DEX))
-        ident = TRUE;
+        ident = true;
     if (do_res_stat(creature_ptr, A_CON))
-        ident = TRUE;
+        ident = true;
     if (do_res_stat(creature_ptr, A_CHR))
-        ident = TRUE;
+        ident = true;
     return ident;
 }
 
 bool fishing(player_type *creature_ptr)
 {
     DIRECTION dir;
-    if (!get_direction(creature_ptr, &dir, FALSE, FALSE))
-        return FALSE;
+    if (!get_direction(creature_ptr, &dir, false, false))
+        return false;
     POSITION y = creature_ptr->y + ddy[dir];
     POSITION x = creature_ptr->x + ddx[dir];
     creature_ptr->fishing_dir = dir;
-    if (!cave_has_flag_bold(creature_ptr->current_floor_ptr, y, x, FF_WATER)) {
+    if (!cave_has_flag_bold(creature_ptr->current_floor_ptr, y, x, FF::WATER)) {
         msg_print(_("そこは水辺ではない。", "You can't fish here."));
-        return FALSE;
+        return false;
     }
 
     if (creature_ptr->current_floor_ptr->grid_array[y][x].m_idx) {
@@ -458,12 +461,12 @@ bool fishing(player_type *creature_ptr)
         monster_desc(creature_ptr, m_name, &creature_ptr->current_floor_ptr->m_list[creature_ptr->current_floor_ptr->grid_array[y][x].m_idx], 0);
         msg_format(_("%sが邪魔だ！", "%^s is standing in your way."), m_name);
         PlayerEnergy(creature_ptr).reset_player_turn();
-        return FALSE;
+        return false;
     }
 
     set_action(creature_ptr, ACTION_FISH);
     creature_ptr->redraw |= (PR_STATE);
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -486,7 +489,7 @@ bool cosmic_cast_off(player_type *creature_ptr, object_type **o_ptr_ptr)
     }
 
     if (slot > INVEN_FEET)
-        return FALSE;
+        return false;
 
     object_type forge;
     (&forge)->copy_from(o_ptr);
@@ -499,24 +502,25 @@ bool cosmic_cast_off(player_type *creature_ptr, object_type **o_ptr_ptr)
     GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(creature_ptr, o_name, &forge, OD_NAME_ONLY);
     msg_format(_("%sを脱ぎ捨てた。", "You cast off %s."), o_name);
+    sound(SOUND_TAKE_OFF);
 
     /* Get effects */
     msg_print(_("「燃え上がれ俺の小宇宙！」", "You say, 'Burn up my cosmo!"));
     int t = 20 + randint1(20);
     (void)set_blind(creature_ptr, creature_ptr->blind + t);
     (void)set_afraid(creature_ptr, 0);
-    (void)set_tim_esp(creature_ptr, creature_ptr->tim_esp + t, FALSE);
-    (void)set_tim_regen(creature_ptr, creature_ptr->tim_regen + t, FALSE);
-    (void)set_hero(creature_ptr, creature_ptr->hero + t, FALSE);
-    (void)set_blessed(creature_ptr, creature_ptr->blessed + t, FALSE);
-    (void)set_fast(creature_ptr, creature_ptr->fast + t, FALSE);
-    (void)set_shero(creature_ptr, creature_ptr->shero + t, FALSE);
+    (void)set_tim_esp(creature_ptr, creature_ptr->tim_esp + t, false);
+    (void)set_tim_regen(creature_ptr, creature_ptr->tim_regen + t, false);
+    (void)set_hero(creature_ptr, creature_ptr->hero + t, false);
+    (void)set_blessed(creature_ptr, creature_ptr->blessed + t, false);
+    (void)set_fast(creature_ptr, creature_ptr->fast + t, false);
+    (void)set_shero(creature_ptr, creature_ptr->shero + t, false);
     if (creature_ptr->pclass == CLASS_FORCETRAINER) {
-        set_current_ki(creature_ptr, TRUE, creature_ptr->lev * 5 + 190);
+        set_current_ki(creature_ptr, true, creature_ptr->lev * 5 + 190);
         msg_print(_("気が爆発寸前になった。", "Your force absorbs the explosion."));
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!

@@ -139,7 +139,7 @@ PRICE object_value(player_type *player_ptr, object_type *o_ptr)
  */
 PRICE object_value_real(player_type *player_ptr, object_type *o_ptr)
 {
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     object_kind *k_ptr = &k_info[o_ptr->k_idx];
 
     if (!k_info[o_ptr->k_idx].cost)
@@ -163,10 +163,10 @@ PRICE object_value_real(player_type *player_ptr, object_type *o_ptr)
         value += e_ptr->cost;
         value += flag_cost(player_ptr, o_ptr, o_ptr->pval);
     } else {
-        bool flag = FALSE;
+        bool flag = false;
         for (int i = 0; i < TR_FLAG_SIZE; i++)
             if (o_ptr->art_flags[i])
-                flag = TRUE;
+                flag = true;
 
         if (flag)
             value += flag_cost(player_ptr, o_ptr, o_ptr->pval);

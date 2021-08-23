@@ -1,5 +1,6 @@
 ﻿#include "mind/mind-blue-mage.h"
 #include "action/action-limited.h"
+#include "avatar/avatar.h"
 #include "blue-magic/blue-magic-caster.h"
 #include "blue-magic/learnt-power-getter.h"
 #include "core/asking-player.h"
@@ -11,7 +12,6 @@
 #include "main/sound-of-music.h"
 #include "monster-race/race-ability-mask.h"
 #include "mspell/monster-power-table.h"
-#include "player-info/avatar.h"
 #include "player-status/player-energy.h"
 #include "player/player-status-table.h"
 #include "realm/realm-types.h"
@@ -38,20 +38,20 @@ bool do_cmd_cast_learned(player_type *caster_ptr)
     MANA_POINT need_mana;
 
     if (cmd_limit_confused(caster_ptr))
-        return FALSE;
+        return false;
 
     if (!get_learned_power(caster_ptr, &n))
-        return FALSE;
+        return false;
 
     spell = monster_powers[n];
     need_mana = mod_need_mana(caster_ptr, spell.smana, 0, REALM_NONE);
     if (need_mana > caster_ptr->csp) {
         msg_print(_("ＭＰが足りません。", "You do not have enough mana to use this power."));
         if (!over_exert)
-            return FALSE;
+            return false;
 
         if (!get_check(_("それでも挑戦しますか? ", "Attempt it anyway? ")))
-            return FALSE;
+            return false;
     }
 
     chance = spell.fail;
@@ -87,12 +87,12 @@ bool do_cmd_cast_learned(player_type *caster_ptr)
         msg_print(_("魔法をうまく唱えられなかった。", "You failed to concentrate hard enough!"));
         sound(SOUND_FAIL);
         if (RF_ABILITY_SUMMON_MASK.has(spell_type))
-            cast = cast_learned_spell(caster_ptr, spell_type, FALSE);
+            cast = cast_learned_spell(caster_ptr, spell_type, false);
     } else {
         sound(SOUND_ZAP);
-        cast = cast_learned_spell(caster_ptr, spell_type, TRUE);
+        cast = cast_learned_spell(caster_ptr, spell_type, true);
         if (!cast)
-            return FALSE;
+            return false;
     }
 
     if (need_mana <= caster_ptr->csp) {
@@ -114,5 +114,5 @@ bool do_cmd_cast_learned(player_type *caster_ptr)
     PlayerEnergy(caster_ptr).set_player_turn_energy(100);
     caster_ptr->redraw |= PR_MANA;
     caster_ptr->window_flags |= PW_PLAYER | PW_SPELL;
-    return TRUE;
+    return true;
 }

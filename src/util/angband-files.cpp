@@ -13,7 +13,7 @@
  *
  * Fake "usleep()" function grabbed from the inl netrek server -cba
  */
-int usleep(huge usecs)
+int usleep(ulong usecs)
 {
     struct timeval timer;
 
@@ -236,12 +236,17 @@ FILE *angband_fopen_temp(char *buf, int max)
  *
  * Read a string, without a newline, to a file
  *
- * Process tabs, strip internal non-printables
+ * Process tabs, replace internal non-printables with '?'
  */
-errr angband_fgets(FILE *fff, char *buf, huge n)
+errr angband_fgets(FILE *fff, char *buf, ulong n)
 {
-    huge i = 0;
+    ulong i = 0;
     char *s;
+
+    if (n <= 1)
+        return 1;
+    // Reserve for null termination
+    --n;
 
     if (fgets(file_read__tmp, FILE_READ_BUFF_SIZE, fff)) {
 #ifdef JP
@@ -269,6 +274,8 @@ errr angband_fgets(FILE *fff, char *buf, huge n)
             }
 #ifdef JP
             else if (iskanji(*s)) {
+                if (i + 1 >= n)
+                    break;
                 if (!s[1])
                     break;
                 buf[i++] = *s++;
@@ -282,6 +289,10 @@ errr angband_fgets(FILE *fff, char *buf, huge n)
 #endif
             else if (isprint((unsigned char)*s)) {
                 buf[i++] = *s;
+                if (i >= n)
+                    break;
+            } else {
+                buf[i++] = '?';
                 if (i >= n)
                     break;
             }
@@ -300,7 +311,7 @@ errr angband_fgets(FILE *fff, char *buf, huge n)
  * Dump a string, plus a newline, to a file
  * Process internal weirdness?
  */
-errr angband_fputs(FILE *fff, concptr buf, huge n)
+errr angband_fputs(FILE *fff, concptr buf, ulong n)
 {
     n = n ? n : 0;
     (void)fprintf(fff, "%s\n", buf);
@@ -440,12 +451,12 @@ errr fd_lock(int fd, int what)
 /*
  * Hack -- attempt to seek on a file descriptor
  */
-errr fd_seek(int fd, huge n)
+errr fd_seek(int fd, ulong n)
 {
     if (fd < 0)
         return -1;
 
-    huge p = lseek(fd, n, SEEK_SET);
+    ulong p = lseek(fd, n, SEEK_SET);
     if (p != n)
         return 1;
 
@@ -455,7 +466,7 @@ errr fd_seek(int fd, huge n)
 /*
  * Hack -- attempt to truncate a file descriptor
  */
-errr fd_chop(int fd, huge n)
+errr fd_chop(int fd, ulong n)
 {
     n = n ? n : 0;
     return fd >= 0 ? 0 : -1;
@@ -464,7 +475,7 @@ errr fd_chop(int fd, huge n)
 /*
  * Hack -- attempt to read data from a file descriptor
  */
-errr fd_read(int fd, char *buf, huge n)
+errr fd_read(int fd, char *buf, ulong n)
 {
     if (fd < 0)
         return -1;
@@ -487,7 +498,7 @@ errr fd_read(int fd, char *buf, huge n)
 /*
  * Hack -- Attempt to write data to a file descriptor
  */
-errr fd_write(int fd, concptr buf, huge n)
+errr fd_write(int fd, concptr buf, ulong n)
 {
     if (fd < 0)
         return -1;

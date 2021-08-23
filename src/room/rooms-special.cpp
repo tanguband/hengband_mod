@@ -15,8 +15,10 @@
 #include "monster/monster-util.h"
 #include "object-enchant/item-apply-magic.h"
 #include "object/object-kind-hook.h"
+#include "room/door-definition.h"
 #include "room/space-finder.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
 #include "system/system-variables.h"
 #include "wizard/wizard-messages.h"
@@ -40,7 +42,7 @@ bool build_type15(player_type *player_ptr, dun_data_type *dd_ptr)
     /* Find and reserve some space in the dungeon.  Get center of room. */
     floor_type *floor_ptr = player_ptr->current_floor_ptr;
     if (!find_space(player_ptr, dd_ptr, &yval, &xval, ysize + 2, xsize + 2))
-        return FALSE;
+        return false;
 
     /* Choose lite or dark */
     light = ((floor_ptr->dun_level <= randint1(25)) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS));
@@ -241,5 +243,5 @@ bool build_type15(player_type *player_ptr, dun_data_type *dd_ptr)
     }
 
     msg_print_wizard(player_ptr, CHEAT_DUNGEON, _("ガラスの部屋が生成されました。", "Glass room was generated."));
-    return TRUE;
+    return true;
 }

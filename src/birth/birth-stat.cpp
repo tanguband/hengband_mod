@@ -61,10 +61,10 @@ int adjust_stat(int value, int amount)
  */
 void get_stats(player_type* creature_ptr)
 {
-    while (TRUE) {
+    while (true) {
         int sum = 0;
         for (int i = 0; i < 2; i++) {
-            s32b tmp = randint0(60 * 60 * 60);
+            int32_t tmp = randint0(60 * 60 * 60);
             BASE_STATUS val;
 
             for (int j = 0; j < 3; j++) {
@@ -88,14 +88,14 @@ void get_stats(player_type* creature_ptr)
 /*!
  * @brief 経験値修正の合計値を計算
  */
-u16b get_expfact(player_type *creature_ptr)
+uint16_t get_expfact(player_type *creature_ptr)
 {
-    u16b expfact = rp_ptr->r_exp;
+    uint16_t expfact = rp_ptr->r_exp;
 
-    if (creature_ptr->prace != RACE_ANDROID)
+    if (creature_ptr->prace != player_race_type::ANDROID)
         expfact += cp_ptr->c_exp;
     if (((creature_ptr->pclass == CLASS_MONK) || (creature_ptr->pclass == CLASS_FORCETRAINER) || (creature_ptr->pclass == CLASS_NINJA))
-        && ((creature_ptr->prace == RACE_KLACKON) || (creature_ptr->prace == RACE_SPRITE)))
+        && ((creature_ptr->prace == player_race_type::KLACKON) || (creature_ptr->prace == player_race_type::SPRITE)))
         expfact -= 15;
 
     return expfact;
@@ -153,7 +153,7 @@ void get_extra(player_type* creature_ptr, bool roll_hitdie)
 void get_max_stats(player_type* creature_ptr)
 {
     int dice[6];
-    while (TRUE) {
+    while (true) {
         int j = 0;
         for (int i = 0; i < A_MAX; i++) {
             dice[i] = randint1(7);

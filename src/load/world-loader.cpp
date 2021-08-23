@@ -15,7 +15,7 @@ static void rd_hengband_dungeons(void)
 {
     byte max = (byte)current_world_ptr->max_d_idx;
     rd_byte(&max);
-    s16b tmp16s;
+    int16_t tmp16s;
     for (int i = 0; i < max; i++) {
         rd_s16b(&tmp16s);
         max_dlv[i] = tmp16s;
@@ -41,7 +41,7 @@ void rd_dungeons(player_type *creature_ptr)
  */
 void rd_alter_reality(player_type *creature_ptr)
 {
-    s16b tmp16s;
+    int16_t tmp16s;
     if (h_older_than(0, 3, 8))
         creature_ptr->recall_dungeon = DUNGEON_ANGBAND;
     else {
@@ -80,10 +80,10 @@ void rd_autopick(player_type *creature_ptr)
 static void set_undead_turn_limit(player_type *creature_ptr)
 {
     switch (creature_ptr->start_race) {
-    case RACE_VAMPIRE:
-    case RACE_SKELETON:
-    case RACE_ZOMBIE:
-    case RACE_SPECTRE:
+    case player_race_type::VAMPIRE:
+    case player_race_type::SKELETON:
+    case player_race_type::ZOMBIE:
+    case player_race_type::SPECTRE:
         current_world_ptr->game_turn_limit = TURNS_PER_TICK * TOWN_DAWN * MAX_DAYS + TURNS_PER_TICK * TOWN_DAWN * 3 / 4;
         break;
     default:
@@ -117,7 +117,7 @@ static void rd_world_info(player_type *creature_ptr)
         rd_s32b(&current_world_ptr->arena_start_turn);
 
     if (h_older_than(0, 0, 3))
-        determine_daily_bounty(creature_ptr, TRUE);
+        determine_daily_bounty(creature_ptr, true);
     else {
         rd_s16b(&current_world_ptr->today_mon);
         rd_s16b(&creature_ptr->today_mon);
@@ -136,7 +136,7 @@ void rd_visited_towns(player_type *creature_ptr)
         return;
     }
 
-    s32b tmp32s;
+    int32_t tmp32s;
     rd_s32b(&tmp32s);
     creature_ptr->visit = (BIT_FLAGS)tmp32s;
 }
@@ -168,20 +168,20 @@ void load_wilderness_info(player_type *creature_ptr)
     }
 
     if (h_older_than(0, 3, 7))
-        creature_ptr->wild_mode = FALSE;
+        creature_ptr->wild_mode = false;
     else
         rd_byte((byte *)&creature_ptr->wild_mode);
 
     if (h_older_than(0, 3, 7))
-        creature_ptr->ambush_flag = FALSE;
+        creature_ptr->ambush_flag = false;
     else
         rd_byte((byte *)&creature_ptr->ambush_flag);
 }
 
 errr analyze_wilderness(void)
 {
-    s32b wild_x_size;
-    s32b wild_y_size;
+    int32_t wild_x_size;
+    int32_t wild_y_size;
     rd_s32b(&wild_x_size);
     rd_s32b(&wild_y_size);
 

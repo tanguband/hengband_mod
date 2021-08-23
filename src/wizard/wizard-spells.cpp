@@ -13,6 +13,7 @@
 #include "effect/effect-processor.h"
 #include "floor/cave.h"
 #include "floor/floor-util.h"
+#include "floor/pattern-walk.h"
 #include "mind/mind-blue-mage.h"
 #include "monster-floor/monster-generator.h"
 #include "monster-floor/monster-summon.h"
@@ -21,6 +22,7 @@
 #include "mutation/mutation-processor.h"
 #include "spell-kind/spells-launcher.h"
 #include "spell-kind/spells-teleport.h"
+#include "spell-kind/spells-random.h"
 #include "spell-realm/spells-chaos.h"
 #include "spell/spells-status.h"
 #include "spell/summon-types.h"
@@ -36,6 +38,8 @@ debug_spell_command debug_spell_commands_list[SPELL_MAX] = {
     { 2, "vanish dungeon", { .spell2 = { vanish_dungeon } } },
     { 3, "true healing", { .spell3 = { true_healing } } },
     { 2, "drop weapons", { .spell2 = { drop_weapons } } },
+    { 4, "ty curse", { .spell4 = { activate_ty_curse } } },
+    { 5, "pattern teleport", { .spell5 = { pattern_teleport } } },
 };
 
 /*!
@@ -48,7 +52,7 @@ bool wiz_debug_spell(player_type *creature_ptr)
     int tmp_int;
 
     if (!get_string("SPELL: ", tmp_val, 32))
-        return FALSE;
+        return false;
 
     for (int i = 0; i < SPELL_MAX; i++) {
         if (strcmp(tmp_val, debug_spell_commands_list[i].command_name) != 0)
@@ -57,15 +61,23 @@ bool wiz_debug_spell(player_type *creature_ptr)
         switch (debug_spell_commands_list[i].type) {
         case 2:
             (*(debug_spell_commands_list[i].command_function.spell2.spell_function))(creature_ptr);
-            return TRUE;
+            return true;
             break;
         case 3:
             tmp_val[0] = '\0';
             if (!get_string("POWER:", tmp_val, 32))
-                return FALSE;
+                return false;
             tmp_int = atoi(tmp_val);
             (*(debug_spell_commands_list[i].command_function.spell3.spell_function))(creature_ptr, tmp_int);
-            return TRUE;
+            return true;
+            break;
+        case 4:
+            (*(debug_spell_commands_list[i].command_function.spell4.spell_function))(creature_ptr, true, &tmp_int);
+            return true;
+            break;
+        case 5:
+            (*(debug_spell_commands_list[i].command_function.spell5.spell_function))(creature_ptr);
+            return true;
             break;
         default:
             break;
@@ -73,7 +85,7 @@ bool wiz_debug_spell(player_type *creature_ptr)
     }
 
     msg_format("Command not found.");
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -149,9 +161,9 @@ void wiz_summon_random_enemy(player_type *caster_ptr, int num)
 }
 
 /*!
- * @brief モンスターを種族IDを指定して敵対的に召喚する /
+ * @brief モンスターを種族IDを指定して自然生成と同じように召喚する /
  * Summon a creature of the specified type
- * @param r_idx モンスター種族ID
+ * @param r_idx モンスター種族ID（回数指定コマンド'0'で指定した回数がIDになる）
  * @details
  * This function is rather dangerous
  */
@@ -163,7 +175,7 @@ void wiz_summon_specific_enemy(player_type *summoner_ptr, MONRACE_IDX r_idx)
 /*!
  * @brief モンスターを種族IDを指定してペット召喚する /
  * Summon a creature of the specified type
- * @param r_idx モンスター種族ID
+ * @param r_idx モンスター種族ID（回数指定コマンド'0'で指定した回数がIDになる）
  * @details
  * This function is rather dangerous
  */

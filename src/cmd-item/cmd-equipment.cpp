@@ -2,6 +2,7 @@
 #include "action/weapon-shield.h"
 #include "artifact/fixed-art-types.h"
 #include "autopick/autopick.h"
+#include "avatar/avatar.h"
 #include "core/asking-player.h"
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
@@ -17,6 +18,8 @@
 #include "inventory/inventory-slot-types.h"
 #include "io/input-key-acceptor.h"
 #include "io/input-key-requester.h"
+#include "main/sound-definitions-table.h"
+#include "main/sound-of-music.h"
 #include "object-enchant/item-feeling.h"
 #include "object-enchant/special-object-flags.h"
 #include "object-enchant/trc-types.h"
@@ -28,7 +31,6 @@
 #include "object/object-info.h"
 #include "object/object-mark-types.h"
 #include "perception/object-perception.h"
-#include "player-info/avatar.h"
 #include "player-info/equipment-info.h"
 #include "player-status/player-energy.h"
 #include "player-status/player-hand-types.h"
@@ -52,7 +54,7 @@
 void do_cmd_equip(player_type *creature_ptr)
 {
     char out_val[160];
-    command_wrk = TRUE;
+    command_wrk = true;
     if (easy_floor)
         command_wrk = USE_EQUIP;
 
@@ -72,7 +74,7 @@ void do_cmd_equip(player_type *creature_ptr)
     screen_load();
 
     if (command_new != ESCAPE) {
-        command_see = TRUE;
+        command_see = true;
         return;
     }
 
@@ -161,13 +163,13 @@ void do_cmd_wield(player_type *creature_ptr)
             q = _("どちらの手に装備しますか?", "Equip which hand? ");
 
         s = _("おっと。", "Oops.");
-        creature_ptr->select_ring_slot = TRUE;
+        creature_ptr->select_ring_slot = true;
         if (!choose_object(creature_ptr, &slot, q, s, (USE_EQUIP | IGNORE_BOTHHAND_SLOT), TV_NONE)) {
-            creature_ptr->select_ring_slot = FALSE;
+            creature_ptr->select_ring_slot = false;
             return;
         }
 
-        creature_ptr->select_ring_slot = FALSE;
+        creature_ptr->select_ring_slot = false;
         break;
 
     default:
@@ -195,7 +197,7 @@ void do_cmd_wield(player_type *creature_ptr)
             return;
     }
 
-    if ((o_ptr->name1 == ART_STONEMASK) && object_is_known(o_ptr) && (creature_ptr->prace != RACE_VAMPIRE) && (creature_ptr->prace != RACE_ANDROID)) {
+    if ((o_ptr->name1 == ART_STONEMASK) && object_is_known(o_ptr) && (creature_ptr->prace != player_race_type::VAMPIRE) && (creature_ptr->prace != player_race_type::ANDROID)) {
         char dummy[MAX_NLEN + 100];
         describe_flavor(creature_ptr, o_name, o_ptr, (OD_OMIT_PREFIX | OD_NAME_ONLY));
         sprintf(dummy,
@@ -206,6 +208,7 @@ void do_cmd_wield(player_type *creature_ptr)
             return;
     }
 
+    sound(SOUND_WIELD);
     if (need_switch_wielding && !object_is_cursed(&creature_ptr->inventory_list[need_switch_wielding])) {
         object_type *slot_o_ptr = &creature_ptr->inventory_list[slot];
         object_type *switch_o_ptr = &creature_ptr->inventory_list[need_switch_wielding];
@@ -224,7 +227,7 @@ void do_cmd_wield(player_type *creature_ptr)
     check_find_art_quest_completion(creature_ptr, o_ptr);
     if (creature_ptr->pseikaku == PERSONALITY_MUNCHKIN) {
         identify_item(creature_ptr, o_ptr);
-        autopick_alter_item(creature_ptr, item, FALSE);
+        autopick_alter_item(creature_ptr, item, false);
     }
 
     PlayerEnergy(creature_ptr).set_player_turn_energy(100);
@@ -253,14 +256,14 @@ void do_cmd_wield(player_type *creature_ptr)
 
     switch (slot) {
     case INVEN_MAIN_HAND:
-        if (object_allow_two_hands_wielding(o_ptr) && (empty_hands(creature_ptr, FALSE) == EMPTY_HAND_SUB) && can_two_hands_wielding(creature_ptr))
+        if (object_allow_two_hands_wielding(o_ptr) && (empty_hands(creature_ptr, false) == EMPTY_HAND_SUB) && can_two_hands_wielding(creature_ptr))
             act = STR_WIELD_HANDS_TWO;
         else
             act = (left_hander ? STR_WIELD_HAND_LEFT : STR_WIELD_HAND_RIGHT);
 
         break;
     case INVEN_SUB_HAND:
-        if (object_allow_two_hands_wielding(o_ptr) && (empty_hands(creature_ptr, FALSE) == EMPTY_HAND_MAIN) && can_two_hands_wielding(creature_ptr))
+        if (object_allow_two_hands_wielding(o_ptr) && (empty_hands(creature_ptr, false) == EMPTY_HAND_MAIN) && can_two_hands_wielding(creature_ptr))
             act = STR_WIELD_HANDS_TWO;
         else
             act = (left_hander ? STR_WIELD_HAND_RIGHT : STR_WIELD_HAND_LEFT);
@@ -285,8 +288,8 @@ void do_cmd_wield(player_type *creature_ptr)
         o_ptr->ident |= (IDENT_SENSE);
     }
 
-    if ((o_ptr->name1 == ART_STONEMASK) && (creature_ptr->prace != RACE_VAMPIRE) && (creature_ptr->prace != RACE_ANDROID))
-        change_race(creature_ptr, RACE_VAMPIRE, "");
+    if ((o_ptr->name1 == ART_STONEMASK) && (creature_ptr->prace != player_race_type::VAMPIRE) && (creature_ptr->prace != player_race_type::ANDROID))
+        change_race(creature_ptr, player_race_type::VAMPIRE, "");
 
     calc_android_exp(creature_ptr);
     creature_ptr->update |= PU_BONUS | PU_TORCH | PU_MANA;
@@ -311,8 +314,7 @@ void do_cmd_takeoff(player_type *creature_ptr)
         return;
 
     PlayerEnergy energy(creature_ptr);
-    if (object_is_cursed(o_ptr))
-    {
+    if (object_is_cursed(o_ptr)) {
         if (o_ptr->curse_flags.has(TRC::PERMA_CURSE) || (creature_ptr->pclass != CLASS_BERSERKER)) {
             msg_print(_("ふーむ、どうやら呪われているようだ。", "Hmmm, it seems to be cursed."));
             return;
@@ -333,6 +335,7 @@ void do_cmd_takeoff(player_type *creature_ptr)
         }
     }
 
+    sound(SOUND_TAKE_OFF);
     energy.set_player_turn_energy(50);
     (void)inven_takeoff(creature_ptr, item, 255);
     verify_equip_slot(creature_ptr, item);

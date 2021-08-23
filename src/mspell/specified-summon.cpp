@@ -267,6 +267,17 @@ MONSTER_NUMBER summon_VESPOID(player_type *target_ptr, POSITION y, POSITION x, i
     return count;
 }
 
+MONSTER_NUMBER summon_THUNDERS(player_type *target_ptr, POSITION y, POSITION x, int rlev, MONSTER_IDX m_idx)
+{
+    auto count = (MONSTER_NUMBER)0;
+    auto num = 11;
+    for (auto k = 0; k < num; k++) {
+        count += summon_specific(target_ptr, m_idx, y, x, rlev, SUMMON_ANTI_TIGERS, PM_NONE);
+    }
+    
+    return count;
+}
+
 /*!
  * @brief イェンダーの魔法使いの召喚の処理。 /
  * @param target_ptr プレーヤーへの参照ポインタ
@@ -290,5 +301,17 @@ MONSTER_NUMBER summon_YENDER_WIZARD(player_type *target_ptr, POSITION y, POSITIO
     }
 
     msg_print(_("二重苦だ。。。", "THIS is double suffering..."));
+    return count;
+}
+
+MONSTER_NUMBER summon_PLASMA(player_type *target_ptr, POSITION y, POSITION x, int rlev, MONSTER_IDX m_idx)
+{
+    auto count = 0;
+    auto num = 2 + randint1(1 + rlev / 20);
+    for (auto k = 0; k < num; k++) {
+        count += summon_named_creature(target_ptr, m_idx, y, x, MON_PLASMA_VORTEX, PM_NONE);
+    }
+    
+    msg_print(_("プーラーズーマーッ！！", "P--la--s--ma--!!"));
     return count;
 }

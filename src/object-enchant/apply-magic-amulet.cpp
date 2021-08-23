@@ -17,12 +17,19 @@
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
+/*
+ * @brief コンストラクタ
+ * @param owner_ptr プレーヤーへの参照ポインタ
+ * @param o_ptr 強化を与えたいオブジェクトの構造体参照ポインタ
+ * @param level 生成基準階
+ * @param power 生成ランク
+ */
 AmuletEnchanter::AmuletEnchanter(player_type *owner_ptr, object_type *o_ptr, DEPTH level, int power)
+    : owner_ptr(owner_ptr)
+    , o_ptr(o_ptr)
+    , level(level)
+    , power(power)
 {
-    this->owner_ptr = owner_ptr;
-    this->o_ptr = o_ptr;
-    this->level = level;
-    this->power = power;
 }
 
 /*!
@@ -33,14 +40,18 @@ AmuletEnchanter::AmuletEnchanter(player_type *owner_ptr, object_type *o_ptr, DEP
  * @param level 生成基準階
  * @param power 生成ランク
  * @return なし
- * @details power > 2 is debug only
+ * @details power > 2はデバッグ専用.
  */
 void AmuletEnchanter::apply_magic()
 {
-    enchant();
+    if ((this->power == 0) && (randint0(100) < 50)) {
+        this->power = -1;
+    }
+
+    this->enchant();
     if ((one_in_(150) && (this->power > 0) && !object_is_cursed(this->o_ptr) && (this->level > 79)) || (this->power > 2)) {
         this->o_ptr->pval = MIN(this->o_ptr->pval, 4);
-        become_random_artifact(owner_ptr, this->o_ptr, FALSE);
+        become_random_artifact(owner_ptr, this->o_ptr, false);
         return;
     }
 
@@ -103,7 +114,7 @@ void AmuletEnchanter::enchant()
     case SV_AMULET_SEARCHING:
         this->o_ptr->pval = 2 + randint1(6);
         if (this->power >= 0) {
-            add_esp_weak(this->o_ptr, FALSE);
+            add_esp_weak(this->o_ptr, false);
             break;
         }
 
@@ -114,7 +125,7 @@ void AmuletEnchanter::enchant()
     case SV_AMULET_THE_MAGI:
         this->o_ptr->pval = randint1(5) + (PARAMETER_VALUE)m_bonus(5, this->level);
         this->o_ptr->to_a = randint1(5) + (ARMOUR_CLASS)m_bonus(5, this->level);
-        add_esp_weak(this->o_ptr, FALSE);
+        add_esp_weak(this->o_ptr, false);
         break;
     case SV_AMULET_DOOM:
         set_bits(this->o_ptr->ident, IDENT_BROKEN);

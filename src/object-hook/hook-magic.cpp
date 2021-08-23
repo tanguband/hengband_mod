@@ -21,15 +21,15 @@ bool item_tester_hook_activate(player_type *player_ptr, object_type *o_ptr)
     /* Unused */
     (void)player_ptr;
 
-    BIT_FLAGS flags[TR_FLAG_SIZE];
+    TrFlags flags;
     if (!object_is_known(o_ptr))
-        return FALSE;
+        return false;
 
     object_flags(player_ptr, o_ptr, flags);
     if (has_flag(flags, TR_ACTIVATE))
-        return TRUE;
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -43,9 +43,9 @@ bool item_tester_hook_use(player_type *player_ptr, object_type *o_ptr)
     /* Unused */
     (void)player_ptr;
 
-    BIT_FLAGS flags[TR_FLAG_SIZE];
+    TrFlags flags;
     if (o_ptr->tval == player_ptr->tval_ammo)
-        return TRUE;
+        return true;
 
     switch (o_ptr->tval) {
     case TV_SPIKE:
@@ -55,25 +55,25 @@ bool item_tester_hook_use(player_type *player_ptr, object_type *o_ptr)
     case TV_SCROLL:
     case TV_POTION:
     case TV_FOOD: {
-        return TRUE;
+        return true;
     }
 
     default: {
         int i;
 
         if (!object_is_known(o_ptr))
-            return FALSE;
+            return false;
         for (i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
             if (&player_ptr->inventory_list[i] == o_ptr) {
                 object_flags(player_ptr, o_ptr, flags);
                 if (has_flag(flags, TR_ACTIVATE))
-                    return TRUE;
+                    return true;
             }
         }
     }
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -97,7 +97,7 @@ bool item_tester_hook_recharge(player_type *player_ptr, object_type *o_ptr)
  */
 bool item_tester_learn_spell(player_type *player_ptr, object_type *o_ptr)
 {
-    s32b choices = realm_choices2[player_ptr->pclass];
+    int32_t choices = realm_choices2[player_ptr->pclass];
     if (player_ptr->pclass == CLASS_PRIEST) {
         if (is_good_realm(player_ptr->realm1)) {
             choices &= ~(CH_DEATH | CH_DAEMON);
@@ -107,12 +107,12 @@ bool item_tester_learn_spell(player_type *player_ptr, object_type *o_ptr)
     }
 
     if ((o_ptr->tval < TV_LIFE_BOOK) || (o_ptr->tval > (TV_LIFE_BOOK + static_cast<int>(MAX_REALM) - 1)))
-        return FALSE;
+        return false;
 
     if ((o_ptr->tval == TV_MUSIC_BOOK) && (player_ptr->pclass == CLASS_BARD))
-        return TRUE;
+        return true;
     else if (!is_magic(tval2realm(o_ptr->tval)))
-        return FALSE;
+        return false;
 
     return (get_realm1_book(player_ptr) == o_ptr->tval) || (get_realm2_book(player_ptr) == o_ptr->tval) || (choices & (0x0001U << (tval2realm(o_ptr->tval) - 1)));
 }
@@ -128,10 +128,10 @@ bool item_tester_high_level_book(object_type *o_ptr)
         || (o_ptr->tval == TV_DEATH_BOOK) || (o_ptr->tval == TV_TRUMP_BOOK) || (o_ptr->tval == TV_CRAFT_BOOK) || (o_ptr->tval == TV_DEMON_BOOK)
         || (o_ptr->tval == TV_CRUSADE_BOOK) || (o_ptr->tval == TV_MUSIC_BOOK) || (o_ptr->tval == TV_HEX_BOOK)) {
         if (o_ptr->sval > 1)
-            return TRUE;
+            return true;
         else
-            return FALSE;
+            return false;
     }
 
-    return FALSE;
+    return false;
 }

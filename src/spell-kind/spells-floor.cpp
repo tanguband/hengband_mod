@@ -24,8 +24,8 @@
 #include "game-option/cheat-options.h"
 #include "game-option/map-screen-options.h"
 #include "game-option/play-record-options.h"
-#include "grid/feature.h"
 #include "grid/feature-flag-types.h"
+#include "grid/feature.h"
 #include "grid/grid.h"
 #include "io/write-diary.h"
 #include "mind/mind-ninja.h"
@@ -42,13 +42,14 @@
 #include "object-hook/hook-enchant.h"
 #include "object/object-mark-types.h"
 #include "perception/object-perception.h"
-#include "player/special-defense-types.h"
 #include "player/player-status-flags.h"
+#include "player/special-defense-types.h"
 #include "spell-kind/spells-teleport.h"
 #include "spell/spell-types.h"
 #include "status/bad-status-setter.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -82,7 +83,7 @@ void wiz_lite(player_type *caster_ptr, bool ninja)
             g_ptr->info |= (CAVE_KNOWN);
 
             /* Feature code (applying "mimic" field) */
-            FEAT_IDX feat = get_feat_mimic(g_ptr);
+            FEAT_IDX feat = g_ptr->get_feat_mimic();
             feature_type *f_ptr;
             f_ptr = &f_info[feat];
 
@@ -93,7 +94,7 @@ void wiz_lite(player_type *caster_ptr, bool ninja)
                 g_ptr = &caster_ptr->current_floor_ptr->grid_array[yy][xx];
 
                 /* Feature code (applying "mimic" field) */
-                f_ptr = &f_info[get_feat_mimic(g_ptr)];
+                f_ptr = &f_info[g_ptr->get_feat_mimic()];
 
                 /* Perma-lite the grid */
                 if (d_info[caster_ptr->dungeon_idx].flags.has_not(DF::DARKNESS) && !ninja) {
@@ -101,7 +102,7 @@ void wiz_lite(player_type *caster_ptr, bool ninja)
                 }
 
                 /* Memorize normal features */
-                if (has_flag(f_ptr->flags, FF_REMEMBER)) {
+                if (f_ptr->flags.has(FF::REMEMBER)) {
                     /* Memorize the grid */
                     g_ptr->info |= (CAVE_MARK);
                 }
@@ -124,7 +125,7 @@ void wiz_lite(player_type *caster_ptr, bool ninja)
 
     if (caster_ptr->special_defense & NINJA_S_STEALTH) {
         if (caster_ptr->current_floor_ptr->grid_array[caster_ptr->y][caster_ptr->x].info & CAVE_GLOW)
-            set_superstealth(caster_ptr, FALSE);
+            set_superstealth(caster_ptr, false);
     }
 }
 
@@ -200,12 +201,12 @@ void map_area(player_type *caster_ptr, POSITION range)
             g_ptr->info |= (CAVE_KNOWN);
 
             /* Feature code (applying "mimic" field) */
-            FEAT_IDX feat = get_feat_mimic(g_ptr);
+            FEAT_IDX feat = g_ptr->get_feat_mimic();
             feature_type *f_ptr;
             f_ptr = &f_info[feat];
 
             /* Memorize normal features */
-            if (has_flag(f_ptr->flags, FF_REMEMBER)) {
+            if (f_ptr->flags.has(FF::REMEMBER)) {
                 /* Memorize the object */
                 g_ptr->info |= (CAVE_MARK);
             }
@@ -215,11 +216,11 @@ void map_area(player_type *caster_ptr, POSITION range)
                 g_ptr = &caster_ptr->current_floor_ptr->grid_array[y + ddy_ddd[i]][x + ddx_ddd[i]];
 
                 /* Feature code (applying "mimic" field) */
-                feat = get_feat_mimic(g_ptr);
+                feat = g_ptr->get_feat_mimic();
                 f_ptr = &f_info[feat];
 
                 /* Memorize walls (etc) */
-                if (has_flag(f_ptr->flags, FF_REMEMBER)) {
+                if (f_ptr->flags.has(FF::REMEMBER)) {
                     /* Memorize the walls */
                     g_ptr->info |= (CAVE_MARK);
                 }
@@ -251,7 +252,7 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
     /* Prevent destruction of quest levels and town */
     floor_type *floor_ptr = caster_ptr->current_floor_ptr;
     if ((floor_ptr->inside_quest && is_fixed_quest_idx(floor_ptr->inside_quest)) || !floor_ptr->dun_level) {
-        return FALSE;
+        return false;
     }
 
     /* Lose monster light */
@@ -259,7 +260,7 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
         clear_mon_lite(floor_ptr);
 
     /* Big area of affect */
-    bool flag = FALSE;
+    bool flag = false;
     for (POSITION y = (y1 - r); y <= (y1 + r); y++) {
         for (POSITION x = (x1 - r); x <= (x1 + r); x++) {
             if (!in_bounds(floor_ptr, y, x))
@@ -288,7 +289,7 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
                 /* Hack -- Notice player affect */
                 if (player_bold(caster_ptr, y, x)) {
                     /* Hurt the player later */
-                    flag = TRUE;
+                    flag = true;
 
                     /* Do not hurt this grid */
                     continue;
@@ -354,7 +355,7 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
             delete_all_items_from_floor(caster_ptr, y, x);
 
             /* Destroy "non-permanent" grids */
-            if (cave_has_flag_grid(g_ptr, FF_PERMANENT))
+            if (g_ptr->cave_has_flag(FF::PERMANENT))
                 continue;
 
             /* Wall (or floor) type */
@@ -399,7 +400,7 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
     }
 
     if (in_generate)
-        return TRUE;
+        return true;
 
     /* Process "re-glowing" */
     for (POSITION y = (y1 - r); y <= (y1 + r); y++) {
@@ -416,7 +417,7 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
             grid_type *g_ptr;
             g_ptr = &floor_ptr->grid_array[y][x];
 
-            if (is_mirror_grid(g_ptr)) {
+            if (g_ptr->is_mirror()) {
                 g_ptr->info |= CAVE_GLOW;
                 continue;
             }
@@ -434,7 +435,7 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
                 if (!in_bounds2(floor_ptr, yy, xx))
                     continue;
                 cc_ptr = &floor_ptr->grid_array[yy][xx];
-                if (has_flag(f_info[get_feat_mimic(cc_ptr)].flags, FF_GLOW)) {
+                if (f_info[cc_ptr->get_feat_mimic()].flags.has(FF::GLOW)) {
                     g_ptr->info |= CAVE_GLOW;
                     break;
                 }
@@ -462,8 +463,8 @@ bool destroy_area(player_type *caster_ptr, POSITION y1, POSITION x1, POSITION r,
 
     if (caster_ptr->special_defense & NINJA_S_STEALTH) {
         if (floor_ptr->grid_array[caster_ptr->y][caster_ptr->x].info & CAVE_GLOW)
-            set_superstealth(caster_ptr, FALSE);
+            set_superstealth(caster_ptr, false);
     }
 
-    return TRUE;
+    return true;
 }

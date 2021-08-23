@@ -8,14 +8,14 @@
 #include "autopick/autopick-methods-table.h"
 #include "autopick/autopick-util.h"
 
-/*
- * Delete or insert string
+/*!
+ * @brief Delete or insert string
  */
 void toggle_keyword(text_body_type *tb, BIT_FLAGS flg)
 {
     int by1, by2;
-    bool add = TRUE;
-    bool fixed = FALSE;
+    bool add = true;
+    bool fixed = false;
     if (tb->mark) {
         by1 = MIN(tb->my, tb->cy);
         by2 = MAX(tb->my, tb->cy);
@@ -32,11 +32,11 @@ void toggle_keyword(text_body_type *tb, BIT_FLAGS flg)
         string_free(tb->lines_list[y]);
         if (!fixed) {
             if (!IS_FLG(flg))
-                add = TRUE;
+                add = true;
             else
-                add = FALSE;
+                add = false;
 
-            fixed = TRUE;
+            fixed = true;
         }
 
         if (FLG_NOUN_BEGIN <= flg && flg <= FLG_NOUN_END) {
@@ -64,20 +64,20 @@ void toggle_keyword(text_body_type *tb, BIT_FLAGS flg)
 
         tb->lines_list[y] = autopick_line_from_entry_kill(entry);
         tb->dirty_flags |= DIRTY_ALL;
-        tb->changed = TRUE;
+        tb->changed = true;
     }
 }
 
-/*
- * Change command letter
+/*!
+ * @brief Change command letter
  */
 void toggle_command_letter(text_body_type *tb, byte flg)
 {
     autopick_type an_entry;
     autopick_type *entry = &an_entry;
     int by1, by2;
-    bool add = TRUE;
-    bool fixed = FALSE;
+    bool add = true;
+    bool fixed = false;
     if (tb->mark) {
         by1 = MIN(tb->my, tb->cy);
         by2 = MAX(tb->my, tb->cy);
@@ -89,18 +89,18 @@ void toggle_command_letter(text_body_type *tb, byte flg)
     for (int y = by1; y <= by2; y++) {
         int wid = 0;
 
-        if (!autopick_new_entry(entry, tb->lines_list[y], FALSE))
+        if (!autopick_new_entry(entry, tb->lines_list[y], false))
             continue;
 
         string_free(tb->lines_list[y]);
 
         if (!fixed) {
             if (!(entry->action & flg))
-                add = TRUE;
+                add = true;
             else
-                add = FALSE;
+                add = false;
 
-            fixed = TRUE;
+            fixed = true;
         }
 
         if (entry->action & DONT_AUTOPICK)
@@ -142,12 +142,12 @@ void toggle_command_letter(text_body_type *tb, byte flg)
 
         tb->lines_list[y] = autopick_line_from_entry_kill(entry);
         tb->dirty_flags |= DIRTY_ALL;
-        tb->changed = TRUE;
+        tb->changed = true;
     }
 }
 
-/*
- * Delete or insert string
+/*!
+ * @brief Delete or insert string
  */
 void add_keyword(text_body_type *tb, BIT_FLAGS flg)
 {
@@ -161,7 +161,7 @@ void add_keyword(text_body_type *tb, BIT_FLAGS flg)
 
     for (int y = by1; y <= by2; y++) {
         autopick_type an_entry, *entry = &an_entry;
-        if (!autopick_new_entry(entry, tb->lines_list[y], FALSE))
+        if (!autopick_new_entry(entry, tb->lines_list[y], false))
             continue;
 
         if (IS_FLG(flg)) {
@@ -179,24 +179,24 @@ void add_keyword(text_body_type *tb, BIT_FLAGS flg)
         ADD_FLG(flg);
         tb->lines_list[y] = autopick_line_from_entry_kill(entry);
         tb->dirty_flags |= DIRTY_ALL;
-        tb->changed = TRUE;
+        tb->changed = true;
     }
 }
 
-/*
- * Add an empty line at the last of the file
+/*!
+ * @brief Add an empty line at the last of the file
  */
 bool add_empty_line(text_body_type *tb)
 {
     int num_lines = count_line(tb);
 
     if (!tb->lines_list[num_lines - 1][0])
-        return FALSE;
+        return false;
 
     tb->lines_list[num_lines] = string_make("");
     tb->dirty_flags |= DIRTY_EXPRESSION;
-    tb->changed = TRUE;
-    return TRUE;
+    tb->changed = true;
+    return true;
 }
 
 static chain_str_type *new_chain_str(concptr str)
@@ -212,7 +212,7 @@ void kill_yank_chain(text_body_type *tb)
 {
     chain_str_type *chain = tb->yank;
     tb->yank = NULL;
-    tb->yank_eol = TRUE;
+    tb->yank_eol = true;
 
     while (chain) {
         chain_str_type *next = chain->next;
@@ -225,7 +225,7 @@ void kill_yank_chain(text_body_type *tb)
 
 void add_str_to_yank(text_body_type *tb, concptr str)
 {
-    tb->yank_eol = FALSE;
+    tb->yank_eol = false;
     if (NULL == tb->yank) {
         tb->yank = new_chain_str(str);
         return;
@@ -234,7 +234,7 @@ void add_str_to_yank(text_body_type *tb, concptr str)
     chain_str_type *chain;
     chain = tb->yank;
 
-    while (TRUE) {
+    while (true) {
         if (!chain->next) {
             chain->next = new_chain_str(str);
             return;
@@ -245,8 +245,8 @@ void add_str_to_yank(text_body_type *tb, concptr str)
     }
 }
 
-/*
- * Do work for the copy editor-command
+/*!
+ * @brief Do work for the copy editor-command
  */
 void copy_text_to_yank(text_body_type *tb)
 {

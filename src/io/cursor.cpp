@@ -8,10 +8,10 @@
 #include "game-option/map-screen-options.h"
 #include "game-option/special-options.h"
 #include "grid/feature.h"
-#include "grid/grid.h"
 #include "io/screen-util.h"
 #include "player/player-status.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
 #include "target/projection-path-calculator.h"
@@ -37,7 +37,7 @@ void move_cursor_relative(int row, int col)
  */
 void print_path(player_type *player_ptr, POSITION y, POSITION x)
 {
-    u16b path_g[512];
+    uint16_t path_g[512];
     byte default_color = TERM_SLATE;
 
     if (!display_path || (project_length == -1))
@@ -83,7 +83,7 @@ void print_path(player_type *player_ptr, POSITION y, POSITION x)
             term_queue_bigchar(panel_col_of(nx), ny - panel_row_prt, a, c, ta, tc);
         }
 
-        if ((g_ptr->info & CAVE_MARK) && !cave_has_flag_grid(g_ptr, FF_PROJECT))
+        if (g_ptr->is_mark() && !g_ptr->cave_has_flag(FF::PROJECT))
             break;
 
         if (nx == x && ny == y)
@@ -121,7 +121,7 @@ bool change_panel(player_type *player_ptr, POSITION dy, POSITION dx)
         x = 0;
 
     if ((y == panel_row_min) && (x == panel_col_min))
-        return FALSE;
+        return false;
 
     panel_row_min = y;
     panel_col_min = x;
@@ -130,7 +130,7 @@ bool change_panel(player_type *player_ptr, POSITION dy, POSITION dx)
     player_ptr->update |= (PU_MONSTERS);
     player_ptr->redraw |= (PR_MAP);
     handle_stuff(player_ptr);
-    return TRUE;
+    return true;
 }
 
 /*!

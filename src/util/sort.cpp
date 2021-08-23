@@ -7,6 +7,7 @@
 #include "monster/monster-flag-types.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system//monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -29,7 +30,7 @@ static void exe_ang_sort(player_type *player_ptr, vptr u, vptr v, int p, int q, 
     int z = p;
     int a = p;
     int b = q;
-    while (TRUE) {
+    while (true) {
         /* Slide i2 */
         while (!(*ang_sort_comp)(player_ptr, u, v, b, z))
             b--;
@@ -123,10 +124,10 @@ bool ang_sort_comp_importance(player_type *player_ptr, vptr u, vptr v, int a, in
 
     /* The player grid */
     if (y[a] == player_ptr->y && x[a] == player_ptr->x)
-        return TRUE;
+        return true;
 
     if (y[b] == player_ptr->y && x[b] == player_ptr->x)
-        return FALSE;
+        return false;
 
     /* Extract monster race */
     if (ca_ptr->m_idx && ma_ptr->ml)
@@ -140,59 +141,59 @@ bool ang_sort_comp_importance(player_type *player_ptr, vptr u, vptr v, int a, in
         ap_rb_ptr = NULL;
 
     if (ap_ra_ptr && !ap_rb_ptr)
-        return TRUE;
+        return true;
 
     if (!ap_ra_ptr && ap_rb_ptr)
-        return FALSE;
+        return false;
 
     /* Compare two monsters */
     if (ap_ra_ptr && ap_rb_ptr) {
         /* Unique monsters first */
         if ((ap_ra_ptr->flags1 & RF1_UNIQUE) && !(ap_rb_ptr->flags1 & RF1_UNIQUE))
-            return TRUE;
+            return true;
         if (!(ap_ra_ptr->flags1 & RF1_UNIQUE) && (ap_rb_ptr->flags1 & RF1_UNIQUE))
-            return FALSE;
+            return false;
 
         /* Shadowers first (あやしい影) */
         if (ma_ptr->mflag2.has(MFLAG2::KAGE) && mb_ptr->mflag2.has_not(MFLAG2::KAGE))
-            return TRUE;
+            return true;
         if (ma_ptr->mflag2.has_not(MFLAG2::KAGE) && mb_ptr->mflag2.has(MFLAG2::KAGE))
-            return FALSE;
+            return false;
 
         /* Unknown monsters first */
         if (!ap_ra_ptr->r_tkills && ap_rb_ptr->r_tkills)
-            return TRUE;
+            return true;
         if (ap_ra_ptr->r_tkills && !ap_rb_ptr->r_tkills)
-            return FALSE;
+            return false;
 
         /* Higher level monsters first (if known) */
         if (ap_ra_ptr->r_tkills && ap_rb_ptr->r_tkills) {
             if (ap_ra_ptr->level > ap_rb_ptr->level)
-                return TRUE;
+                return true;
             if (ap_ra_ptr->level < ap_rb_ptr->level)
-                return FALSE;
+                return false;
         }
 
         /* Sort by index if all conditions are same */
         if (ma_ptr->ap_r_idx > mb_ptr->ap_r_idx)
-            return TRUE;
+            return true;
         if (ma_ptr->ap_r_idx < mb_ptr->ap_r_idx)
-            return FALSE;
+            return false;
     }
 
     /* An object get higher priority */
     if (!player_ptr->current_floor_ptr->grid_array[y[a]][x[a]].o_idx_list.empty() && player_ptr->current_floor_ptr->grid_array[y[b]][x[b]].o_idx_list.empty())
-        return TRUE;
+        return true;
 
     if (player_ptr->current_floor_ptr->grid_array[y[a]][x[a]].o_idx_list.empty() && !player_ptr->current_floor_ptr->grid_array[y[b]][x[b]].o_idx_list.empty())
-        return FALSE;
+        return false;
 
     /* Priority from the terrain */
     if (f_info[ca_ptr->feat].priority > f_info[cb_ptr->feat].priority)
-        return TRUE;
+        return true;
 
     if (f_info[ca_ptr->feat].priority < f_info[cb_ptr->feat].priority)
-        return FALSE;
+        return false;
 
     /* If all conditions are same, compare distance */
     return ang_sort_comp_distance(player_ptr, u, v, a, b);
@@ -232,8 +233,8 @@ bool ang_sort_art_comp(player_type *player_ptr, vptr u, vptr v, int a, int b)
     /* Unused */
     (void)player_ptr;
 
-    u16b *who = (u16b *)(u);
-    u16b *why = (u16b *)(v);
+    uint16_t *who = (uint16_t *)(u);
+    uint16_t *why = (uint16_t *)(v);
 
     int w1 = who[a];
     int w2 = who[b];
@@ -248,10 +249,10 @@ bool ang_sort_art_comp(player_type *player_ptr, vptr u, vptr v, int a, int b)
 
         /* Compare total kills */
         if (z1 < z2)
-            return TRUE;
+            return true;
 
         if (z1 > z2)
-            return FALSE;
+            return false;
     }
 
     /* Sort by monster level */
@@ -262,10 +263,10 @@ bool ang_sort_art_comp(player_type *player_ptr, vptr u, vptr v, int a, int b)
 
         /* Compare levels */
         if (z1 < z2)
-            return TRUE;
+            return true;
 
         if (z1 > z2)
-            return FALSE;
+            return false;
     }
 
     /* Sort by monster experience */
@@ -276,10 +277,10 @@ bool ang_sort_art_comp(player_type *player_ptr, vptr u, vptr v, int a, int b)
 
         /* Compare experience */
         if (z1 < z2)
-            return TRUE;
+            return true;
 
         if (z1 > z2)
-            return FALSE;
+            return false;
     }
 
     /* Compare indexes */
@@ -298,8 +299,8 @@ void ang_sort_art_swap(player_type *player_ptr, vptr u, vptr v, int a, int b)
     (void)player_ptr;
     (void)v;
 
-    u16b *who = (u16b *)(u);
-    u16b holder = who[a];
+    uint16_t *who = (uint16_t *)(u);
+    uint16_t holder = who[a];
     who[a] = who[b];
     who[b] = holder;
 }
@@ -341,7 +342,7 @@ bool ang_sort_comp_pet(player_type *player_ptr, vptr u, vptr v, int a, int b)
     /* Unused */
     (void)v;
 
-    u16b *who = (u16b *)(u);
+    uint16_t *who = (uint16_t *)(u);
 
     int w1 = who[a];
     int w2 = who[b];
@@ -352,28 +353,28 @@ bool ang_sort_comp_pet(player_type *player_ptr, vptr u, vptr v, int a, int b)
     monster_race *r_ptr2 = &r_info[m_ptr2->r_idx];
 
     if (m_ptr1->nickname && !m_ptr2->nickname)
-        return TRUE;
+        return true;
 
     if (m_ptr2->nickname && !m_ptr1->nickname)
-        return FALSE;
+        return false;
 
     if ((r_ptr1->flags1 & RF1_UNIQUE) && !(r_ptr2->flags1 & RF1_UNIQUE))
-        return TRUE;
+        return true;
 
     if ((r_ptr2->flags1 & RF1_UNIQUE) && !(r_ptr1->flags1 & RF1_UNIQUE))
-        return FALSE;
+        return false;
 
     if (r_ptr1->level > r_ptr2->level)
-        return TRUE;
+        return true;
 
     if (r_ptr2->level > r_ptr1->level)
-        return FALSE;
+        return false;
 
     if (m_ptr1->hp > m_ptr2->hp)
-        return TRUE;
+        return true;
 
     if (m_ptr2->hp > m_ptr1->hp)
-        return FALSE;
+        return false;
 
     return w1 <= w2;
 }
@@ -394,8 +395,8 @@ bool ang_sort_comp_hook(player_type *player_ptr, vptr u, vptr v, int a, int b)
     /* Unused */
     (void)player_ptr;
 
-    u16b *who = (u16b *)(u);
-    u16b *why = (u16b *)(v);
+    uint16_t *who = (uint16_t *)(u);
+    uint16_t *why = (uint16_t *)(v);
 
     int w1 = who[a];
     int w2 = who[b];
@@ -410,9 +411,9 @@ bool ang_sort_comp_hook(player_type *player_ptr, vptr u, vptr v, int a, int b)
 
         /* Compare player kills */
         if (z1 < z2)
-            return TRUE;
+            return true;
         if (z1 > z2)
-            return FALSE;
+            return false;
     }
 
     /* Sort by total kills */
@@ -423,9 +424,9 @@ bool ang_sort_comp_hook(player_type *player_ptr, vptr u, vptr v, int a, int b)
 
         /* Compare total kills */
         if (z1 < z2)
-            return TRUE;
+            return true;
         if (z1 > z2)
-            return FALSE;
+            return false;
     }
 
     /* Sort by monster level */
@@ -436,9 +437,9 @@ bool ang_sort_comp_hook(player_type *player_ptr, vptr u, vptr v, int a, int b)
 
         /* Compare levels */
         if (z1 < z2)
-            return TRUE;
+            return true;
         if (z1 > z2)
-            return FALSE;
+            return false;
     }
 
     /* Sort by monster experience */
@@ -449,9 +450,9 @@ bool ang_sort_comp_hook(player_type *player_ptr, vptr u, vptr v, int a, int b)
 
         /* Compare experience */
         if (z1 < z2)
-            return TRUE;
+            return true;
         if (z1 > z2)
-            return FALSE;
+            return false;
     }
 
     /* Compare indexes */
@@ -475,8 +476,8 @@ void ang_sort_swap_hook(player_type *player_ptr, vptr u, vptr v, int a, int b)
     (void)player_ptr;
     (void)v;
 
-    u16b *who = (u16b *)(u);
-    u16b holder;
+    uint16_t *who = (uint16_t *)(u);
+    uint16_t holder;
 
     holder = who[a];
     who[a] = who[b];
@@ -492,7 +493,7 @@ bool ang_sort_comp_monster_level(player_type *player_ptr, vptr u, vptr v, int a,
     (void)player_ptr;
     (void)v;
 
-    u16b *who = (u16b *)(u);
+    uint16_t *who = (uint16_t *)(u);
 
     int w1 = who[a];
     int w2 = who[b];
@@ -501,16 +502,16 @@ bool ang_sort_comp_monster_level(player_type *player_ptr, vptr u, vptr v, int a,
     monster_race *r_ptr2 = &r_info[w2];
 
     if (r_ptr2->level > r_ptr1->level)
-        return TRUE;
+        return true;
 
     if (r_ptr1->level > r_ptr2->level)
-        return FALSE;
+        return false;
 
     if ((r_ptr2->flags1 & RF1_UNIQUE) && !(r_ptr1->flags1 & RF1_UNIQUE))
-        return TRUE;
+        return true;
 
     if ((r_ptr1->flags1 & RF1_UNIQUE) && !(r_ptr2->flags1 & RF1_UNIQUE))
-        return FALSE;
+        return false;
 
     return w1 <= w2;
 }
@@ -528,7 +529,7 @@ bool ang_sort_comp_pet_dismiss(player_type *player_ptr, vptr u, vptr v, int a, i
     /* Unused */
     (void)v;
 
-    u16b *who = (u16b *)(u);
+    uint16_t *who = (uint16_t *)(u);
 
     int w1 = who[a];
     int w2 = who[b];
@@ -539,40 +540,40 @@ bool ang_sort_comp_pet_dismiss(player_type *player_ptr, vptr u, vptr v, int a, i
     monster_race *r_ptr2 = &r_info[m_ptr2->r_idx];
 
     if (w1 == player_ptr->riding)
-        return TRUE;
+        return true;
 
     if (w2 == player_ptr->riding)
-        return FALSE;
+        return false;
 
     if (m_ptr1->nickname && !m_ptr2->nickname)
-        return TRUE;
+        return true;
 
     if (m_ptr2->nickname && !m_ptr1->nickname)
-        return FALSE;
+        return false;
 
     if (!m_ptr1->parent_m_idx && m_ptr2->parent_m_idx)
-        return TRUE;
+        return true;
 
     if (!m_ptr2->parent_m_idx && m_ptr1->parent_m_idx)
-        return FALSE;
+        return false;
 
     if ((r_ptr1->flags1 & RF1_UNIQUE) && !(r_ptr2->flags1 & RF1_UNIQUE))
-        return TRUE;
+        return true;
 
     if ((r_ptr2->flags1 & RF1_UNIQUE) && !(r_ptr1->flags1 & RF1_UNIQUE))
-        return FALSE;
+        return false;
 
     if (r_ptr1->level > r_ptr2->level)
-        return TRUE;
+        return true;
 
     if (r_ptr2->level > r_ptr1->level)
-        return FALSE;
+        return false;
 
     if (m_ptr1->hp > m_ptr2->hp)
-        return TRUE;
+        return true;
 
     if (m_ptr2->hp > m_ptr1->hp)
-        return FALSE;
+        return false;
 
     return w1 <= w2;
 }
@@ -593,8 +594,8 @@ bool ang_sort_comp_cave_temp(player_type *player_ptr, vptr u, vptr v, int a, int
 
     grid_template_type *who = (grid_template_type *)(u);
 
-    u16b o1 = who[a].occurrence;
-    u16b o2 = who[b].occurrence;
+    uint16_t o1 = who[a].occurrence;
+    uint16_t o2 = who[b].occurrence;
 
     return o2 <= o1;
 }
@@ -644,24 +645,24 @@ bool ang_sort_comp_evol_tree(player_type *player_ptr, vptr u, vptr v, int a, int
 
     /* Used tree first */
     if (w1 && !w2)
-        return TRUE;
+        return true;
 
     if (!w1 && w2)
-        return FALSE;
+        return false;
 
     /* Sort by monster level */
     if (r1_ptr->level < r2_ptr->level)
-        return TRUE;
+        return true;
 
     if (r1_ptr->level > r2_ptr->level)
-        return FALSE;
+        return false;
 
     /* Sort by monster experience */
     if (r1_ptr->mexp < r2_ptr->mexp)
-        return TRUE;
+        return true;
 
     if (r1_ptr->mexp > r2_ptr->mexp)
-        return FALSE;
+        return false;
 
     /* Compare indexes */
     return w1 <= w2;

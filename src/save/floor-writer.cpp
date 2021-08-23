@@ -14,6 +14,7 @@
 #include "save/monster-writer.h"
 #include "save/save-util.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/object-type-definition.h"
 #include "util/angband-files.h"
 #include "util/sort.h"
@@ -26,23 +27,23 @@ void wr_saved_floor(player_type *player_ptr, saved_floor_type *sf_ptr)
 {
     floor_type *floor_ptr = player_ptr->current_floor_ptr;
     if (!sf_ptr) {
-        wr_s16b((s16b)floor_ptr->dun_level);
+        wr_s16b((int16_t)floor_ptr->dun_level);
     } else {
         wr_s16b(sf_ptr->floor_id);
         wr_byte((byte)sf_ptr->savefile_id);
-        wr_s16b((s16b)sf_ptr->dun_level);
+        wr_s16b((int16_t)sf_ptr->dun_level);
         wr_s32b(sf_ptr->last_visit);
         wr_u32b(sf_ptr->visit_mark);
         wr_s16b(sf_ptr->upper_floor_id);
         wr_s16b(sf_ptr->lower_floor_id);
     }
 
-    wr_u16b((u16b)floor_ptr->base_level);
-    wr_u16b((s16b)player_ptr->current_floor_ptr->num_repro);
-    wr_u16b((u16b)player_ptr->y);
-    wr_u16b((u16b)player_ptr->x);
-    wr_u16b((u16b)floor_ptr->height);
-    wr_u16b((u16b)floor_ptr->width);
+    wr_u16b((uint16_t)floor_ptr->base_level);
+    wr_u16b((int16_t)player_ptr->current_floor_ptr->num_repro);
+    wr_u16b((uint16_t)player_ptr->y);
+    wr_u16b((uint16_t)player_ptr->x);
+    wr_u16b((uint16_t)floor_ptr->height);
+    wr_u16b((uint16_t)floor_ptr->width);
     wr_byte(player_ptr->feeling);
 
     /*
@@ -57,11 +58,11 @@ void wr_saved_floor(player_type *player_ptr, saved_floor_type *sf_ptr)
      */
 
     /* Fake max number */
-    u16b max_num_temp = 255;
+    uint16_t max_num_temp = 255;
 
     grid_template_type *templates;
     C_MAKE(templates, max_num_temp, grid_template_type);
-    u16b num_temp = 0;
+    uint16_t num_temp = 0;
     for (int y = 0; y < floor_ptr->height; y++) {
         for (int x = 0; x < floor_ptr->width; x++) {
             grid_type *g_ptr = &floor_ptr->grid_array[y][x];
@@ -101,14 +102,14 @@ void wr_saved_floor(player_type *player_ptr, saved_floor_type *sf_ptr)
     wr_u16b(num_temp);
     for (int i = 0; i < num_temp; i++) {
         grid_template_type *ct_ptr = &templates[i];
-        wr_u16b((u16b)ct_ptr->info);
+        wr_u16b((uint16_t)ct_ptr->info);
         wr_s16b(ct_ptr->feat);
         wr_s16b(ct_ptr->mimic);
         wr_s16b(ct_ptr->special);
     }
 
     byte count = 0;
-    u16b prev_u16b = 0;
+    uint16_t prev_u16b = 0;
     for (int y = 0; y < floor_ptr->height; y++) {
         for (int x = 0; x < floor_ptr->width; x++) {
             grid_type *g_ptr = &floor_ptr->grid_array[y][x];
@@ -119,7 +120,7 @@ void wr_saved_floor(player_type *player_ptr, saved_floor_type *sf_ptr)
                     break;
             }
 
-            u16b tmp16u = (u16b)i;
+            uint16_t tmp16u = (uint16_t)i;
             if ((tmp16u == prev_u16b) && (count != MAX_UCHAR)) {
                 count++;
                 continue;
@@ -183,7 +184,7 @@ bool wr_dungeon(player_type *player_ptr)
         /* No array elements */
         wr_byte(0);
         wr_saved_floor(player_ptr, NULL);
-        return TRUE;
+        return true;
     }
 
     /*** In the dungeon ***/
@@ -192,7 +193,7 @@ bool wr_dungeon(player_type *player_ptr)
         saved_floor_type *sf_ptr = &saved_floors[i];
         wr_s16b(sf_ptr->floor_id);
         wr_byte((byte)sf_ptr->savefile_id);
-        wr_s16b((s16b)sf_ptr->dun_level);
+        wr_s16b((int16_t)sf_ptr->dun_level);
         wr_s32b(sf_ptr->last_visit);
         wr_u32b(sf_ptr->visit_mark);
         wr_s16b(sf_ptr->upper_floor_id);
@@ -202,7 +203,7 @@ bool wr_dungeon(player_type *player_ptr)
     saved_floor_type *cur_sf_ptr;
     cur_sf_ptr = get_sf_ptr(player_ptr->floor_id);
     if (!save_floor(player_ptr, cur_sf_ptr, SLF_SECOND))
-        return FALSE;
+        return false;
 
     for (int i = 0; i < MAX_SAVED_FLOORS; i++) {
         saved_floor_type *sf_ptr = &saved_floors[i];
@@ -254,8 +255,8 @@ bool save_floor(player_type *player_ptr, saved_floor_type *sf_ptr, BIT_FLAGS mod
 {
     FILE *old_fff = NULL;
     byte old_xor_byte = 0;
-    u32b old_v_stamp = 0;
-    u32b old_x_stamp = 0;
+    uint32_t old_v_stamp = 0;
+    uint32_t old_x_stamp = 0;
 
     char floor_savefile[sizeof(savefile) + 32];
     if ((mode & SLF_SECOND) != 0) {
@@ -274,7 +275,7 @@ bool save_floor(player_type *player_ptr, saved_floor_type *sf_ptr, BIT_FLAGS mod
 
     int fd = fd_make(floor_savefile, 0644);
     safe_setuid_drop();
-    bool is_save_successful = FALSE;
+    bool is_save_successful = false;
     if (fd >= 0) {
         (void)fd_close(fd);
         safe_setuid_grab(player_ptr);
@@ -282,10 +283,10 @@ bool save_floor(player_type *player_ptr, saved_floor_type *sf_ptr, BIT_FLAGS mod
         safe_setuid_drop();
         if (saving_savefile) {
             if (save_floor_aux(player_ptr, sf_ptr))
-                is_save_successful = TRUE;
+                is_save_successful = true;
 
             if (angband_fclose(saving_savefile))
-                is_save_successful = FALSE;
+                is_save_successful = false;
         }
 
         if (!is_save_successful) {

@@ -19,6 +19,28 @@
 #include "view/display-messages.h"
 #include "world/world.h"
 
+
+/*!
+ * @brief プレイヤーの現在ダンジョンIDと階層に応じて、ダンジョン内ランクエの自動放棄を行う
+ * @param creature_ptr プレーヤーへの参照ポインタ
+ */
+void check_random_quest_auto_failure(player_type *creature_ptr)
+{
+    if (creature_ptr->dungeon_idx != DUNGEON_ANGBAND) {
+        return;
+    }
+    for (auto i = MIN_RANDOM_QUEST; i < MAX_RANDOM_QUEST + 1; i++) {
+        auto q_ptr = &quest[i];
+        if ((q_ptr->type == QUEST_TYPE_RANDOM) && (q_ptr->status == QUEST_STATUS_TAKEN) && (q_ptr->level < creature_ptr->current_floor_ptr->dun_level)) {
+            q_ptr->status = QUEST_STATUS_FAILED;
+            q_ptr->complev = (byte)creature_ptr->lev;
+            update_playtime();
+            q_ptr->comptime = current_world_ptr->play_time;
+            r_info[q_ptr->r_idx].flags1 &= ~(RF1_QUESTOR);
+        }
+    }
+}
+
 /*!
  * @brief 10ゲームターンが進行するごとに帰還の残り時間カウントダウンと発動を処理する。
  * / Handle involuntary movement once every 10 game turns
@@ -33,14 +55,14 @@ void execute_recall(player_type *creature_ptr)
         return;
 
     if (autosave_l && (creature_ptr->word_recall == 1) && !creature_ptr->phase_out)
-        do_cmd_save_game(creature_ptr, TRUE);
+        do_cmd_save_game(creature_ptr, true);
 
     creature_ptr->word_recall--;
     creature_ptr->redraw |= (PR_STATUS);
     if (creature_ptr->word_recall != 0)
         return;
 
-    disturb(creature_ptr, FALSE, TRUE);
+    disturb(creature_ptr, false, true);
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if (floor_ptr->dun_level || creature_ptr->current_floor_ptr->inside_quest || creature_ptr->enter_dungeon) {
         msg_print(_("上に引っ張りあげられる感じがする！", "You feel yourself yanked upwards!"));
@@ -54,7 +76,7 @@ void execute_recall(player_type *creature_ptr)
         leave_quest_check(creature_ptr);
         leave_tower_check(creature_ptr);
         creature_ptr->current_floor_ptr->inside_quest = 0;
-        creature_ptr->leaving = TRUE;
+        creature_ptr->leaving = true;
         sound(SOUND_TPLEVEL);
         return;
     }
@@ -85,31 +107,16 @@ void execute_recall(player_type *creature_ptr)
         creature_ptr->oldpy = creature_ptr->y;
     }
 
-    creature_ptr->wild_mode = FALSE;
+    creature_ptr->wild_mode = false;
 
     /*
      * Clear all saved floors
      * and create a first saved floor
      */
     prepare_change_floor_mode(creature_ptr, CFM_FIRST_FLOOR);
-    creature_ptr->leaving = TRUE;
+    creature_ptr->leaving = true;
 
-    if (creature_ptr->dungeon_idx != DUNGEON_ANGBAND) {
-        sound(SOUND_TPLEVEL);
-        return;
-    }
-
-    for (int i = MIN_RANDOM_QUEST; i < MAX_RANDOM_QUEST + 1; i++) {
-        quest_type *const q_ptr = &quest[i];
-        if ((q_ptr->type == QUEST_TYPE_RANDOM) && (q_ptr->status == QUEST_STATUS_TAKEN) && (q_ptr->level < floor_ptr->dun_level)) {
-            q_ptr->status = QUEST_STATUS_FAILED;
-            q_ptr->complev = (byte)creature_ptr->lev;
-            update_playtime();
-            q_ptr->comptime = current_world_ptr->play_time;
-            r_info[q_ptr->r_idx].flags1 &= ~(RF1_QUESTOR);
-        }
-    }
-
+    check_random_quest_auto_failure(creature_ptr);
     sound(SOUND_TPLEVEL);
 }
 
@@ -125,14 +132,14 @@ void execute_floor_reset(player_type *creature_ptr)
         return;
 
     if (autosave_l && (creature_ptr->alter_reality == 1) && !creature_ptr->phase_out)
-        do_cmd_save_game(creature_ptr, TRUE);
+        do_cmd_save_game(creature_ptr, true);
 
     creature_ptr->alter_reality--;
     creature_ptr->redraw |= (PR_STATUS);
     if (creature_ptr->alter_reality != 0)
         return;
 
-    disturb(creature_ptr, FALSE, TRUE);
+    disturb(creature_ptr, false, true);
     if (!quest_number(creature_ptr, floor_ptr->dun_level) && floor_ptr->dun_level) {
         msg_print(_("世界が変わった！", "The world changes!"));
 
@@ -141,7 +148,7 @@ void execute_floor_reset(player_type *creature_ptr)
          * and create a first saved floor
          */
         prepare_change_floor_mode(creature_ptr, CFM_FIRST_FLOOR);
-        creature_ptr->leaving = TRUE;
+        creature_ptr->leaving = true;
     } else {
         msg_print(_("世界が少しの間変化したようだ。", "The world seems to change for a moment!"));
     }

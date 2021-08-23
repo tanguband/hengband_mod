@@ -24,7 +24,7 @@
 #include "util/int-char-converter.h"
 #include "util/string-processor.h"
 
-/*
+/*!
  * @brief 与えられたアイテムが自動拾いのリストに登録されているかどうかを検索する
  * @param player_ptr プレーヤーへの参照ポインタ
  * @o_ptr アイテムへの参照ポインタ
@@ -50,8 +50,8 @@ int find_autopick_list(player_type *player_ptr, object_type *o_ptr)
     return -1;
 }
 
-/*
- * Choose an item for search
+/*!
+ * @brief Choose an item for search
  */
 bool get_object_for_search(player_type *player_ptr, object_type **o_handle, concptr *search_strp)
 {
@@ -60,42 +60,41 @@ bool get_object_for_search(player_type *player_ptr, object_type **o_handle, conc
     object_type *o_ptr;
     o_ptr = choose_object(player_ptr, NULL, q, s, USE_INVEN | USE_FLOOR | USE_EQUIP, TV_NONE);
     if (!o_ptr)
-        return FALSE;
+        return false;
 
     *o_handle = o_ptr;
     string_free(*search_strp);
     char buf[MAX_NLEN + 20];
     describe_flavor(player_ptr, buf, *o_handle, (OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL));
     *search_strp = string_make(format("<%s>", buf));
-    return TRUE;
+    return true;
 }
 
-/*
- * Prepare for search by destroyed object
+/*!
+ * @brief Prepare for search by destroyed object
  */
 bool get_destroyed_object_for_search(player_type *player_ptr, object_type **o_handle, concptr *search_strp)
 {
     if (!autopick_last_destroyed_object.k_idx)
-        return FALSE;
+        return false;
 
     *o_handle = &autopick_last_destroyed_object;
     string_free(*search_strp);
     char buf[MAX_NLEN + 20];
     describe_flavor(player_ptr, buf, *o_handle, (OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL));
     *search_strp = string_make(format("<%s>", buf));
-    return TRUE;
+    return true;
 }
 
-/*
- * Choose an item or string for search
+/*!
+ * @brief Choose an item or string for search
+ * @details
+ * Text color
+ * TERM_YELLOW : Overwrite mode
+ * TERM_WHITE : Insert mode
  */
 byte get_string_for_search(player_type *player_ptr, object_type **o_handle, concptr *search_strp)
 {
-    /*
-     * Text color
-     * TERM_YELLOW : Overwrite mode
-     * TERM_WHITE : Insert mode
-     */
     byte color = TERM_YELLOW;
     char buf[MAX_NLEN + 20];
     const int len = 80;
@@ -111,13 +110,13 @@ byte get_string_for_search(player_type *player_ptr, object_type **o_handle, conc
 
     prt(prompt, 0, 0);
     int pos = 0;
-    while (TRUE) {
-        bool back = FALSE;
+    while (true) {
+        bool back = false;
         term_erase(col, 0, 255);
         term_putstr(col, 0, -1, color, buf);
         term_gotoxy(col + pos, 0);
 
-        int skey = inkey_special(TRUE);
+        int skey = inkey_special(true);
         switch (skey) {
         case SKEY_LEFT:
         case KTRL('b'): {
@@ -126,7 +125,7 @@ byte get_string_for_search(player_type *player_ptr, object_type **o_handle, conc
             if (pos == 0)
                 break;
 
-            while (TRUE) {
+            while (true) {
                 int next_pos = i + 1;
 
 #ifdef JP
@@ -163,7 +162,7 @@ byte get_string_for_search(player_type *player_ptr, object_type **o_handle, conc
             return 0;
 
         case KTRL('r'):
-            back = TRUE;
+            back = true;
             /* Fall through */
 
         case '\n':
@@ -190,7 +189,7 @@ byte get_string_for_search(player_type *player_ptr, object_type **o_handle, conc
             if (pos == 0)
                 break;
 
-            while (TRUE) {
+            while (true) {
                 int next_pos = i + 1;
 #ifdef JP
                 if (iskanji(buf[i]))
@@ -247,7 +246,7 @@ byte get_string_for_search(player_type *player_ptr, object_type **o_handle, conc
 #ifdef JP
             if (iskanji(c)) {
                 char next;
-                inkey_base = TRUE;
+                inkey_base = true;
                 next = inkey();
 
                 if (pos + 1 < len) {
@@ -286,8 +285,8 @@ byte get_string_for_search(player_type *player_ptr, object_type **o_handle, conc
     }
 }
 
-/*
- * Search next line matches for o_ptr
+/*!
+ * @brief Search next line matches for o_ptr
  */
 void search_for_object(player_type *player_ptr, text_body_type *tb, object_type *o_ptr, bool forward)
 {
@@ -298,7 +297,7 @@ void search_for_object(player_type *player_ptr, text_body_type *tb, object_type 
     describe_flavor(player_ptr, o_name, o_ptr, (OD_NO_FLAVOR | OD_OMIT_PREFIX | OD_NO_PLURAL));
     str_tolower(o_name);
 
-    while (TRUE) {
+    while (true) {
         bool match;
         if (forward) {
             if (!tb->lines_list[++i])
@@ -308,7 +307,7 @@ void search_for_object(player_type *player_ptr, text_body_type *tb, object_type 
                 break;
         }
 
-        if (!autopick_new_entry(entry, tb->lines_list[i], FALSE))
+        if (!autopick_new_entry(entry, tb->lines_list[i], false))
             continue;
 
         match = is_autopick_match(player_ptr, o_ptr, entry, o_name);
@@ -341,8 +340,8 @@ void search_for_object(player_type *player_ptr, text_body_type *tb, object_type 
     tb->dirty_flags |= DIRTY_INACTIVE;
 }
 
-/*
- * Search next line matches to the string
+/*!
+ * @brief Search next line matches to the string
  */
 void search_for_string(text_body_type *tb, concptr search_str, bool forward)
 {
@@ -350,7 +349,7 @@ void search_for_string(text_body_type *tb, concptr search_str, bool forward)
     int bypassed_cx = 0;
 
     int i = tb->cy;
-    while (TRUE) {
+    while (true) {
         concptr pos;
         if (forward) {
             if (!tb->lines_list[++i])

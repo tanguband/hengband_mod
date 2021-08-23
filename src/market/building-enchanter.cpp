@@ -36,33 +36,34 @@ bool enchant_item(player_type *player_ptr, PRICE cost, HIT_PROB to_hit, HIT_POIN
     object_type *o_ptr;
     o_ptr = choose_object(player_ptr, &item, q, s, (USE_INVEN | USE_EQUIP | IGNORE_BOTHHAND_SLOT), item_tester_tval);
     if (!o_ptr)
-        return FALSE;
+        return false;
 
     char tmp_str[MAX_NLEN];
-    if (player_ptr->au < (cost * o_ptr->number)) {
+    const PRICE total_cost = cost * o_ptr->number;
+    if (player_ptr->au < total_cost) {
         describe_flavor(player_ptr, tmp_str, o_ptr, OD_NAME_ONLY);
         msg_format(_("%sを改良するだけのゴールドがありません！", "You do not have the gold to improve %s!"), tmp_str);
-        return FALSE;
+        return false;
     }
 
-    bool okay = FALSE;
+    bool okay = false;
     for (int i = 0; i < to_hit; i++) {
         if ((o_ptr->to_h < maxenchant) && enchant_equipment(player_ptr, o_ptr, 1, (ENCH_TOHIT | ENCH_FORCE))) {
-            okay = TRUE;
+            okay = true;
             break;
         }
     }
 
     for (int i = 0; i < to_dam; i++) {
         if ((o_ptr->to_d < maxenchant) && enchant_equipment(player_ptr, o_ptr, 1, (ENCH_TODAM | ENCH_FORCE))) {
-            okay = TRUE;
+            okay = true;
             break;
         }
     }
 
     for (int i = 0; i < to_ac; i++) {
         if ((o_ptr->to_a < maxenchant) && enchant_equipment(player_ptr, o_ptr, 1, (ENCH_TOAC | ENCH_FORCE))) {
-            okay = TRUE;
+            okay = true;
             break;
         }
     }
@@ -71,18 +72,18 @@ bool enchant_item(player_type *player_ptr, PRICE cost, HIT_PROB to_hit, HIT_POIN
         if (flush_failure)
             flush();
         msg_print(_("改良に失敗した。", "The improvement failed."));
-        return FALSE;
+        return false;
     }
 
     describe_flavor(player_ptr, tmp_str, o_ptr, OD_NAME_AND_ENCHANT);
 #ifdef JP
-    msg_format("＄%dで%sに改良しました。", cost * o_ptr->number, tmp_str);
+    msg_format("＄%dで%sに改良しました。", total_cost, tmp_str);
 #else
-    msg_format("Improved into %s for %d gold.", tmp_str, cost * o_ptr->number);
+    msg_format("Improved into %s for %d gold.", tmp_str, total_cost);
 #endif
 
-    player_ptr->au -= (cost * o_ptr->number);
+    player_ptr->au -= total_cost;
     if (item >= INVEN_MAIN_HAND)
         calc_android_exp(player_ptr);
-    return TRUE;
+    return true;
 }

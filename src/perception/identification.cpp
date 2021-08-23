@@ -35,7 +35,7 @@
  */
 bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
 {
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     char temp[70 * 20];
     concptr info[128];
     GAME_TEXT o_name[MAX_NLEN];
@@ -558,7 +558,7 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
     }
 
     if (has_flag(flgs, TR_RES_CURSE)) {
-        info[i++] = _("それは呪いへの抵抗力を高める。", "It produces your high resisrance to curse.");
+        info[i++] = _("それは呪いへの抵抗力を高める。", "It increases your resistance to curses.");
     }
 
     if (has_flag(flgs, TR_SH_FIRE))
@@ -654,7 +654,7 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         info[i++] = _("それは恐怖感を引き起こす。", "It makes you subject to cowardice.");
     }
 
-    if (has_flag(flgs, TR_BERS_RAGE))
+    if (has_flag(flgs, TR_BERS_RAGE) || o_ptr->curse_flags.has(TRC::BERS_RAGE))
         info[i++] = _("それは狂戦士化の発作を引き起こす。", "It makes you subject to berserker fits.");
 
     if ((has_flag(flgs, TR_TELEPORT)) || o_ptr->curse_flags.has(TRC::TELEPORT)) {
@@ -741,7 +741,7 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         trivial_info = 0;
 
     if (i <= trivial_info)
-        return FALSE;
+        return false;
 
     screen_save();
     int wid, hgt;
@@ -781,5 +781,5 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
     prt(_("[何かキーを押すとゲームに戻ります]", "[Press any key to continue]"), k, 15);
     inkey();
     screen_load();
-    return TRUE;
+    return true;
 }

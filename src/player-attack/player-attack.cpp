@@ -6,6 +6,7 @@
 
 #include "player-attack/player-attack.h"
 #include "artifact/fixed-art-types.h"
+#include "avatar/avatar.h"
 #include "cmd-action/cmd-attack.h"
 #include "combat/attack-accuracy.h"
 #include "combat/attack-criticality.h"
@@ -16,7 +17,6 @@
 #include "floor/geometry.h"
 #include "game-option/cheat-types.h"
 #include "grid/feature-flag-types.h"
-#include "grid/grid.h"
 #include "inventory/inventory-slot-types.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
@@ -26,6 +26,7 @@
 #include "monster-race/monster-race-hook.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags3.h"
+#include "monster/monster-damage.h"
 #include "monster/monster-describer.h"
 #include "monster/monster-status-setter.h"
 #include "monster/monster-status.h"
@@ -37,7 +38,6 @@
 #include "player-attack/attack-chaos-effect.h"
 #include "player-attack/blood-sucking-processor.h"
 #include "player-attack/player-attack-util.h"
-#include "player-info/avatar.h"
 #include "player-info/equipment-info.h"
 #include "player-status/player-energy.h"
 #include "player-status/player-hand-types.h"
@@ -49,6 +49,7 @@
 #include "spell-realm/spells-hex.h"
 #include "sv-definition/sv-weapon-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -62,7 +63,7 @@
  * @brief プレイヤーの攻撃情報を初期化する(コンストラクタ以外の分)
  */
 static player_attack_type *initialize_player_attack_type(
-    player_attack_type *pa_ptr, player_type *attacker_ptr, POSITION y, POSITION x, s16b hand, combat_options mode, bool *fear, bool *mdeath)
+    player_attack_type *pa_ptr, player_type *attacker_ptr, POSITION y, POSITION x, int16_t hand, combat_options mode, bool *fear, bool *mdeath)
 {
     auto floor_ptr = attacker_ptr->current_floor_ptr;
     auto g_ptr = &floor_ptr->grid_array[y][x];
@@ -97,8 +98,8 @@ static void attack_classify(player_type *attacker_ptr, player_attack_type *pa_pt
     case CLASS_MONK:
     case CLASS_FORCETRAINER:
     case CLASS_BERSERKER:
-        if ((empty_hands(attacker_ptr, TRUE) & EMPTY_HAND_MAIN) && !attacker_ptr->riding)
-            pa_ptr->monk_attack = TRUE;
+        if ((empty_hands(attacker_ptr, true) & EMPTY_HAND_MAIN) && !attacker_ptr->riding)
+            pa_ptr->monk_attack = true;
         return;
     default:
         return;
@@ -335,11 +336,11 @@ static void process_weapon_attack(player_type *attacker_ptr, player_attack_type 
     object_type *o_ptr = &attacker_ptr->inventory_list[INVEN_MAIN_HAND + pa_ptr->hand];
     auto dd = o_ptr->dd + attacker_ptr->to_dd[pa_ptr->hand] + magical_brand_extra_dice(pa_ptr);
     pa_ptr->attack_damage = damroll(dd, o_ptr->ds + attacker_ptr->to_ds[pa_ptr->hand]);
-    pa_ptr->attack_damage = calc_attack_damage_with_slay(attacker_ptr, o_ptr, pa_ptr->attack_damage, pa_ptr->m_ptr, pa_ptr->mode, FALSE);
+    pa_ptr->attack_damage = calc_attack_damage_with_slay(attacker_ptr, o_ptr, pa_ptr->attack_damage, pa_ptr->m_ptr, pa_ptr->mode, false);
     calc_surprise_attack_damage(attacker_ptr, pa_ptr);
 
     if (does_equip_cause_earthquake(attacker_ptr, pa_ptr) || (pa_ptr->chaos_effect == CE_QUAKE) || (pa_ptr->mode == HISSATSU_QUAKE))
-        *do_quake = TRUE;
+        *do_quake = true;
 
     auto do_impact = does_weapon_has_flag(attacker_ptr->impact, pa_ptr);
     if ((!(o_ptr->tval == TV_SWORD) || !(o_ptr->sval == SV_POISON_NEEDLE)) && !(pa_ptr->mode == HISSATSU_KYUSHO))
@@ -435,10 +436,11 @@ static void apply_damage_negative_effect(player_attack_type *pa_ptr, bool is_zan
  */
 static bool check_fear_death(player_type *attacker_ptr, player_attack_type *pa_ptr, const int num, const bool is_lowlevel)
 {
-    if (!mon_take_hit(attacker_ptr, pa_ptr->m_idx, pa_ptr->attack_damage, pa_ptr->fear, NULL))
-        return FALSE;
+    MonsterDamageProcessor mdp(attacker_ptr, pa_ptr->m_idx, pa_ptr->attack_damage, pa_ptr->fear);
+    if (!mdp.mon_take_hit(NULL))
+        return false;
 
-    *(pa_ptr->mdeath) = TRUE;
+    *(pa_ptr->mdeath) = true;
     if ((attacker_ptr->pclass == CLASS_BERSERKER) && attacker_ptr->energy_use) {
         PlayerEnergy energy(attacker_ptr);
         if (can_attack_with_main_hand(attacker_ptr) && can_attack_with_sub_hand(attacker_ptr)) {
@@ -460,7 +462,7 @@ static bool check_fear_death(player_type *attacker_ptr, player_attack_type *pa_p
     if ((o_ptr->name1 == ART_ZANTETSU) && is_lowlevel)
         msg_print(_("またつまらぬものを斬ってしまった．．．", "Sigh... Another trifling thing I've cut...."));
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -516,7 +518,7 @@ static void cause_earthquake(player_type *attacker_ptr, player_attack_type *pa_p
 
     earthquake(attacker_ptr, attacker_ptr->y, attacker_ptr->x, 10, 0);
     if (attacker_ptr->current_floor_ptr->grid_array[y][x].m_idx == 0)
-        *(pa_ptr->mdeath) = TRUE;
+        *(pa_ptr->mdeath) = true;
 }
 
 /*!
@@ -531,10 +533,10 @@ static void cause_earthquake(player_type *attacker_ptr, player_attack_type *pa_p
  * @details
  * If no "weapon" is available, then "punch" the monster one time.
  */
-void exe_player_attack_to_monster(player_type *attacker_ptr, POSITION y, POSITION x, bool *fear, bool *mdeath, s16b hand, combat_options mode)
+void exe_player_attack_to_monster(player_type *attacker_ptr, POSITION y, POSITION x, bool *fear, bool *mdeath, int16_t hand, combat_options mode)
 {
-    bool do_quake = FALSE;
-    bool drain_msg = TRUE;
+    bool do_quake = false;
+    bool drain_msg = true;
 
     player_attack_type tmp_attack;
     auto pa_ptr = initialize_player_attack_type(&tmp_attack, attacker_ptr, y, x, hand, mode, fear, mdeath);
@@ -572,11 +574,11 @@ void exe_player_attack_to_monster(player_type *attacker_ptr, POSITION y, POSITIO
 
         touch_zap_player(pa_ptr->m_ptr, attacker_ptr);
         process_drain(attacker_ptr, pa_ptr, is_human, &drain_msg);
-        pa_ptr->can_drain = FALSE;
+        pa_ptr->can_drain = false;
         pa_ptr->drain_result = 0;
         change_monster_stat(attacker_ptr, pa_ptr, y, x, &num);
-        pa_ptr->backstab = FALSE;
-        pa_ptr->surprise_attack = FALSE;
+        pa_ptr->backstab = false;
+        pa_ptr->surprise_attack = false;
     }
 
     if (pa_ptr->weak && !(*mdeath))
@@ -601,7 +603,7 @@ void massacre(player_type *caster_ptr)
         POSITION x = caster_ptr->x + ddx_ddd[dir];
         g_ptr = &caster_ptr->current_floor_ptr->grid_array[y][x];
         m_ptr = &caster_ptr->current_floor_ptr->m_list[g_ptr->m_idx];
-        if (g_ptr->m_idx && (m_ptr->ml || cave_has_flag_bold(caster_ptr->current_floor_ptr, y, x, FF_PROJECT)))
+        if (g_ptr->m_idx && (m_ptr->ml || cave_has_flag_bold(caster_ptr->current_floor_ptr, y, x, FF::PROJECT)))
             do_cmd_attack(caster_ptr, y, x, HISSATSU_NONE);
     }
 }

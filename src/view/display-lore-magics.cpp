@@ -6,11 +6,11 @@
 
 void display_monster_breath(lore_type *lore_ptr)
 {
-    lore_ptr->breath = FALSE;
+    lore_ptr->breath = false;
     if (lore_ptr->vn <= 0)
         return;
 
-    lore_ptr->breath = TRUE;
+    lore_ptr->breath = true;
     hooked_roff(format(_("%^sは", "%^s"), Who::who(lore_ptr->msex)));
     for (int n = 0; n < lore_ptr->vn; n++) {
 #ifdef JP
@@ -34,11 +34,11 @@ void display_monster_breath(lore_type *lore_ptr)
 
 void display_monster_magic_types(lore_type *lore_ptr)
 {
-    lore_ptr->magic = FALSE;
+    lore_ptr->magic = false;
     if (lore_ptr->vn == 0)
         return;
 
-    lore_ptr->magic = TRUE;
+    lore_ptr->magic = true;
     if (lore_ptr->breath) {
         hooked_roff(_("、なおかつ", ", and is also"));
     } else {
@@ -78,7 +78,7 @@ void display_monster_magic_types(lore_type *lore_ptr)
 
 void display_mosnter_magic_possibility(lore_type *lore_ptr)
 {
-    if (!lore_ptr->breath && !lore_ptr->magic)
+    if (!lore_ptr->breath && !lore_ptr->magic && !lore_ptr->shoot && !lore_ptr->rocket)
         return;
 
     int m = lore_ptr->r_ptr->r_cast_spell;

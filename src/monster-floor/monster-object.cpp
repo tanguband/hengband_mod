@@ -9,7 +9,6 @@
 #include "floor/floor-object.h"
 #include "floor/cave.h"
 #include "floor/geometry.h"
-#include "grid/grid.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags2.h"
@@ -24,6 +23,7 @@
 #include "object/object-flags.h"
 #include "object/object-mark-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -34,7 +34,7 @@
 /*!
  * @brief オブジェクトのフラグを更新する
  */
-static void update_object_flags(BIT_FLAGS *flgs, BIT_FLAGS *flg2, BIT_FLAGS *flg3, BIT_FLAGS *flgr)
+static void update_object_flags(const TrFlags &flgs, BIT_FLAGS *flg2, BIT_FLAGS *flg3, BIT_FLAGS *flgr)
 {
     if (has_flag(flgs, TR_SLAY_DRAGON))
         *flg3 |= (RF3_DRAGON);
@@ -108,7 +108,7 @@ static void monster_pickup_object(player_type *target_ptr, turn_flags *turn_flag
     monster_race *r_ptr = &r_info[m_ptr->r_idx];
     if (is_special_object) {
         if (turn_flags_ptr->do_take && (r_ptr->flags2 & RF2_STUPID)) {
-            turn_flags_ptr->did_take_item = TRUE;
+            turn_flags_ptr->did_take_item = true;
             if (m_ptr->ml && player_can_see_bold(target_ptr, ny, nx)) {
                 msg_format(_("%^sは%sを拾おうとしたが、だめだった。", "%^s tries to pick up %s, but fails."), m_name, o_name);
             }
@@ -118,7 +118,7 @@ static void monster_pickup_object(player_type *target_ptr, turn_flags *turn_flag
     }
 
     if (turn_flags_ptr->do_take) {
-        turn_flags_ptr->did_take_item = TRUE;
+        turn_flags_ptr->did_take_item = true;
         if (player_can_see_bold(target_ptr, ny, nx)) {
             msg_format(_("%^sが%sを拾った。", "%^s picks up %s."), m_name, o_name);
         }
@@ -134,7 +134,7 @@ static void monster_pickup_object(player_type *target_ptr, turn_flags *turn_flag
     if (is_pet(m_ptr))
         return;
 
-    turn_flags_ptr->did_kill_item = TRUE;
+    turn_flags_ptr->did_kill_item = true;
     if (player_has_los_bold(target_ptr, ny, nx)) {
         msg_format(_("%^sが%sを破壊した。", "%^s destroys %s."), m_name, o_name);
     }
@@ -159,7 +159,8 @@ void update_object_by_monster_movement(player_type *target_ptr, turn_flags *turn
 
     turn_flags_ptr->do_take = (r_ptr->flags2 & RF2_TAKE_ITEM) != 0;
     for (auto it = g_ptr->o_idx_list.begin(); it != g_ptr->o_idx_list.end();) {
-        BIT_FLAGS flgs[TR_FLAG_SIZE], flg2 = 0L, flg3 = 0L, flgr = 0L;
+        TrFlags flgs;
+        BIT_FLAGS flg2 = 0L, flg3 = 0L, flgr = 0L;
         GAME_TEXT m_name[MAX_NLEN], o_name[MAX_NLEN];
         OBJECT_IDX this_o_idx = *it++;
         object_type *o_ptr = &target_ptr->current_floor_ptr->o_list[this_o_idx];

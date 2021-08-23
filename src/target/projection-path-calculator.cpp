@@ -3,12 +3,12 @@
 #include "effect/spells-effect-util.h"
 #include "floor/cave.h"
 #include "grid/feature-flag-types.h"
-#include "grid/grid.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
 
 typedef struct projection_path_type {
-    u16b *gp;
+    uint16_t *gp;
     POSITION range;
     BIT_FLAGS flag;
     POSITION y1;
@@ -35,10 +35,10 @@ typedef struct projection_path_type {
  * @param x X座標
  * return 経路座標
  */
-static u16b location_to_grid(POSITION y, POSITION x) { return 256 * y + x; }
+static uint16_t location_to_grid(POSITION y, POSITION x) { return 256 * y + x; }
 
 static projection_path_type *initialize_projection_path_type(
-    projection_path_type *pp_ptr, u16b *gp, POSITION range, BIT_FLAGS flag, POSITION y1, POSITION x1, POSITION y2, POSITION x2)
+    projection_path_type *pp_ptr, uint16_t *gp, POSITION range, BIT_FLAGS flag, POSITION y1, POSITION x1, POSITION y2, POSITION x2)
 {
     pp_ptr->gp = gp;
     pp_ptr->range = range;
@@ -90,7 +90,7 @@ static void calc_frac(projection_path_type *pp_ptr, bool is_vertical)
 static void calc_projection_to_target(player_type *player_ptr, projection_path_type *pp_ptr, bool is_vertical)
 {
     floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    while (TRUE) {
+    while (true) {
         pp_ptr->gp[pp_ptr->n++] = location_to_grid(pp_ptr->y, pp_ptr->x);
         if ((pp_ptr->n + (pp_ptr->k >> 1)) >= pp_ptr->range)
             break;
@@ -107,7 +107,7 @@ static void calc_projection_to_target(player_type *player_ptr, projection_path_t
             if ((pp_ptr->n > 0) && !cave_los_bold(floor_ptr, pp_ptr->y, pp_ptr->x))
                 break;
         } else if (!(pp_ptr->flag & PROJECT_PATH)) {
-            if ((pp_ptr->n > 0) && !cave_has_flag_bold(floor_ptr, pp_ptr->y, pp_ptr->x, FF_PROJECT))
+            if ((pp_ptr->n > 0) && !cave_has_flag_bold(floor_ptr, pp_ptr->y, pp_ptr->x, FF::PROJECT))
                 break;
         }
 
@@ -130,7 +130,7 @@ static void calc_projection_to_target(player_type *player_ptr, projection_path_t
 static bool calc_vertical_projection(player_type *player_ptr, projection_path_type *pp_ptr)
 {
     if (pp_ptr->ay <= pp_ptr->ax)
-        return FALSE;
+        return false;
 
     pp_ptr->m = pp_ptr->ax * pp_ptr->ax * 2;
     pp_ptr->y = pp_ptr->y1 + pp_ptr->sy;
@@ -142,14 +142,14 @@ static bool calc_vertical_projection(player_type *player_ptr, projection_path_ty
         pp_ptr->k++;
     }
 
-    calc_projection_to_target(player_ptr, pp_ptr, TRUE);
-    return TRUE;
+    calc_projection_to_target(player_ptr, pp_ptr, true);
+    return true;
 }
 
 static bool calc_horizontal_projection(player_type *player_ptr, projection_path_type *pp_ptr)
 {
     if (pp_ptr->ax <= pp_ptr->ay)
-        return FALSE;
+        return false;
 
     pp_ptr->m = pp_ptr->ay * pp_ptr->ay * 2;
     pp_ptr->y = pp_ptr->y1;
@@ -161,14 +161,14 @@ static bool calc_horizontal_projection(player_type *player_ptr, projection_path_
         pp_ptr->k++;
     }
 
-    calc_projection_to_target(player_ptr, pp_ptr, FALSE);
-    return TRUE;
+    calc_projection_to_target(player_ptr, pp_ptr, false);
+    return true;
 }
 
 static void calc_projection_others(player_type *player_ptr, projection_path_type *pp_ptr)
 {
     floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    while (TRUE) {
+    while (true) {
         pp_ptr->gp[pp_ptr->n++] = location_to_grid(pp_ptr->y, pp_ptr->x);
         if ((pp_ptr->n + (pp_ptr->n >> 1)) >= pp_ptr->range)
             break;
@@ -183,7 +183,7 @@ static void calc_projection_others(player_type *player_ptr, projection_path_type
             if ((pp_ptr->n > 0) && !cave_los_bold(floor_ptr, pp_ptr->y, pp_ptr->x))
                 break;
         } else if (!(pp_ptr->flag & PROJECT_PATH)) {
-            if ((pp_ptr->n > 0) && !cave_has_flag_bold(floor_ptr, pp_ptr->y, pp_ptr->x, FF_PROJECT))
+            if ((pp_ptr->n > 0) && !cave_has_flag_bold(floor_ptr, pp_ptr->y, pp_ptr->x, FF::PROJECT))
                 break;
         }
 
@@ -212,7 +212,7 @@ static void calc_projection_others(player_type *player_ptr, projection_path_type
  * @param flag フラグID
  * @return リストの長さ
  */
-int projection_path(player_type *player_ptr, u16b *gp, POSITION range, POSITION y1, POSITION x1, POSITION y2, POSITION x2, BIT_FLAGS flag)
+int projection_path(player_type *player_ptr, uint16_t *gp, POSITION range, POSITION y1, POSITION x1, POSITION y2, POSITION x2, BIT_FLAGS flag)
 {
     if ((x1 == x2) && (y1 == y2))
         return 0;
@@ -245,17 +245,17 @@ int projection_path(player_type *player_ptr, u16b *gp, POSITION range, POSITION 
  */
 bool projectable(player_type *player_ptr, POSITION y1, POSITION x1, POSITION y2, POSITION x2)
 {
-    u16b grid_g[512];
+    uint16_t grid_g[512];
     int grid_n = projection_path(player_ptr, grid_g, (project_length ? project_length : get_max_range(player_ptr)), y1, x1, y2, x2, 0);
     if (!grid_n)
-        return TRUE;
+        return true;
 
     POSITION y = get_grid_y(grid_g[grid_n - 1]);
     POSITION x = get_grid_x(grid_g[grid_n - 1]);
     if ((y != y2) || (x != x2))
-        return FALSE;
+        return false;
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -268,9 +268,9 @@ int get_max_range(player_type *creature_ptr) { return creature_ptr->phase_out ? 
 /*
  * Convert a "grid" (G) into a "location" (Y)
  */
-POSITION get_grid_y(u16b grid) { return (int)(grid / 256U); }
+POSITION get_grid_y(uint16_t grid) { return (int)(grid / 256U); }
 
 /*
  * Convert a "grid" (G) into a "location" (X)
  */
-POSITION get_grid_x(u16b grid) { return (int)(grid % 256U); }
+POSITION get_grid_x(uint16_t grid) { return (int)(grid % 256U); }

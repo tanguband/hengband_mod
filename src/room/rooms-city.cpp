@@ -8,6 +8,7 @@
 #include "store/store-util.h"
 #include "store/store.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "wizard/wizard-messages.h"
@@ -44,10 +45,10 @@ static bool precalc_ugarcade(int town_hgt, int town_wid, int n)
             cur_ugbldg->y1 = MIN(tmp, town_hgt - 2);
             tmp = center_x + randint1(max_bldg_wid);
             cur_ugbldg->x1 = MIN(tmp, town_wid - 2);
-            for (abort = FALSE, y = cur_ugbldg->y0; (y <= cur_ugbldg->y1) && !abort; y++) {
+            for (abort = false, y = cur_ugbldg->y0; (y <= cur_ugbldg->y1) && !abort; y++) {
                 for (x = cur_ugbldg->x0; x <= cur_ugbldg->x1; x++) {
                     if (ugarcade_used[y][x]) {
-                        abort = TRUE;
+                        abort = true;
                         break;
                     }
                 }
@@ -61,7 +62,7 @@ static bool precalc_ugarcade(int town_hgt, int town_wid, int n)
 
         for (y = cur_ugbldg->y0 - 1; y <= cur_ugbldg->y1 + 1; y++) {
             for (x = cur_ugbldg->x0 - 1; x <= cur_ugbldg->x1 + 1; x++) {
-                ugarcade_used[y][x] = TRUE;
+                ugarcade_used[y][x] = true;
             }
         }
     }
@@ -112,7 +113,7 @@ static void build_stores(player_type *player_ptr, POSITION ltcy, POSITION ltcx, 
 
     for (i = 0; i < n; i++) {
         cur_ugbldg = &ugbldg[i];
-        generate_room_floor(player_ptr, ltcy + cur_ugbldg->y0 - 2, ltcx + cur_ugbldg->x0 - 2, ltcy + cur_ugbldg->y1 + 2, ltcx + cur_ugbldg->x1 + 2, FALSE);
+        generate_room_floor(player_ptr, ltcy + cur_ugbldg->y0 - 2, ltcx + cur_ugbldg->x0 - 2, ltcy + cur_ugbldg->y1 + 2, ltcx + cur_ugbldg->x1 + 2, false);
     }
 
     for (i = 0; i < n; i++) {
@@ -147,7 +148,7 @@ static void build_stores(player_type *player_ptr, POSITION ltcy, POSITION ltcx, 
         }
 
         for (j = 0; j < max_f_idx; j++) {
-            if (has_flag(f_info[j].flags, FF_STORE)) {
+            if (f_info[j].flags.has(FF::STORE)) {
                 if (f_info[j].subtype == stores[i])
                     break;
             }
@@ -186,43 +187,29 @@ bool build_type16(player_type *player_ptr, dun_data_type *dd_ptr)
         STORE_BOOK,
     };
     int n = sizeof stores / sizeof(int);
-    POSITION i, y, x, y1, x1, yval, xval;
+    POSITION y1, x1, yval, xval;
     int town_hgt = rand_range(MIN_TOWN_HGT, MAX_TOWN_HGT);
     int town_wid = rand_range(MIN_TOWN_WID, MAX_TOWN_WID);
-    bool prevent_bm = FALSE;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    for (y = 0; (y < floor_ptr->height) && !prevent_bm; y++) {
-        for (x = 0; x < floor_ptr->width; x++) {
-            if (floor_ptr->grid_array[y][x].feat == FF_STORE) {
-                prevent_bm = (f_info[floor_ptr->grid_array[y][x].feat].subtype == STORE_BLACK);
-                break;
-            }
-        }
-    }
-
-    for (i = 0; i < n; i++)
-        if ((stores[i] == STORE_BLACK) && prevent_bm)
-            stores[i] = stores[--n];
 
     if (!n)
-        return FALSE;
+        return false;
 
     C_MAKE(ugbldg, n, ugbldg_type);
     if (!precalc_ugarcade(town_hgt, town_wid, n)) {
         C_KILL(ugbldg, n, ugbldg_type);
-        return FALSE;
+        return false;
     }
 
     if (!find_space(player_ptr, dd_ptr, &yval, &xval, town_hgt + 4, town_wid + 4)) {
         C_KILL(ugbldg, n, ugbldg_type);
-        return FALSE;
+        return false;
     }
 
     y1 = yval - (town_hgt / 2);
     x1 = xval - (town_wid / 2);
-    generate_room_floor(player_ptr, y1 + town_hgt / 3, x1 + town_wid / 3, y1 + town_hgt * 2 / 3, x1 + town_wid * 2 / 3, FALSE);
+    generate_room_floor(player_ptr, y1 + town_hgt / 3, x1 + town_wid / 3, y1 + town_hgt * 2 / 3, x1 + town_wid * 2 / 3, false);
     build_stores(player_ptr, y1, x1, stores, n);
     msg_print_wizard(player_ptr, CHEAT_DUNGEON, _("地下街を生成しました", "Underground arcade was generated."));
     C_KILL(ugbldg, n, ugbldg_type);
-    return TRUE;
+    return true;
 }

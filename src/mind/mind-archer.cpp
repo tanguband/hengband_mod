@@ -20,6 +20,7 @@
 #include "object/object-kind-hook.h"
 #include "perception/object-perception.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "target/target-getter.h"
@@ -60,7 +61,7 @@ static bool select_ammo_creation_type(ammo_creation_type &type, PLAYER_LEVEL ple
     while (type == AMMO_NONE) {
         char ch;
 
-        if (!get_com(com, &ch, TRUE)) {
+        if (!get_com(com, &ch, true)) {
             return false;
         }
 
@@ -92,7 +93,7 @@ static bool select_ammo_creation_type(ammo_creation_type &type, PLAYER_LEVEL ple
 bool create_ammo(player_type *creature_ptr)
 {
     if (cmd_limit_confused(creature_ptr) || cmd_limit_blind(creature_ptr))
-        return FALSE;
+        return false;
 
     ammo_creation_type ext = AMMO_NONE;
 
@@ -102,20 +103,20 @@ bool create_ammo(player_type *creature_ptr)
     switch (ext) {
     case AMMO_SHOT: {
         DIRECTION dir;
-        if (!get_rep_dir(creature_ptr, &dir, FALSE))
-            return FALSE;
+        if (!get_rep_dir(creature_ptr, &dir, false))
+            return false;
 
         POSITION y = creature_ptr->y + ddy[dir];
         POSITION x = creature_ptr->x + ddx[dir];
         grid_type *g_ptr = &creature_ptr->current_floor_ptr->grid_array[y][x];
-        if (!has_flag(f_info[get_feat_mimic(g_ptr)].flags, FF_CAN_DIG)) {
+        if (f_info[g_ptr->get_feat_mimic()].flags.has_not(FF::CAN_DIG)) {
             msg_print(_("そこには岩石がない。", "You need a pile of rubble."));
-            return FALSE;
+            return false;
         }
 
-        if (!cave_has_flag_grid(g_ptr, FF_CAN_DIG) || !cave_has_flag_grid(g_ptr, FF_HURT_ROCK)) {
+        if (!g_ptr->cave_has_flag(FF::CAN_DIG) || !g_ptr->cave_has_flag(FF::HURT_ROCK)) {
             msg_print(_("硬すぎて崩せなかった。", "You failed to make ammo."));
-            return TRUE;
+            return true;
         }
 
         object_type forge;
@@ -126,16 +127,16 @@ bool create_ammo(player_type *creature_ptr)
         object_known(q_ptr);
         apply_magic_to_object(creature_ptr, q_ptr, creature_ptr->lev, AM_NO_FIXED_ART);
         q_ptr->discount = 99;
-        s16b slot = store_item_to_inventory(creature_ptr, q_ptr);
+        int16_t slot = store_item_to_inventory(creature_ptr, q_ptr);
         GAME_TEXT o_name[MAX_NLEN];
         describe_flavor(creature_ptr, o_name, q_ptr, 0);
         msg_format(_("%sを作った。", "You make some ammo."), o_name);
         if (slot >= 0)
-            autopick_alter_item(creature_ptr, slot, FALSE);
+            autopick_alter_item(creature_ptr, slot, false);
 
-        cave_alter_feat(creature_ptr, y, x, FF_HURT_ROCK);
+        cave_alter_feat(creature_ptr, y, x, FF::HURT_ROCK);
         creature_ptr->update |= PU_FLOW;
-        return TRUE;
+        return true;
     }
     case AMMO_ARROW: {
         item_tester_hook = item_tester_hook_convertible;
@@ -144,7 +145,7 @@ bool create_ammo(player_type *creature_ptr)
         OBJECT_IDX item;
         object_type *q_ptr = choose_object(creature_ptr, &item, q, s, USE_INVEN | USE_FLOOR, TV_NONE);
         if (!q_ptr)
-            return FALSE;
+            return false;
 
         object_type forge;
         q_ptr = &forge;
@@ -158,11 +159,11 @@ bool create_ammo(player_type *creature_ptr)
         describe_flavor(creature_ptr, o_name, q_ptr, 0);
         msg_format(_("%sを作った。", "You make some ammo."), o_name);
         vary_item(creature_ptr, item, -1);
-        s16b slot = store_item_to_inventory(creature_ptr, q_ptr);
+        int16_t slot = store_item_to_inventory(creature_ptr, q_ptr);
         if (slot >= 0)
-            autopick_alter_item(creature_ptr, slot, FALSE);
+            autopick_alter_item(creature_ptr, slot, false);
 
-        return TRUE;
+        return true;
     }
     case AMMO_BOLT: {
         item_tester_hook = item_tester_hook_convertible;
@@ -171,7 +172,7 @@ bool create_ammo(player_type *creature_ptr)
         OBJECT_IDX item;
         object_type *q_ptr = choose_object(creature_ptr, &item, q, s, (USE_INVEN | USE_FLOOR), TV_NONE);
         if (!q_ptr)
-            return FALSE;
+            return false;
 
         object_type forge;
         q_ptr = &forge;
@@ -185,13 +186,13 @@ bool create_ammo(player_type *creature_ptr)
         describe_flavor(creature_ptr, o_name, q_ptr, 0);
         msg_format(_("%sを作った。", "You make some ammo."), o_name);
         vary_item(creature_ptr, item, -1);
-        s16b slot = store_item_to_inventory(creature_ptr, q_ptr);
+        int16_t slot = store_item_to_inventory(creature_ptr, q_ptr);
         if (slot >= 0)
-            autopick_alter_item(creature_ptr, slot, FALSE);
+            autopick_alter_item(creature_ptr, slot, false);
 
-        return TRUE;
+        return true;
     }
     default:
-        return TRUE;
+        return true;
     }
 }

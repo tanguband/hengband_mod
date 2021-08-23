@@ -20,11 +20,11 @@ flavor_type *initialize_flavor_type(flavor_type *flavor_ptr, char *buf, object_t
     flavor_ptr->kindname = k_info[o_ptr->k_idx].name.c_str();
     flavor_ptr->basenm = flavor_ptr->kindname;
     flavor_ptr->modstr = "";
-    flavor_ptr->aware = FALSE;
-    flavor_ptr->known = FALSE;
-    flavor_ptr->flavor = TRUE;
-    flavor_ptr->show_weapon = FALSE;
-    flavor_ptr->show_armour = FALSE;
+    flavor_ptr->aware = false;
+    flavor_ptr->known = false;
+    flavor_ptr->flavor = true;
+    flavor_ptr->show_weapon = false;
+    flavor_ptr->show_armour = false;
     flavor_ptr->p1 = '(';
     flavor_ptr->p2 = ')';
     flavor_ptr->b1 = '[';
@@ -141,7 +141,7 @@ static void add_inscription(char **short_flavor, concptr str) { *short_flavor = 
  * sprintf(t, "%+d", n), and return a pointer to the terminator.
  * Note that we always print a sign, either "+" or "-".
  */
-static char *inscribe_flags_aux(std::vector<flag_insc_table>& fi_vec, BIT_FLAGS flgs[TR_FLAG_SIZE], bool kanji, char *ptr)
+static char *inscribe_flags_aux(std::vector<flag_insc_table> &fi_vec, const TrFlags &flgs, bool kanji, char *ptr)
 {
 #ifdef JP
 #else
@@ -162,13 +162,13 @@ static char *inscribe_flags_aux(std::vector<flag_insc_table>& fi_vec, BIT_FLAGS 
  * @param flgs 対応するオブジェクトのフラグ文字列
  * @return 1つでも該当の特性があったらTRUEを返す。
  */
-static bool has_flag_of(std::vector<flag_insc_table>& fi_vec, BIT_FLAGS flgs[TR_FLAG_SIZE])
+static bool has_flag_of(std::vector<flag_insc_table> &fi_vec, const TrFlags &flgs)
 {
     for (flag_insc_table &fi : fi_vec)
         if (has_flag(flgs, fi.flag) && (fi.except_flag == -1 || !has_flag(flgs, fi.except_flag)))
-            return TRUE;
+            return true;
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -182,7 +182,7 @@ static bool has_flag_of(std::vector<flag_insc_table>& fi_vec, BIT_FLAGS flgs[TR_
 char *get_ability_abbreviation(player_type *player_ptr, char *short_flavor, object_type *o_ptr, bool kanji, bool all)
 {
     char *prev_ptr = short_flavor;
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     object_flags(player_ptr, o_ptr, flgs);
     if (!all) {
         object_kind *k_ptr = &k_info[o_ptr->k_idx];
@@ -340,7 +340,7 @@ void get_inscription(player_type *player_ptr, char *buff, object_type *o_ptr)
         if (*insc == '#')
             break;
         else if ('%' == *insc) {
-            bool kanji = FALSE;
+            bool kanji = false;
             bool all;
             concptr start = ptr;
             if (ptr >= buff + MAX_NLEN)
@@ -349,16 +349,16 @@ void get_inscription(player_type *player_ptr, char *buff, object_type *o_ptr)
 #ifdef JP
             if ('%' == insc[1]) {
                 insc++;
-                kanji = FALSE;
+                kanji = false;
             } else
-                kanji = TRUE;
+                kanji = true;
 #endif
 
             if ('a' == insc[1] && 'l' == insc[2] && 'l' == insc[3]) {
-                all = TRUE;
+                all = true;
                 insc += 3;
             } else
-                all = FALSE;
+                all = false;
 
             ptr = get_ability_abbreviation(player_ptr, ptr, o_ptr, kanji, all);
             if (ptr == start)
@@ -457,6 +457,12 @@ char *object_desc_count_japanese(char *t, object_type *o_ptr)
 }
 #endif
 
-bool has_lite_flag(BIT_FLAGS *flags) { return has_flag(flags, TR_LITE_1) || has_flag(flags, TR_LITE_2) || has_flag(flags, TR_LITE_3); }
+bool has_lite_flag(const TrFlags &flags)
+{
+    return has_flag(flags, TR_LITE_1) || has_flag(flags, TR_LITE_2) || has_flag(flags, TR_LITE_3);
+}
 
-bool has_dark_flag(BIT_FLAGS *flags) { return has_flag(flags, TR_LITE_M1) || has_flag(flags, TR_LITE_M2) || has_flag(flags, TR_LITE_M3); }
+bool has_dark_flag(const TrFlags &flags)
+{
+    return has_flag(flags, TR_LITE_M1) || has_flag(flags, TR_LITE_M2) || has_flag(flags, TR_LITE_M3);
+}

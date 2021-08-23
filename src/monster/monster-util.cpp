@@ -5,16 +5,17 @@
 #include "floor/wild.h"
 #include "game-option/cheat-options.h"
 #include "grid/feature.h"
-#include "grid/grid.h"
 #include "monster-race/monster-race-hook.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-ability-mask.h"
+#include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags1.h"
 #include "monster-race/race-flags7.h"
 #include "monster-race/race-indice-types.h"
 #include "spell/summon-types.h"
 #include "system/alloc-entries.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
@@ -58,179 +59,179 @@ static bool restrict_monster_to_dungeon(player_type *player_ptr, MONRACE_IDX r_i
 
     if (d_ptr->flags.has(DF::CHAMELEON)) {
         if (chameleon_change_m_idx)
-            return TRUE;
+            return true;
     }
 
     if (d_ptr->flags.has(DF::NO_MAGIC)) {
         if (r_idx != MON_CHAMELEON && r_ptr->freq_spell && r_ptr->ability_flags.has_none_of(RF_ABILITY_NOMAGIC_MASK))
-            return FALSE;
+            return false;
     }
 
     if (d_ptr->flags.has(DF::NO_MELEE)) {
         if (r_idx == MON_CHAMELEON)
-            return TRUE;
+            return true;
         if (r_ptr->ability_flags.has_none_of(RF_ABILITY_BOLT_MASK | RF_ABILITY_BEAM_MASK | RF_ABILITY_BALL_MASK)
             && r_ptr->ability_flags.has_none_of(
                 { RF_ABILITY::CAUSE_1, RF_ABILITY::CAUSE_2, RF_ABILITY::CAUSE_3, RF_ABILITY::CAUSE_4, RF_ABILITY::MIND_BLAST, RF_ABILITY::BRAIN_SMASH }))
-            return FALSE;
+            return false;
     }
 
     floor_type *floor_ptr = player_ptr->current_floor_ptr;
     if (d_ptr->flags.has(DF::BEGINNER)) {
         if (r_ptr->level > floor_ptr->dun_level)
-            return FALSE;
+            return false;
     }
 
     if (d_ptr->special_div >= 64)
-        return TRUE;
+        return true;
     if (summon_specific_type && d_ptr->flags.has_not(DF::CHAMELEON))
-        return TRUE;
+        return true;
 
     byte a;
     switch (d_ptr->mode) {
     case DUNGEON_MODE_AND: {
         if (d_ptr->mflags1) {
             if ((d_ptr->mflags1 & r_ptr->flags1) != d_ptr->mflags1)
-                return FALSE;
+                return false;
         }
 
         if (d_ptr->mflags2) {
             if ((d_ptr->mflags2 & r_ptr->flags2) != d_ptr->mflags2)
-                return FALSE;
+                return false;
         }
 
         if (d_ptr->mflags3) {
             if ((d_ptr->mflags3 & r_ptr->flags3) != d_ptr->mflags3)
-                return FALSE;
+                return false;
         }
 
         if (d_ptr->m_ability_flags.any()) {
             if (!r_ptr->ability_flags.has_all_of(d_ptr->m_ability_flags))
-                return FALSE;
+                return false;
         }
 
         if (d_ptr->mflags7) {
             if ((d_ptr->mflags7 & r_ptr->flags7) != d_ptr->mflags7)
-                return FALSE;
+                return false;
         }
 
         if (d_ptr->mflags8) {
             if ((d_ptr->mflags8 & r_ptr->flags8) != d_ptr->mflags8)
-                return FALSE;
+                return false;
         }
 
         if (d_ptr->mflags9) {
             if ((d_ptr->mflags9 & r_ptr->flags9) != d_ptr->mflags9)
-                return FALSE;
+                return false;
         }
 
         if (d_ptr->mflagsr) {
             if ((d_ptr->mflagsr & r_ptr->flagsr) != d_ptr->mflagsr)
-                return FALSE;
+                return false;
         }
 
         for (a = 0; a < 5; a++)
             if (d_ptr->r_char[a] && (d_ptr->r_char[a] != r_ptr->d_char))
-                return FALSE;
+                return false;
 
-        return TRUE;
+        return true;
     }
     case DUNGEON_MODE_NAND: {
         if (d_ptr->mflags1) {
             if ((d_ptr->mflags1 & r_ptr->flags1) != d_ptr->mflags1)
-                return TRUE;
+                return true;
         }
 
         if (d_ptr->mflags2) {
             if ((d_ptr->mflags2 & r_ptr->flags2) != d_ptr->mflags2)
-                return TRUE;
+                return true;
         }
 
         if (d_ptr->mflags3) {
             if ((d_ptr->mflags3 & r_ptr->flags3) != d_ptr->mflags3)
-                return TRUE;
+                return true;
         }
 
         if (d_ptr->m_ability_flags.any()) {
             if (!r_ptr->ability_flags.has_all_of(d_ptr->m_ability_flags))
-                return TRUE;
+                return true;
         }
 
         if (d_ptr->mflags7) {
             if ((d_ptr->mflags7 & r_ptr->flags7) != d_ptr->mflags7)
-                return TRUE;
+                return true;
         }
 
         if (d_ptr->mflags8) {
             if ((d_ptr->mflags8 & r_ptr->flags8) != d_ptr->mflags8)
-                return TRUE;
+                return true;
         }
 
         if (d_ptr->mflags9) {
             if ((d_ptr->mflags9 & r_ptr->flags9) != d_ptr->mflags9)
-                return TRUE;
+                return true;
         }
 
         if (d_ptr->mflagsr) {
             if ((d_ptr->mflagsr & r_ptr->flagsr) != d_ptr->mflagsr)
-                return TRUE;
+                return true;
         }
 
         for (a = 0; a < 5; a++)
             if (d_ptr->r_char[a] && (d_ptr->r_char[a] != r_ptr->d_char))
-                return TRUE;
+                return true;
 
-        return FALSE;
+        return false;
     }
     case DUNGEON_MODE_OR: {
         if (r_ptr->flags1 & d_ptr->mflags1)
-            return TRUE;
+            return true;
         if (r_ptr->flags2 & d_ptr->mflags2)
-            return TRUE;
+            return true;
         if (r_ptr->flags3 & d_ptr->mflags3)
-            return TRUE;
+            return true;
         if (r_ptr->ability_flags.has_any_of(d_ptr->m_ability_flags))
-            return TRUE;
+            return true;
         if (r_ptr->flags7 & d_ptr->mflags7)
-            return TRUE;
+            return true;
         if (r_ptr->flags8 & d_ptr->mflags8)
-            return TRUE;
+            return true;
         if (r_ptr->flags9 & d_ptr->mflags9)
-            return TRUE;
+            return true;
         if (r_ptr->flagsr & d_ptr->mflagsr)
-            return TRUE;
+            return true;
         for (a = 0; a < 5; a++)
             if (d_ptr->r_char[a] == r_ptr->d_char)
-                return TRUE;
+                return true;
 
-        return FALSE;
+        return false;
     }
     case DUNGEON_MODE_NOR: {
         if (r_ptr->flags1 & d_ptr->mflags1)
-            return FALSE;
+            return false;
         if (r_ptr->flags2 & d_ptr->mflags2)
-            return FALSE;
+            return false;
         if (r_ptr->flags3 & d_ptr->mflags3)
-            return FALSE;
+            return false;
         if (r_ptr->ability_flags.has_any_of(d_ptr->m_ability_flags))
-            return FALSE;
+            return false;
         if (r_ptr->flags7 & d_ptr->mflags7)
-            return FALSE;
+            return false;
         if (r_ptr->flags8 & d_ptr->mflags8)
-            return FALSE;
+            return false;
         if (r_ptr->flags9 & d_ptr->mflags9)
-            return FALSE;
+            return false;
         if (r_ptr->flagsr & d_ptr->mflagsr)
-            return FALSE;
+            return false;
         for (a = 0; a < 5; a++)
             if (d_ptr->r_char[a] == r_ptr->d_char)
-                return FALSE;
+                return false;
 
-        return TRUE;
+        return true;
     }
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -275,10 +276,10 @@ monsterrace_hook_type get_monster_hook(player_type *player_ptr)
 monsterrace_hook_type get_monster_hook2(player_type *player_ptr, POSITION y, POSITION x)
 {
     feature_type *f_ptr = &f_info[player_ptr->current_floor_ptr->grid_array[y][x].feat];
-    if (has_flag(f_ptr->flags, FF_WATER))
-        return has_flag(f_ptr->flags, FF_DEEP) ? (monsterrace_hook_type)mon_hook_deep_water : (monsterrace_hook_type)mon_hook_shallow_water;
+    if (f_ptr->flags.has(FF::WATER))
+        return f_ptr->flags.has(FF::DEEP) ? (monsterrace_hook_type)mon_hook_deep_water : (monsterrace_hook_type)mon_hook_shallow_water;
 
-    if (has_flag(f_ptr->flags, FF_LAVA))
+    if (f_ptr->flags.has(FF::LAVA))
         return (monsterrace_hook_type)mon_hook_lava;
 
     return (monsterrace_hook_type)mon_hook_floor;
@@ -335,6 +336,10 @@ static errr do_get_mon_num_prep(player_type *player_ptr, const monsterrace_hook_
             // RF1_FORCE_DEPTH フラグ持ちは指定階未満では生成禁止。
             if ((r_ptr->flags1 & RF1_FORCE_DEPTH) && (r_ptr->level > floor_ptr->dun_level))
                 continue;
+
+            // クエスト内でRES_ALLの生成を禁止する (殲滅系クエストの詰み防止)
+            if (player_ptr->current_floor_ptr->inside_quest && any_bits(r_ptr->flagsr, RFR_RES_ALL))
+                continue;
         }
 
         // 生成を許可するものは基本重みをそのまま引き継ぐ。
@@ -389,7 +394,7 @@ static errr do_get_mon_num_prep(player_type *player_ptr, const monsterrace_hook_
  */
 errr get_mon_num_prep(player_type *player_ptr, const monsterrace_hook_type hook1, const monsterrace_hook_type hook2)
 {
-    return do_get_mon_num_prep(player_ptr, hook1, hook2, TRUE);
+    return do_get_mon_num_prep(player_ptr, hook1, hook2, true);
 }
 
 /*!
@@ -400,5 +405,5 @@ errr get_mon_num_prep(player_type *player_ptr, const monsterrace_hook_type hook1
  */
 errr get_mon_num_prep_bounty(player_type *player_ptr)
 {
-    return do_get_mon_num_prep(player_ptr, NULL, NULL, FALSE);
+    return do_get_mon_num_prep(player_ptr, NULL, NULL, false);
 }

@@ -46,6 +46,7 @@
 #include "wizard/wizard-special-process.h"
 #include "world/world.h"
 #include <algorithm>
+#include <limits>
 #include <sstream>
 #include <vector>
 
@@ -113,7 +114,7 @@ void wizard_item_modifier(player_type *creature_ptr)
     display_wizard_sub_menu();
 
     char cmd;
-    get_com("Player Command: ", &cmd, FALSE);
+    get_com("Player Command: ", &cmd, false);
     screen_load();
 
     switch (cmd) {
@@ -132,19 +133,19 @@ void wizard_item_modifier(player_type *creature_ptr)
         if (command_arg <= 0)
             command_arg = 1;
 
-        acquirement(creature_ptr, creature_ptr->y, creature_ptr->x, command_arg, TRUE, FALSE, TRUE);
+        acquirement(creature_ptr, creature_ptr->y, creature_ptr->x, command_arg, true, false, true);
         break;
     case 'f':
-        identify_fully(creature_ptr, FALSE, TV_NONE);
+        identify_fully(creature_ptr, false, TV_NONE);
         break;
     case 'g':
         if (command_arg <= 0)
             command_arg = 1;
 
-        acquirement(creature_ptr, creature_ptr->y, creature_ptr->x, command_arg, FALSE, FALSE, TRUE);
+        acquirement(creature_ptr, creature_ptr->y, creature_ptr->x, command_arg, false, false, true);
         break;
     case 'i':
-        (void)ident_spell(creature_ptr, FALSE, TV_NONE);
+        (void)ident_spell(creature_ptr, false, TV_NONE);
         break;
     case 'I':
         wiz_identify_full_inventory(creature_ptr);
@@ -156,13 +157,13 @@ void wizard_item_modifier(player_type *creature_ptr)
         if (command_arg <= 0)
             command_arg = 1;
 
-        acquirement(creature_ptr, creature_ptr->y, creature_ptr->x, command_arg, TRUE, TRUE, TRUE);
+        acquirement(creature_ptr, creature_ptr->y, creature_ptr->x, command_arg, true, true, true);
         break;
     case 'U':
         wiz_modify_item_activation(creature_ptr);
         break;
     case 'w':
-        do_cmd_wishing(creature_ptr, -1, TRUE, TRUE, TRUE);
+        do_cmd_wishing(creature_ptr, -1, true, true, true);
         break;
     }
 }
@@ -236,7 +237,7 @@ void wiz_identify_full_inventory(player_type *caster_ptr)
             continue;
 
         auto k_ptr = &k_info[o_ptr->k_idx];
-        k_ptr->aware = TRUE; //!< @note 記録には残さないためTRUEを立てるのみ
+        k_ptr->aware = true; //!< @note 記録には残さないためTRUEを立てるのみ
         set_bits(o_ptr->ident, IDENT_KNOWN | IDENT_FULL_KNOWN);
         set_bits(o_ptr->marked, OM_TOUCHED);
     }
@@ -257,12 +258,12 @@ void wiz_identify_full_inventory(player_type *caster_ptr)
  */
 static void prt_alloc(tval_type tval, OBJECT_SUBTYPE_VALUE sval, TERM_LEN row, TERM_LEN col)
 {
-    u32b rarity[K_MAX_DEPTH];
-    (void)C_WIPE(rarity, K_MAX_DEPTH, u32b);
-    u32b total[K_MAX_DEPTH];
-    (void)C_WIPE(total, K_MAX_DEPTH, u32b);
-    s32b display[22];
-    (void)C_WIPE(display, 22, s32b);
+    uint32_t rarity[K_MAX_DEPTH];
+    (void)C_WIPE(rarity, K_MAX_DEPTH, uint32_t);
+    uint32_t total[K_MAX_DEPTH];
+    (void)C_WIPE(total, K_MAX_DEPTH, uint32_t);
+    int32_t display[22];
+    (void)C_WIPE(display, 22, int32_t);
 
     int home = 0;
     for (int i = 0; i < K_MAX_DEPTH; i++) {
@@ -318,7 +319,7 @@ static void prt_alloc(tval_type tval, OBJECT_SUBTYPE_VALUE sval, TERM_LEN row, T
  */
 static void prt_binary(BIT_FLAGS flags, const int row, int col)
 {
-    u32b bitmask;
+    uint32_t bitmask;
     for (int i = bitmask = 1; i <= 32; i++, bitmask *= 2)
         if (flags & bitmask)
             term_putch(col++, row, TERM_BLUE, '*');
@@ -334,7 +335,7 @@ static void prt_binary(BIT_FLAGS flags, const int row, int col)
  */
 static void wiz_display_item(player_type *player_ptr, object_type *o_ptr)
 {
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     object_flags(player_ptr, o_ptr, flgs);
     int j = 13;
     for (int i = 1; i <= 23; i++)
@@ -404,15 +405,15 @@ static void wiz_statistics(player_type *caster_ptr, object_type *o_ptr)
     if (object_is_fixed_artifact(o_ptr))
         a_info[o_ptr->name1].cur_num = 0;
 
-    u32b i, matches, better, worse, other, correct;
-    u32b test_roll = 1000000;
+    uint32_t i, matches, better, worse, other, correct;
+    uint32_t test_roll = 1000000;
     char ch;
     concptr quality;
     BIT_FLAGS mode;
-    while (TRUE) {
+    while (true) {
         concptr pmt = "Roll for [n]ormal, [g]ood, or [e]xcellent treasure? ";
         wiz_display_item(caster_ptr, o_ptr);
-        if (!get_com(pmt, &ch, FALSE))
+        if (!get_com(pmt, &ch, false))
             break;
 
         if (ch == 'n' || ch == 'N') {
@@ -438,7 +439,7 @@ static void wiz_statistics(player_type *caster_ptr, object_type *o_ptr)
         correct = matches = better = worse = other = 0;
         for (i = 0; i <= test_roll; i++) {
             if ((i < 100) || (i % 100 == 0)) {
-                inkey_scan = TRUE;
+                inkey_scan = true;
                 if (inkey()) {
                     flush();
                     break; // stop rolling
@@ -495,21 +496,21 @@ static void wiz_reroll_item(player_type *owner_ptr, object_type *o_ptr)
     q_ptr->copy_from(o_ptr);
 
     char ch;
-    bool changed = FALSE;
-    while (TRUE) {
+    bool changed = false;
+    while (true) {
         wiz_display_item(owner_ptr, q_ptr);
-        if (!get_com("[a]ccept, [w]orthless, [c]ursed, [n]ormal, [g]ood, [e]xcellent, [s]pecial? ", &ch, FALSE)) {
+        if (!get_com("[a]ccept, [w]orthless, [c]ursed, [n]ormal, [g]ood, [e]xcellent, [s]pecial? ", &ch, false)) {
             if (object_is_fixed_artifact(q_ptr)) {
                 a_info[q_ptr->name1].cur_num = 0;
                 q_ptr->name1 = 0;
             }
 
-            changed = FALSE;
+            changed = false;
             break;
         }
 
         if (ch == 'A' || ch == 'a') {
-            changed = TRUE;
+            changed = true;
             break;
         }
 
@@ -549,7 +550,7 @@ static void wiz_reroll_item(player_type *owner_ptr, object_type *o_ptr)
             q_ptr->prep(owner_ptr, o_ptr->k_idx);
             apply_magic_to_object(owner_ptr, q_ptr, owner_ptr->current_floor_ptr->dun_level, AM_GOOD | AM_GREAT | AM_SPECIAL);
             if (!object_is_artifact(q_ptr))
-                become_random_artifact(owner_ptr, q_ptr, FALSE);
+                become_random_artifact(owner_ptr, q_ptr, false);
 
             break;
         default:
@@ -585,28 +586,28 @@ static void wiz_tweak_item(player_type *player_ptr, object_type *o_ptr)
     if (!get_string(p, tmp_val, 5))
         return;
 
-    o_ptr->pval = clamp_cast<s16b>(atoi(tmp_val));
+    o_ptr->pval = clamp_cast<int16_t>(atoi(tmp_val));
     wiz_display_item(player_ptr, o_ptr);
     p = "Enter new 'to_a' setting: ";
     sprintf(tmp_val, "%d", o_ptr->to_a);
     if (!get_string(p, tmp_val, 5))
         return;
 
-    o_ptr->to_a = clamp_cast<s16b>(atoi(tmp_val));
+    o_ptr->to_a = clamp_cast<int16_t>(atoi(tmp_val));
     wiz_display_item(player_ptr, o_ptr);
     p = "Enter new 'to_h' setting: ";
     sprintf(tmp_val, "%d", o_ptr->to_h);
     if (!get_string(p, tmp_val, 5))
         return;
 
-    o_ptr->to_h = clamp_cast<s16b>(atoi(tmp_val));
+    o_ptr->to_h = clamp_cast<int16_t>(atoi(tmp_val));
     wiz_display_item(player_ptr, o_ptr);
     p = "Enter new 'to_d' setting: ";
     sprintf(tmp_val, "%d", (int)o_ptr->to_d);
     if (!get_string(p, tmp_val, 5))
         return;
 
-    o_ptr->to_d = clamp_cast<s16b>(atoi(tmp_val));
+    o_ptr->to_d = clamp_cast<int16_t>(atoi(tmp_val));
     wiz_display_item(player_ptr, o_ptr);
 }
 
@@ -665,16 +666,16 @@ void wiz_modify_item(player_type *creature_ptr)
     q_ptr = &forge;
     q_ptr->copy_from(o_ptr);
     char ch;
-    bool changed = FALSE;
-    while (TRUE) {
+    bool changed = false;
+    while (true) {
         wiz_display_item(creature_ptr, q_ptr);
-        if (!get_com("[a]ccept [s]tatistics [r]eroll [t]weak [q]uantity? ", &ch, FALSE)) {
-            changed = FALSE;
+        if (!get_com("[a]ccept [s]tatistics [r]eroll [t]weak [q]uantity? ", &ch, false)) {
+            changed = false;
             break;
         }
 
         if (ch == 'A' || ch == 'a') {
-            changed = TRUE;
+            changed = true;
             break;
         }
 
@@ -766,15 +767,15 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
     object_type *o_ptr = &forge;
     char o_name[MAX_NLEN];
 
-    bool wish_art = FALSE;
-    bool wish_randart = FALSE;
-    bool wish_ego = FALSE;
-    bool exam_base = TRUE;
-    bool ok_art = (randint0(100) < prob) ? TRUE : FALSE;
-    bool ok_ego = (randint0(100) < 50 + prob) ? TRUE : FALSE;
-    bool must = (prob < 0) ? TRUE : FALSE;
-    bool blessed = FALSE;
-    bool fixed = TRUE;
+    bool wish_art = false;
+    bool wish_randart = false;
+    bool wish_ego = false;
+    bool exam_base = true;
+    bool ok_art = (randint0(100) < prob) ? true : false;
+    bool ok_ego = (randint0(100) < 50 + prob) ? true : false;
+    bool must = (prob < 0) ? true : false;
+    bool blessed = false;
+    bool fixed = true;
 
     while (1) {
         if (get_string(_("何をお望み？ ", "For what do you wish?"), buf, (MAX_NLEN - 1)))
@@ -800,14 +801,14 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
 
     if (!strncmp(str, _("祝福された", "blessed"), _(10, 7))) {
         str = ltrim(str + _(10, 7));
-        blessed = TRUE;
+        blessed = true;
     }
 
     for (int i = 0; fixed_str[i] != NULL; i++) {
         int len = strlen(fixed_str[i]);
         if (!strncmp(str, fixed_str[i], len)) {
             str = ltrim(str + len);
-            fixed = TRUE;
+            fixed = true;
             break;
         }
     }
@@ -815,21 +816,21 @@ WishResult do_cmd_wishing(player_type *caster_ptr, int prob, bool allow_art, boo
 #ifdef JP
     if (!strncmp(str, "★", 2)) {
         str = ltrim(str + 2);
-        wish_art = TRUE;
-        exam_base = FALSE;
+        wish_art = true;
+        exam_base = false;
     } else
 #endif
 
     if (!strncmp(str, _("☆", "The "), _(2, 4))) {
         str = ltrim(str + _(2, 4));
-        wish_art = TRUE;
-        wish_randart = TRUE;
+        wish_art = true;
+        wish_randart = true;
     }
 
     /* wishing random ego ? */
     else if (!strncmp(str, _("高級な", "excellent "), _(6, 9))) {
         str = ltrim(str + _(6, 9));
-        wish_ego = TRUE;
+        wish_ego = true;
     }
 
     if (strlen(str) < 1) {
