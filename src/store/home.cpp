@@ -1,10 +1,10 @@
 ﻿#include "store/home.h"
+#include "avatar/avatar.h"
 #include "floor/floor-town.h"
 #include "game-option/birth-options.h"
 #include "game-option/game-play-options.h"
 #include "object/object-stack.h"
 #include "object/object-value.h"
-#include "player-info/avatar.h"
 #include "store/store-util.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -28,8 +28,8 @@ int home_carry(player_type *player_ptr, object_type *o_ptr)
     bool old_stack_force_notes = stack_force_notes;
     bool old_stack_force_costs = stack_force_costs;
     if (cur_store_num != STORE_HOME) {
-        stack_force_notes = FALSE;
-        stack_force_costs = FALSE;
+        stack_force_notes = false;
+        stack_force_costs = false;
     }
 
     for (int slot = 0; slot < st_ptr->stock_num; slot++) {
@@ -56,7 +56,7 @@ int home_carry(player_type *player_ptr, object_type *o_ptr)
      * 隠し機能: オプション powerup_home が設定されていると
      *           我が家が 20 ページまで使える
      */
-    if ((cur_store_num != STORE_HOME) || (powerup_home == TRUE)) {
+    if ((cur_store_num != STORE_HOME) || powerup_home) {
         if (st_ptr->stock_num >= st_ptr->stock_size) {
             return -1;
         }
@@ -85,7 +85,7 @@ int home_carry(player_type *player_ptr, object_type *o_ptr)
 static bool exe_combine_store_items(object_type *o_ptr, object_type *j_ptr, const int max_num, const int i, bool *combined)
 {
     if (o_ptr->number + j_ptr->number > max_num)
-        return FALSE;
+        return false;
 
     object_absorb(j_ptr, o_ptr);
     st_ptr->stock_num--;
@@ -94,8 +94,8 @@ static bool exe_combine_store_items(object_type *o_ptr, object_type *j_ptr, cons
         st_ptr->stock[k] = st_ptr->stock[k + 1];
 
     (&st_ptr->stock[k])->wipe();
-    *combined = TRUE;
-    return TRUE;
+    *combined = true;
+    return true;
 }
 
 static void sweep_reorder_store_item(object_type *o_ptr, const int i, bool *combined)
@@ -124,7 +124,7 @@ static void sweep_reorder_store_item(object_type *o_ptr, const int i, bool *comb
             o_ptr->pval = o_ptr->pval * remain / old_num;
         }
 
-        *combined = TRUE;
+        *combined = true;
         break;
     }
 }
@@ -137,7 +137,7 @@ static void exe_reorder_store_item(player_type *player_ptr, bool *flag)
         if (!o_ptr->k_idx)
             continue;
 
-        s32b o_value = object_value(player_ptr, o_ptr);
+        int32_t o_value = object_value(player_ptr, o_ptr);
         int j;
         for (j = 0; j < st_ptr->stock_num; j++)
             if (object_sort_comp(player_ptr, o_ptr, o_value, &st_ptr->stock[j]))
@@ -146,7 +146,7 @@ static void exe_reorder_store_item(player_type *player_ptr, bool *flag)
         if (j >= i)
             continue;
 
-        *flag = TRUE;
+        *flag = true;
         object_type *j_ptr;
         object_type forge;
         j_ptr = &forge;
@@ -170,15 +170,15 @@ bool combine_and_reorder_home(player_type *player_ptr, const int store_num)
     bool old_stack_force_costs = stack_force_costs;
     store_type *old_st_ptr = st_ptr;
     st_ptr = &town_info[1].store[store_num];
-    bool flag = FALSE;
+    bool flag = false;
     if (store_num != STORE_HOME) {
-        stack_force_notes = FALSE;
-        stack_force_costs = FALSE;
+        stack_force_notes = false;
+        stack_force_costs = false;
     }
 
-    bool combined = TRUE;
+    bool combined = true;
     while (combined) {
-        combined = FALSE;
+        combined = false;
         for (int i = st_ptr->stock_num - 1; i > 0; i--) {
             object_type *o_ptr;
             o_ptr = &st_ptr->stock[i];

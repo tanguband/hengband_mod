@@ -1,5 +1,6 @@
 ﻿#include "market/bounty.h"
 #include "autopick/autopick.h"
+#include "avatar/avatar.h"
 #include "cmd-building/cmd-building.h"
 #include "core/asking-player.h"
 #include "core/player-redraw-types.h"
@@ -26,7 +27,6 @@
 #include "object/object-info.h"
 #include "object/object-kind-hook.h"
 #include "perception/object-perception.h"
-#include "player-info/avatar.h"
 #include "sv-definition/sv-other-types.h"
 #include "system/floor-type-definition.h"
 #include "system/monster-race-definition.h"
@@ -44,7 +44,7 @@
  */
 bool exchange_cash(player_type *player_ptr)
 {
-    bool change = FALSE;
+    bool change = false;
     GAME_TEXT o_name[MAX_NLEN];
     object_type *o_ptr;
 
@@ -61,7 +61,7 @@ bool exchange_cash(player_type *player_ptr)
                 vary_item(player_ptr, i, -o_ptr->number);
             }
 
-            change = TRUE;
+            change = true;
         }
     }
 
@@ -78,7 +78,7 @@ bool exchange_cash(player_type *player_ptr)
                 vary_item(player_ptr, i, -o_ptr->number);
             }
 
-            change = TRUE;
+            change = true;
         }
     }
 
@@ -95,7 +95,7 @@ bool exchange_cash(player_type *player_ptr)
                 vary_item(player_ptr, i, -o_ptr->number);
             }
 
-            change = TRUE;
+            change = true;
         }
     }
 
@@ -107,13 +107,14 @@ bool exchange_cash(player_type *player_ptr)
             describe_flavor(player_ptr, o_name, o_ptr, 0);
             sprintf(buf, _("%s を換金しますか？", "Convert %s into money? "), o_name);
             if (get_check(buf)) {
-                msg_format(_("賞金 %ld＄を手に入れた。", "You get %ldgp."), (long int)((r_info[current_world_ptr->today_mon].level * 50 + 100) * o_ptr->number));
+                msg_format(
+                    _("賞金 %ld＄を手に入れた。", "You get %ldgp."), (long int)((r_info[current_world_ptr->today_mon].level * 50 + 100) * o_ptr->number));
                 player_ptr->au += (r_info[current_world_ptr->today_mon].level * 50 + 100) * o_ptr->number;
                 player_ptr->redraw |= (PR_GOLD);
                 vary_item(player_ptr, i, -o_ptr->number);
             }
 
-            change = TRUE;
+            change = true;
         }
     }
 
@@ -132,7 +133,7 @@ bool exchange_cash(player_type *player_ptr)
                 vary_item(player_ptr, i, -o_ptr->number);
             }
 
-            change = TRUE;
+            change = true;
         }
     }
 
@@ -178,18 +179,18 @@ bool exchange_cash(player_type *player_ptr)
             describe_flavor(player_ptr, o_name, &forge, 0);
             msg_format(_("%s(%c)を貰った。", "You get %s (%c). "), o_name, index_to_label(item_new));
 
-            autopick_alter_item(player_ptr, item_new, FALSE);
+            autopick_alter_item(player_ptr, item_new, false);
             handle_stuff(player_ptr);
-            change = TRUE;
+            change = true;
         }
     }
 
     if (change)
-        return TRUE;
+        return true;
 
     msg_print(_("賞金を得られそうなものは持っていなかった。", "You have nothing."));
     msg_print(NULL);
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -283,7 +284,7 @@ void determine_daily_bounty(player_type *player_ptr, bool conv_old)
 
     get_mon_num_prep_bounty(player_ptr);
 
-    while (TRUE) {
+    while (true) {
         current_world_ptr->today_mon = get_mon_num(player_ptr, MIN(max_dl / 2, 40), max_dl, GMN_ARENA);
         monster_race *r_ptr;
         r_ptr = &r_info[current_world_ptr->today_mon];
@@ -318,7 +319,7 @@ void determine_bounty_uniques(player_type *player_ptr)
     get_mon_num_prep_bounty(player_ptr);
 
     for (int i = 0; i < MAX_BOUNTY; i++) {
-        while (TRUE) {
+        while (true) {
             current_world_ptr->bounty_r_idx[i] = get_mon_num(player_ptr, 0, MAX_DEPTH - 1, GMN_ARENA);
             monster_race *r_ptr;
             r_ptr = &r_info[current_world_ptr->bounty_r_idx[i]];

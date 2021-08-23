@@ -6,11 +6,11 @@
 /*
  * Gain experience
  */
-void gain_exp_64(player_type *creature_ptr, s32b amount, u32b amount_frac)
+void gain_exp_64(player_type *creature_ptr, int32_t amount, uint32_t amount_frac)
 {
     if (creature_ptr->is_dead)
         return;
-    if (creature_ptr->prace == RACE_ANDROID)
+    if (creature_ptr->prace == player_race_type::ANDROID)
         return;
 
     s64b_add(&(creature_ptr->exp), &(creature_ptr->exp_frac), amount, amount_frac);
@@ -25,14 +25,14 @@ void gain_exp_64(player_type *creature_ptr, s32b amount, u32b amount_frac)
 /*
  * Gain experience
  */
-void gain_exp(player_type *creature_ptr, s32b amount) { gain_exp_64(creature_ptr, amount, 0L); }
+void gain_exp(player_type *creature_ptr, int32_t amount) { gain_exp_64(creature_ptr, amount, 0L); }
 
 /*
  * Lose experience
  */
-void lose_exp(player_type *creature_ptr, s32b amount)
+void lose_exp(player_type *creature_ptr, int32_t amount)
 {
-    if (creature_ptr->prace == RACE_ANDROID)
+    if (creature_ptr->prace == player_race_type::ANDROID)
         return;
     if (amount > creature_ptr->exp)
         amount = creature_ptr->exp;
@@ -51,24 +51,24 @@ bool restore_level(player_type *creature_ptr)
         msg_print(_("経験値が戻ってきた気がする。", "You feel your experience returning."));
         creature_ptr->exp = creature_ptr->max_exp;
         check_experience(creature_ptr);
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*
  * Drain experience
  * If resisted to draining, return FALSE
  */
-bool drain_exp(player_type *creature_ptr, s32b drain, s32b slip, int hold_exp_prob)
+bool drain_exp(player_type *creature_ptr, int32_t drain, int32_t slip, int hold_exp_prob)
 {
-    if (creature_ptr->prace == RACE_ANDROID)
-        return FALSE;
+    if (creature_ptr->prace == player_race_type::ANDROID)
+        return false;
 
     if (creature_ptr->hold_exp && (randint0(100) < hold_exp_prob)) {
         msg_print(_("しかし自己の経験値を守りきった！", "You keep hold of your experience!"));
-        return FALSE;
+        return false;
     }
 
     if (creature_ptr->hold_exp) {
@@ -79,5 +79,5 @@ bool drain_exp(player_type *creature_ptr, s32b drain, s32b slip, int hold_exp_pr
         lose_exp(creature_ptr, drain);
     }
 
-    return TRUE;
+    return true;
 }

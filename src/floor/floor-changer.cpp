@@ -38,6 +38,7 @@
 #include "spell-kind/spells-floor.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -105,7 +106,7 @@ static void set_pet_params(player_type *master_ptr, monster_race **r_ptr, const 
     m_ptr->fy = cy;
     m_ptr->fx = cx;
     m_ptr->current_floor_ptr = master_ptr->current_floor_ptr;
-    m_ptr->ml = TRUE;
+    m_ptr->ml = true;
     m_ptr->mtimed[MTIMED_CSLEEP] = 0;
     m_ptr->hold_o_idx_list.clear();
     m_ptr->target_y = 0;
@@ -131,7 +132,7 @@ static void place_pet(player_type *master_ptr)
         if (m_idx != 0) {
             monster_race *r_ptr;
             set_pet_params(master_ptr, &r_ptr, current_monster, m_idx, cy, cx);
-            update_monster(master_ptr, m_idx, TRUE);
+            update_monster(master_ptr, m_idx, true);
             lite_spot(master_ptr, cy, cx);
             if (r_ptr->flags2 & RF2_MULTIPLY)
                 master_ptr->current_floor_ptr->num_repro++;
@@ -162,7 +163,7 @@ static void place_pet(player_type *master_ptr)
  * while new floor creation since dungeons may be re-created by\n
  * auto-scum option.\n
  */
-static void update_unique_artifact(floor_type *floor_ptr, s16b cur_floor_id)
+static void update_unique_artifact(floor_type *floor_ptr, int16_t cur_floor_id)
 {
     for (int i = 1; i < floor_ptr->m_max; i++) {
         monster_race *r_ptr;
@@ -190,7 +191,7 @@ static void check_visited_floor(player_type *creature_ptr, saved_floor_type *sf_
     if ((sf_ptr->last_visit == 0) || !load_floor(creature_ptr, sf_ptr, 0))
         return;
 
-    *loaded = TRUE;
+    *loaded = true;
     if ((creature_ptr->change_floor_mode & CFM_NO_RETURN) == 0)
         return;
 
@@ -243,7 +244,7 @@ static void reset_unique_by_floor_change(player_type *creature_ptr)
             (void)set_monster_stunned(creature_ptr, i, 0);
             (void)set_monster_confused(creature_ptr, i, 0);
             (void)set_monster_monfear(creature_ptr, i, 0);
-            (void)set_monster_invulner(creature_ptr, i, 0, FALSE);
+            (void)set_monster_invulner(creature_ptr, i, 0, false);
         }
 
         r_ptr = real_r_ptr(m_ptr);
@@ -314,9 +315,9 @@ static void update_new_floor_feature(player_type *creature_ptr, saved_floor_type
 
     grid_type *g_ptr = &creature_ptr->current_floor_ptr->grid_array[creature_ptr->y][creature_ptr->x];
     if ((creature_ptr->change_floor_mode & CFM_UP) && !quest_number(creature_ptr, creature_ptr->current_floor_ptr->dun_level))
-        g_ptr->feat = (creature_ptr->change_floor_mode & CFM_SHAFT) ? feat_state(creature_ptr->current_floor_ptr, feat_down_stair, FF_SHAFT) : feat_down_stair;
+        g_ptr->feat = (creature_ptr->change_floor_mode & CFM_SHAFT) ? feat_state(creature_ptr->current_floor_ptr, feat_down_stair, FF::SHAFT) : feat_down_stair;
     else if ((creature_ptr->change_floor_mode & CFM_DOWN) && !ironman_downward)
-        g_ptr->feat = (creature_ptr->change_floor_mode & CFM_SHAFT) ? feat_state(creature_ptr->current_floor_ptr, feat_up_stair, FF_SHAFT) : feat_up_stair;
+        g_ptr->feat = (creature_ptr->change_floor_mode & CFM_SHAFT) ? feat_state(creature_ptr->current_floor_ptr, feat_up_stair, FF::SHAFT) : feat_up_stair;
 
     g_ptr->mimic = 0;
     g_ptr->special = creature_ptr->floor_id;
@@ -350,7 +351,7 @@ static void update_floor(player_type *creature_ptr)
         new_floor_id = get_new_floor_id(creature_ptr);
 
     saved_floor_type *sf_ptr;
-    bool loaded = FALSE;
+    bool loaded = false;
     sf_ptr = get_sf_ptr(new_floor_id);
     check_visited_floor(creature_ptr, sf_ptr, &loaded);
     update_floor_id(creature_ptr, sf_ptr);
@@ -369,19 +370,19 @@ static void update_floor(player_type *creature_ptr)
  */
 void change_floor(player_type *creature_ptr)
 {
-    current_world_ptr->character_dungeon = FALSE;
-    creature_ptr->dtrap = FALSE;
+    current_world_ptr->character_dungeon = false;
+    creature_ptr->dtrap = false;
     panel_row_min = 0;
     panel_row_max = 0;
     panel_col_min = 0;
     panel_col_max = 0;
-    creature_ptr->ambush_flag = FALSE;
+    creature_ptr->ambush_flag = false;
     update_floor(creature_ptr);
     place_pet(creature_ptr);
     forget_travel_flow(creature_ptr->current_floor_ptr);
     update_unique_artifact(creature_ptr->current_floor_ptr, new_floor_id);
     creature_ptr->floor_id = new_floor_id;
-    current_world_ptr->character_dungeon = TRUE;
+    current_world_ptr->character_dungeon = true;
     if (creature_ptr->pseikaku == PERSONALITY_MUNCHKIN)
         wiz_lite(creature_ptr, (bool)(creature_ptr->pclass == CLASS_NINJA));
 

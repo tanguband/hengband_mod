@@ -2,6 +2,7 @@
 #include "action/action-limited.h"
 #include "action/movement-execution.h"
 #include "action/run-execution.h"
+#include "avatar/avatar.h"
 #include "cmd-io/cmd-save.h"
 #include "core/asking-player.h"
 #include "core/disturbance.h"
@@ -15,16 +16,14 @@
 #include "floor/wild.h"
 #include "game-option/birth-options.h"
 #include "game-option/input-options.h"
+#include "game-option/map-screen-options.h"
 #include "game-option/play-record-options.h"
 #include "game-option/special-options.h"
-#include "game-option/map-screen-options.h"
 #include "grid/feature.h"
-#include "grid/grid.h"
 #include "info-reader/fixed-map-parser.h"
 #include "io/input-key-requester.h"
 #include "io/write-diary.h"
 #include "mind/mind-ninja.h"
-#include "player-info/avatar.h"
 #include "player-status/player-energy.h"
 #include "player/attack-defense-types.h"
 #include "player/player-move.h"
@@ -34,6 +33,7 @@
 #include "spell-realm/spells-song.h"
 #include "status/action-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "util/bit-flags-calculator.h"
@@ -55,7 +55,7 @@ static bool confirm_leave_level(player_type *creature_ptr, bool down_stair)
         return get_check(_("本当にこの階を去りますか？", "Really leave this floor? "));
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -63,20 +63,20 @@ static bool confirm_leave_level(player_type *creature_ptr, bool down_stair)
  */
 void do_cmd_go_up(player_type *creature_ptr)
 {
-    bool go_up = FALSE;
+    bool go_up = false;
     grid_type *g_ptr = &creature_ptr->current_floor_ptr->grid_array[creature_ptr->y][creature_ptr->x];
     feature_type *f_ptr = &f_info[g_ptr->feat];
     int up_num = 0;
     if (creature_ptr->special_defense & KATA_MUSOU)
         set_action(creature_ptr, ACTION_NONE);
 
-    if (!has_flag(f_ptr->flags, FF_LESS)) {
+    if (f_ptr->flags.has_not(FF::LESS)) {
         msg_print(_("ここには上り階段が見当たらない。", "I see no up staircase here."));
         return;
     }
 
-    if (has_flag(f_ptr->flags, FF_QUEST)) {
-        if (!confirm_leave_level(creature_ptr, FALSE))
+    if (f_ptr->flags.has(FF::QUEST)) {
+        if (!confirm_leave_level(creature_ptr, false))
             return;
 
         if (is_echizen(creature_ptr))
@@ -100,7 +100,7 @@ void do_cmd_go_up(player_type *creature_ptr)
             creature_ptr->word_recall = 0;
         }
 
-        creature_ptr->leaving = TRUE;
+        creature_ptr->leaving = true;
         creature_ptr->oldpx = 0;
         creature_ptr->oldpy = 0;
         PlayerEnergy(creature_ptr).set_player_turn_energy(100);
@@ -108,9 +108,9 @@ void do_cmd_go_up(player_type *creature_ptr)
     }
 
     if (!is_in_dungeon(creature_ptr))
-        go_up = TRUE;
+        go_up = true;
     else
-        go_up = confirm_leave_level(creature_ptr, FALSE);
+        go_up = confirm_leave_level(creature_ptr, false);
 
     if (!go_up)
         return;
@@ -118,7 +118,7 @@ void do_cmd_go_up(player_type *creature_ptr)
     PlayerEnergy(creature_ptr).set_player_turn_energy(100);
 
     if (autosave_l)
-        do_cmd_save_game(creature_ptr, TRUE);
+        do_cmd_save_game(creature_ptr, true);
 
     if (creature_ptr->current_floor_ptr->inside_quest && quest[creature_ptr->current_floor_ptr->inside_quest].type == QUEST_TYPE_RANDOM) {
         leave_quest_check(creature_ptr);
@@ -131,7 +131,7 @@ void do_cmd_go_up(player_type *creature_ptr)
         creature_ptr->current_floor_ptr->dun_level = 0;
         up_num = 0;
     } else {
-        if (has_flag(f_ptr->flags, FF_SHAFT)) {
+        if (f_ptr->flags.has(FF::SHAFT)) {
             prepare_change_floor_mode(creature_ptr, CFM_SAVE_FLOORS | CFM_UP | CFM_SHAFT);
             up_num = 2;
         } else {
@@ -146,16 +146,20 @@ void do_cmd_go_up(player_type *creature_ptr)
     if (record_stair)
         exe_write_diary(creature_ptr, DIARY_STAIR, 0 - up_num, _("階段を上った", "climbed up the stairs to"));
 
-    if (is_echizen(creature_ptr))
-        msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
-    else if (up_num == creature_ptr->current_floor_ptr->dun_level) {
-        msg_print(_("地上に戻った。", "You go back to the surface."));
+    if (up_num == creature_ptr->current_floor_ptr->dun_level) {
+        if (is_echizen(creature_ptr))
+            msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
+        else
+            msg_print(_("地上に戻った。", "You go back to the surface."));
         creature_ptr->word_recall = 0;
+    } else {
+        if (is_echizen(creature_ptr))
+            msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
+        else
+            msg_print(_("階段を上って新たなる迷宮へと足を踏み入れた。", "You enter a maze of up staircases."));
     }
-    else
-        msg_print(_("階段を上って新たなる迷宮へと足を踏み入れた。", "You enter a maze of up staircases."));
 
-    creature_ptr->leaving = TRUE;
+    creature_ptr->leaving = true;
 }
 
 /*!
@@ -164,28 +168,28 @@ void do_cmd_go_up(player_type *creature_ptr)
  */
 void do_cmd_go_down(player_type *creature_ptr)
 {
-    bool fall_trap = FALSE;
+    bool fall_trap = false;
     int down_num = 0;
     if (creature_ptr->special_defense & KATA_MUSOU)
         set_action(creature_ptr, ACTION_NONE);
 
     grid_type *g_ptr = &creature_ptr->current_floor_ptr->grid_array[creature_ptr->y][creature_ptr->x];
     feature_type *f_ptr = &f_info[g_ptr->feat];
-    if (!has_flag(f_ptr->flags, FF_MORE)) {
+    if (f_ptr->flags.has_not(FF::MORE)) {
         msg_print(_("ここには下り階段が見当たらない。", "I see no down staircase here."));
         return;
     }
 
-    if (has_flag(f_ptr->flags, FF_TRAP))
-        fall_trap = TRUE;
+    if (f_ptr->flags.has(FF::TRAP))
+        fall_trap = true;
 
-    if (has_flag(f_ptr->flags, FF_QUEST_ENTER)) {
+    if (f_ptr->flags.has(FF::QUEST_ENTER)) {
         do_cmd_quest(creature_ptr);
         return;
     }
 
-    if (has_flag(f_ptr->flags, FF_QUEST)) {
-        if (!confirm_leave_level(creature_ptr, TRUE))
+    if (f_ptr->flags.has(FF::QUEST)) {
+        if (!confirm_leave_level(creature_ptr, true))
             return;
 
         if (is_echizen(creature_ptr))
@@ -210,7 +214,7 @@ void do_cmd_go_down(player_type *creature_ptr)
             creature_ptr->word_recall = 0;
         }
 
-        creature_ptr->leaving = TRUE;
+        creature_ptr->leaving = true;
         creature_ptr->oldpx = 0;
         creature_ptr->oldpy = 0;
         PlayerEnergy(creature_ptr).set_player_turn_energy(100);
@@ -219,7 +223,7 @@ void do_cmd_go_down(player_type *creature_ptr)
 
     DUNGEON_IDX target_dungeon = 0;
     if (!is_in_dungeon(creature_ptr)) {
-        target_dungeon = has_flag(f_ptr->flags, FF_ENTRANCE) ? g_ptr->special : DUNGEON_ANGBAND;
+        target_dungeon = f_ptr->flags.has(FF::ENTRANCE) ? g_ptr->special : DUNGEON_ANGBAND;
         if (ironman_downward && (target_dungeon != DUNGEON_ANGBAND)) {
             msg_print(_("ダンジョンの入口は塞がれている！", "The entrance of this dungeon is closed!"));
             return;
@@ -240,15 +244,15 @@ void do_cmd_go_down(player_type *creature_ptr)
 
     PlayerEnergy(creature_ptr).set_player_turn_energy(100);
     if (autosave_l)
-        do_cmd_save_game(creature_ptr, TRUE);
+        do_cmd_save_game(creature_ptr, true);
 
-    if (has_flag(f_ptr->flags, FF_SHAFT))
+    if (f_ptr->flags.has(FF::SHAFT))
         down_num += 2;
     else
         down_num += 1;
 
     if (!is_in_dungeon(creature_ptr)) {
-        creature_ptr->enter_dungeon = TRUE;
+        creature_ptr->enter_dungeon = true;
         down_num = d_info[creature_ptr->dungeon_idx].mindepth;
     }
 
@@ -272,14 +276,14 @@ void do_cmd_go_down(player_type *creature_ptr)
         }
     }
 
-    creature_ptr->leaving = TRUE;
+    creature_ptr->leaving = true;
 
     if (fall_trap) {
         prepare_change_floor_mode(creature_ptr, CFM_SAVE_FLOORS | CFM_DOWN | CFM_RAND_PLACE | CFM_RAND_CONNECT);
         return;
     }
 
-    if (has_flag(f_ptr->flags, FF_SHAFT))
+    if (f_ptr->flags.has(FF::SHAFT))
         prepare_change_floor_mode(creature_ptr, CFM_SAVE_FLOORS | CFM_DOWN | CFM_SHAFT);
     else
         prepare_change_floor_mode(creature_ptr, CFM_SAVE_FLOORS | CFM_DOWN);
@@ -299,9 +303,9 @@ void do_cmd_walk(player_type *creature_ptr, bool pickup)
         command_arg = 0;
     }
 
-    bool more = FALSE;
+    bool more = false;
     DIRECTION dir;
-    if (get_rep_dir(creature_ptr, &dir, FALSE)) {
+    if (get_rep_dir(creature_ptr, &dir, false)) {
         PlayerEnergy energy(creature_ptr);
         energy.set_player_turn_energy(100);
         if ((dir != 5) && (creature_ptr->special_defense & KATA_MUSOU))
@@ -316,11 +320,11 @@ void do_cmd_walk(player_type *creature_ptr, bool pickup)
             energy.set_player_turn_energy(energy_use);
         }
 
-        exe_movement(creature_ptr, dir, pickup, FALSE);
-        more = TRUE;
+        exe_movement(creature_ptr, dir, pickup, false);
+        more = true;
     }
 
-    if (creature_ptr->wild_mode && !cave_has_flag_bold(creature_ptr->current_floor_ptr, creature_ptr->y, creature_ptr->x, FF_TOWN)) {
+    if (creature_ptr->wild_mode && !cave_has_flag_bold(creature_ptr->current_floor_ptr, creature_ptr->y, creature_ptr->x, FF::TOWN)) {
         int tmp = 120 + creature_ptr->lev * 10 - wilderness[creature_ptr->y][creature_ptr->x].level + 5;
         if (tmp < 1)
             tmp = 1;
@@ -329,13 +333,13 @@ void do_cmd_walk(player_type *creature_ptr, bool pickup)
             msg_print(_("襲撃だ！", "You are ambushed !"));
             creature_ptr->oldpy = randint1(MAX_HGT - 2);
             creature_ptr->oldpx = randint1(MAX_WID - 2);
-            change_wild_mode(creature_ptr, TRUE);
+            change_wild_mode(creature_ptr, true);
             PlayerEnergy(creature_ptr).set_player_turn_energy(100);
         }
     }
 
     if (!more)
-        disturb(creature_ptr, FALSE, FALSE);
+        disturb(creature_ptr, false, false);
 }
 
 /*!
@@ -352,7 +356,7 @@ void do_cmd_run(player_type *creature_ptr)
     if (creature_ptr->special_defense & KATA_MUSOU)
         set_action(creature_ptr, ACTION_NONE);
 
-    if (get_rep_dir(creature_ptr, &dir, FALSE)) {
+    if (get_rep_dir(creature_ptr, &dir, false)) {
         creature_ptr->running = (command_arg ? command_arg : 1000);
         run_step(creature_ptr, dir);
     }
@@ -367,7 +371,7 @@ void do_cmd_run(player_type *creature_ptr)
  */
 void do_cmd_stay(player_type *creature_ptr, bool pickup)
 {
-    u32b mpe_mode = MPE_STAYING | MPE_ENERGY_USE;
+    uint32_t mpe_mode = MPE_STAYING | MPE_ENERGY_USE;
     if (command_arg) {
         command_rep = command_arg - 1;
         creature_ptr->redraw |= (PR_STATE);
@@ -389,7 +393,7 @@ void do_cmd_stay(player_type *creature_ptr, bool pickup)
 void do_cmd_rest(player_type *creature_ptr)
 {
     set_action(creature_ptr, ACTION_NONE);
-    if ((creature_ptr->pclass == CLASS_BARD) && ((get_singing_song_effect(creature_ptr) != 0)|| (get_interrupting_song_effect(creature_ptr) != 0)))
+    if ((creature_ptr->pclass == CLASS_BARD) && ((get_singing_song_effect(creature_ptr) != 0) || (get_interrupting_song_effect(creature_ptr) != 0)))
         stop_singing(creature_ptr);
 
     if (hex_spelling_any(creature_ptr))
@@ -417,7 +421,7 @@ void do_cmd_rest(player_type *creature_ptr)
         command_arg = 9999;
 
     if (creature_ptr->special_defense & NINJA_S_STEALTH)
-        set_superstealth(creature_ptr, FALSE);
+        set_superstealth(creature_ptr, false);
 
     PlayerEnergy(creature_ptr).set_player_turn_energy(100);
     if (command_arg > 100)

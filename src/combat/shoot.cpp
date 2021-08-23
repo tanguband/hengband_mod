@@ -1,5 +1,6 @@
 ﻿#include "combat/shoot.h"
 #include "artifact/fixed-art-types.h"
+#include "avatar/avatar.h"
 #include "combat/attack-criticality.h"
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
@@ -34,6 +35,7 @@
 #include "monster-race/race-flags3.h"
 #include "monster-race/race-flags7.h"
 #include "monster-race/race-indice-types.h"
+#include "monster/monster-damage.h"
 #include "monster/monster-describer.h"
 #include "monster/monster-info.h"
 #include "monster/monster-status-setter.h"
@@ -46,7 +48,6 @@
 #include "object/object-info.h"
 #include "object/object-kind.h"
 #include "object/object-mark-types.h"
-#include "player-info/avatar.h"
 #include "player-status/player-energy.h"
 #include "player/player-class.h"
 #include "player/player-personality-types.h"
@@ -56,6 +57,7 @@
 #include "sv-definition/sv-bow-types.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -76,13 +78,14 @@
  * @param monster_ptr 目標モンスターの構造体参照ポインタ
  * @return スレイ倍率をかけたダメージ量
  */
-static MULTIPLY calc_shot_damage_with_slay(player_type *sniper_ptr, object_type *bow_ptr, object_type *arrow_ptr, HIT_POINT tdam, monster_type *monster_ptr, SPELL_IDX snipe_type)
+static MULTIPLY calc_shot_damage_with_slay(
+    player_type *sniper_ptr, object_type *bow_ptr, object_type *arrow_ptr, HIT_POINT tdam, monster_type *monster_ptr, SPELL_IDX snipe_type)
 {
     MULTIPLY mult = 10;
 
     monster_race *race_ptr = &r_info[monster_ptr->r_idx];
 
-    BIT_FLAGS flags[TR_FLAG_SIZE], bow_flags[TR_FLAG_SIZE], arrow_flags[TR_FLAG_SIZE];
+    TrFlags flags, bow_flags, arrow_flags;
     object_flags(sniper_ptr, arrow_ptr, arrow_flags);
     object_flags(sniper_ptr, bow_ptr, bow_flags);
 
@@ -393,16 +396,16 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
     object_type *o_ptr;
 
-    bool hit_body = FALSE;
+    bool hit_body = false;
 
     GAME_TEXT o_name[MAX_NLEN];
 
-    u16b path_g[512]; /* For calcuration of path length */
+    uint16_t path_g[512]; /* For calcuration of path length */
 
     int msec = delay_factor * delay_factor * delay_factor;
 
     /* STICK TO */
-    bool stick_to = FALSE;
+    bool stick_to = false;
 
     /* Access the item (if in the pack) */
     if (item >= 0) {
@@ -469,6 +472,9 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
         return;
     }
 
+    if (snipe_type != SP_NONE)
+        sound(SOUND_ZAP);
+
     /* Predict the "target" location */
     tx = shooter_ptr->x + 99 * ddx[dir];
     ty = shooter_ptr->y + 99 * ddy[dir];
@@ -495,7 +501,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
     /* Take a (partial) turn */
     PlayerEnergy(shooter_ptr).div_player_turn_energy((ENERGY)thits);
-    shooter_ptr->is_fired = TRUE;
+    shooter_ptr->is_fired = true;
 
     /* Sniper - Difficult to shot twice at 1 turn */
     if (snipe_type == SP_DOUBLE)
@@ -521,7 +527,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
         prev_x = x;
 
         /* The shot does not hit yet */
-        hit_body = FALSE;
+        hit_body = false;
 
         /* Travel until stopped */
         for (cur_dis = 0; cur_dis <= tdis;) {
@@ -540,7 +546,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
             if (snipe_type == SP_KILL_WALL) {
                 g_ptr = &shooter_ptr->current_floor_ptr->grid_array[ny][nx];
 
-                if (cave_has_flag_grid(g_ptr, FF_HURT_ROCK) && !g_ptr->m_idx) {
+                if (g_ptr->cave_has_flag(FF::HURT_ROCK) && !g_ptr->m_idx) {
                     if (any_bits(g_ptr->info, (CAVE_MARK)))
                         msg_print(_("岩が砕け散った。", "Wall rocks were shattered."));
                     /* Forget the wall */
@@ -548,15 +554,15 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                     set_bits(shooter_ptr->update, PU_VIEW | PU_LITE | PU_FLOW | PU_MON_LITE);
 
                     /* Destroy the wall */
-                    cave_alter_feat(shooter_ptr, ny, nx, FF_HURT_ROCK);
+                    cave_alter_feat(shooter_ptr, ny, nx, FF::HURT_ROCK);
 
-                    hit_body = TRUE;
+                    hit_body = true;
                     break;
                 }
             }
 
             /* Stopped by walls/doors */
-            if (!cave_has_flag_bold(shooter_ptr->current_floor_ptr, ny, nx, FF_PROJECT) && !shooter_ptr->current_floor_ptr->grid_array[ny][nx].m_idx)
+            if (!cave_has_flag_bold(shooter_ptr->current_floor_ptr, ny, nx, FF::PROJECT) && !shooter_ptr->current_floor_ptr->grid_array[ny][nx].m_idx)
                 break;
 
             /* Advance the distance */
@@ -614,6 +620,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
             /* Monster here, Try to hit it */
             if (shooter_ptr->current_floor_ptr->grid_array[y][x].m_idx) {
+                sound(SOUND_SHOOT_HIT);
                 grid_type *c_mon_ptr = &shooter_ptr->current_floor_ptr->grid_array[y][x];
 
                 monster_type *m_ptr = &shooter_ptr->current_floor_ptr->m_list[c_mon_ptr->m_idx];
@@ -623,7 +630,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                 visible = m_ptr->ml;
 
                 /* Note the collision */
-                hit_body = TRUE;
+                hit_body = true;
 
                 if (monster_csleep_remaining(m_ptr)) {
                     if (none_bits(r_ptr->flags3, RF3_EVIL) || one_in_(5))
@@ -661,7 +668,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
                 /* Did we hit it (penalize range) */
                 if (test_hit_fire(shooter_ptr, chance - cur_dis, m_ptr, m_ptr->ml, o_name)) {
-                    bool fear = FALSE;
+                    bool fear = false;
                     auto tdam = tdam_base; //!< @note 実際に与えるダメージ
                     auto base_dam = tdam; //!< @note 補正前の与えるダメージ(無傷、全ての耐性など)
 
@@ -717,7 +724,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
                         /* Modify the damage */
                         base_dam = tdam;
-                        tdam = mon_damage_mod(shooter_ptr, m_ptr, tdam, FALSE);
+                        tdam = mon_damage_mod(shooter_ptr, m_ptr, tdam, false);
                     }
 
                     msg_format_wizard(shooter_ptr, CHEAT_MONSTER, _("%dのダメージを与えた。(残りHP %d/%d(%d))", "You do %d damage. (left HP %d/%d(%d))"), tdam,
@@ -725,7 +732,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
                     /* Sniper */
                     if (snipe_type == SP_EXPLODE) {
-                        u16b flg = (PROJECT_STOP | PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID);
+                        uint16_t flg = (PROJECT_STOP | PROJECT_JUMP | PROJECT_KILL | PROJECT_GRID);
 
                         sound(SOUND_EXPLODE); /* No explode sound - use breath fire instead */
                         project(shooter_ptr, 0, ((shooter_ptr->concent + 1) / 2 + 1), ny, nx, base_dam, GF_MISSILE, flg);
@@ -740,7 +747,8 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                     }
 
                     /* Hit the monster, check for death */
-                    if (mon_take_hit(shooter_ptr, c_mon_ptr->m_idx, tdam, &fear, extract_note_dies(real_r_idx(m_ptr)))) {
+                    MonsterDamageProcessor mdp(shooter_ptr, c_mon_ptr->m_idx, tdam, &fear);
+                    if (mdp.mon_take_hit(extract_note_dies(real_r_idx(m_ptr)))) {
                         /* Dead monster */
                     }
 
@@ -752,7 +760,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
                             monster_desc(shooter_ptr, m_name, m_ptr, 0);
 
-                            stick_to = TRUE;
+                            stick_to = true;
                             msg_format(_("%sは%sに突き刺さった！", "%^s is stuck in %s!"), o_name, m_name);
                         }
 
@@ -804,7 +812,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
                                 m_ptr->fx = nx;
                                 m_ptr->fy = ny;
 
-                                update_monster(shooter_ptr, m_idx, TRUE);
+                                update_monster(shooter_ptr, m_idx, true);
 
                                 if (msec > 0) {
                                     lite_spot(shooter_ptr, ny, nx);
@@ -865,7 +873,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
             /* Carry object */
             m_ptr->hold_o_idx_list.add(shooter_ptr->current_floor_ptr, o_idx);
-        } else if (cave_has_flag_bold(shooter_ptr->current_floor_ptr, y, x, FF_PROJECT)) {
+        } else if (cave_has_flag_bold(shooter_ptr->current_floor_ptr, y, x, FF::PROJECT)) {
             /* Drop (or break) near that location */
             (void)drop_near(shooter_ptr, q_ptr, j, y, x);
         } else {
@@ -878,7 +886,7 @@ void exe_fire(player_type *shooter_ptr, INVENTORY_IDX item, object_type *j_ptr, 
 
     /* Sniper - Loose his/her concentration after any shot */
     if (shooter_ptr->concent)
-        reset_concentration(shooter_ptr, FALSE);
+        reset_concentration(shooter_ptr, false);
 }
 
 /*!
@@ -905,17 +913,17 @@ bool test_hit_fire(player_type *shooter_ptr, int chance, monster_type *m_ptr, in
 
     /* Hack -- Instant miss or hit */
     if (k <= 5)
-        return FALSE;
+        return false;
     if (k > 95)
-        return TRUE;
+        return true;
 
     if (shooter_ptr->pseikaku == PERSONALITY_LAZY)
         if (one_in_(20))
-            return FALSE;
+            return false;
 
     /* Never hit */
     if (chance <= 0)
-        return FALSE;
+        return false;
 
     ac = r_ptr->ac;
     if (shooter_ptr->concent) {
@@ -937,11 +945,11 @@ bool test_hit_fire(player_type *shooter_ptr, int chance, monster_type *m_ptr, in
             monster_desc(shooter_ptr, m_name, m_ptr, 0);
             msg_format(_("%sは%sを斬り捨てた！", "%s cuts down %s!"), m_name, o_name);
         }
-        return FALSE;
+        return false;
     }
 
     /* Assume hit */
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -1140,7 +1148,7 @@ HIT_POINT calc_crit_ratio_shot(player_type *shooter_ptr, HIT_POINT plus_ammo, HI
  */
 HIT_POINT calc_expect_crit_shot(player_type *shooter_ptr, WEIGHT weight, int plus_ammo, int plus_bow, HIT_POINT dam)
 {
-    u32b num;
+    uint32_t num;
     int i, k, crit;
     i = calc_crit_ratio_shot(shooter_ptr, plus_ammo, plus_bow);
 
@@ -1181,7 +1189,7 @@ HIT_POINT calc_expect_crit_shot(player_type *shooter_ptr, WEIGHT weight, int plu
  * @param impact 強撃かどうか
  * @return ダメージ期待値
  */
-HIT_POINT calc_expect_crit(player_type *shooter_ptr, WEIGHT weight, int plus, HIT_POINT dam, s16b meichuu, bool dokubari, bool impact)
+HIT_POINT calc_expect_crit(player_type *shooter_ptr, WEIGHT weight, int plus, HIT_POINT dam, int16_t meichuu, bool dokubari, bool impact)
 {
     if (dokubari)
         return dam;
@@ -1200,7 +1208,7 @@ HIT_POINT calc_expect_crit(player_type *shooter_ptr, WEIGHT weight, int plus, HI
         return sum / 650;
     };
 
-    u32b num = 0;
+    uint32_t num = 0;
 
     if (impact) {
         for (int d = 1; d <= 650; ++d) {

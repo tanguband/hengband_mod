@@ -9,10 +9,6 @@
  * 2014 Deskull rearranged comment for Doxygen. \n
  */
 
-#include <algorithm>
-#include <array>
-#include <stack>
-
 #include "floor/floor-generator.h"
 #include "dungeon/dungeon-flag-types.h"
 #include "dungeon/dungeon.h"
@@ -45,6 +41,7 @@
 #include "player/player-status.h"
 #include "system/building-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -54,6 +51,9 @@
 #include "window/main-window-util.h"
 #include "wizard/wizard-messages.h"
 #include "world/world.h"
+#include <algorithm>
+#include <array>
+#include <stack>
 
 /*!
  * @brief 闘技場用のアリーナ地形を作成する / Builds the on_defeat_arena_monster after it is entered -KMW-
@@ -134,7 +134,7 @@ static void generate_challenge_arena(player_type *challanger_ptr)
     if (place_monster_aux(challanger_ptr, 0, challanger_ptr->y + 5, challanger_ptr->x, arena_info[challanger_ptr->arena_number].r_idx, PM_NO_KAGE | PM_NO_PET))
         return;
 
-    challanger_ptr->exit_bldg = TRUE;
+    challanger_ptr->exit_bldg = true;
     challanger_ptr->arena_number++;
     msg_print(_("相手は欠場した。あなたの不戦勝だ。", "The enemy is unable to appear. You won by default."));
 }
@@ -231,7 +231,7 @@ static void generate_gambling_arena(player_type *creature_ptr)
             continue;
 
         m_ptr->mflag2.set({ MFLAG2::MARK, MFLAG2::SHOW });
-        update_monster(creature_ptr, i, FALSE);
+        update_monster(creature_ptr, i, false);
     }
 }
 
@@ -282,12 +282,12 @@ static bool level_gen(player_type *player_ptr, concptr *why)
         } else {
             level_height = randint1(MAX_HGT / SCREEN_HGT);
             level_width = randint1(MAX_WID / SCREEN_WID);
-            bool is_first_level_area = TRUE;
+            bool is_first_level_area = true;
             bool is_max_area = (level_height == MAX_HGT / SCREEN_HGT) && (level_width == MAX_WID / SCREEN_WID);
             while (is_first_level_area || is_max_area) {
                 level_height = randint1(MAX_HGT / SCREEN_HGT);
                 level_width = randint1(MAX_WID / SCREEN_WID);
-                is_first_level_area = FALSE;
+                is_first_level_area = false;
                 is_max_area = (level_height == MAX_HGT / SCREEN_HGT) && (level_width == MAX_WID / SCREEN_WID);
             }
         }
@@ -371,8 +371,8 @@ typedef bool (*IsWallFunc)(const floor_type *, int, int);
 static bool is_permanent_blocker(const floor_type *const floor_ptr, const int y, const int x)
 {
     const FEAT_IDX feat = floor_ptr->grid_array[y][x].feat;
-    const BIT_FLAGS *const flags = f_info[feat].flags;
-    return has_flag(flags, FF_PERMANENT) && !has_flag(flags, FF_MOVE);
+    const auto &flags = f_info[feat].flags;
+    return flags.has(FF::PERMANENT) && flags.has_not(FF::MOVE);
 }
 
 static void floor_is_connected_dfs(const floor_type *const floor_ptr, const IsWallFunc is_wall, const int y_start, const int x_start, bool *const visited)
@@ -391,7 +391,7 @@ static void floor_is_connected_dfs(const floor_type *const floor_ptr, const IsWa
     std::stack<int> stk;
 
     stk.emplace(start);
-    visited[start] = TRUE;
+    visited[start] = true;
 
     while (!stk.empty()) {
         const int cur = stk.top();
@@ -411,7 +411,7 @@ static void floor_is_connected_dfs(const floor_type *const floor_ptr, const IsWa
                 continue;
 
             stk.emplace(nxt);
-            visited[nxt] = TRUE;
+            visited[nxt] = true;
         }
     }
 }
@@ -458,8 +458,8 @@ void generate_floor(player_type *player_ptr)
     floor_type *floor_ptr = player_ptr->current_floor_ptr;
     floor_ptr->dungeon_idx = player_ptr->dungeon_idx;
     set_floor_and_wall(floor_ptr->dungeon_idx);
-    for (int num = 0; TRUE; num++) {
-        bool okay = TRUE;
+    for (int num = 0; true; num++) {
+        bool okay = true;
         concptr why = NULL;
         clear_cave(player_ptr);
         player_ptr->x = player_ptr->y = 0;
@@ -479,10 +479,10 @@ void generate_floor(player_type *player_ptr)
 
         if (floor_ptr->o_max >= current_world_ptr->max_o_idx) {
             why = _("アイテムが多すぎる", "too many objects");
-            okay = FALSE;
+            okay = false;
         } else if (floor_ptr->m_max >= current_world_ptr->max_m_idx) {
             why = _("モンスターが多すぎる", "too many monsters");
-            okay = FALSE;
+            okay = false;
         }
 
         // ダンジョン内フロアが連結でない(永久壁で区切られた孤立部屋がある)場合、
@@ -496,7 +496,7 @@ void generate_floor(player_type *player_ptr)
                 plog("cannot generate connected floor. giving up...");
             } else {
                 why = _("フロアが連結でない", "floor is not connected");
-                okay = FALSE;
+                okay = false;
             }
         }
 
@@ -511,6 +511,6 @@ void generate_floor(player_type *player_ptr)
     }
 
     glow_deep_lava_and_bldg(player_ptr);
-    player_ptr->enter_dungeon = FALSE;
+    player_ptr->enter_dungeon = false;
     wipe_generate_random_floor_flags(floor_ptr);
 }

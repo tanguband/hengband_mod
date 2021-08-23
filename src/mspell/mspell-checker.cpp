@@ -21,7 +21,6 @@
 #include "floor/cave.h"
 #include "floor/geometry.h"
 #include "floor/line-of-sight.h"
-#include "grid/grid.h"
 #include "monster-floor/monster-move.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-ability-mask.h"
@@ -49,6 +48,7 @@
 #include "spell/range-calc.h"
 #include "spell/spell-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -81,11 +81,11 @@ bool summon_possible(player_type *target_ptr, POSITION y1, POSITION x1)
                 continue;
 
             if (is_cave_empty_bold(target_ptr, y, x) && projectable(target_ptr, y1, x1, y, x) && projectable(target_ptr, y, x, y1, x1))
-                return TRUE;
+                return true;
         }
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -115,13 +115,13 @@ bool raise_possible(player_type *target_ptr, monster_type *m_ptr)
                 object_type *o_ptr = &floor_ptr->o_list[this_o_idx];
                 if (o_ptr->tval == TV_CORPSE) {
                     if (!monster_has_hostile_align(target_ptr, m_ptr, 0, 0, &r_info[o_ptr->pval]))
-                        return TRUE;
+                        return true;
                 }
             }
         }
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -147,15 +147,15 @@ bool raise_possible(player_type *target_ptr, monster_type *m_ptr)
 bool clean_shot(player_type *target_ptr, POSITION y1, POSITION x1, POSITION y2, POSITION x2, bool is_friend)
 {
     floor_type *floor_ptr = target_ptr->current_floor_ptr;
-    u16b grid_g[512];
+    uint16_t grid_g[512];
     int grid_n = projection_path(target_ptr, grid_g, get_max_range(target_ptr), y1, x1, y2, x2, 0);
     if (!grid_n)
-        return FALSE;
+        return false;
 
     POSITION y = get_grid_y(grid_g[grid_n - 1]);
     POSITION x = get_grid_x(grid_g[grid_n - 1]);
     if ((y != y2) || (x != x2))
-        return FALSE;
+        return false;
 
     for (int i = 0; i < grid_n; i++) {
         y = get_grid_y(grid_g[i]);
@@ -164,15 +164,15 @@ bool clean_shot(player_type *target_ptr, POSITION y1, POSITION x1, POSITION y2, 
         if ((floor_ptr->grid_array[y][x].m_idx > 0) && !((y == y2) && (x == x2))) {
             monster_type *m_ptr = &floor_ptr->m_list[floor_ptr->grid_array[y][x].m_idx];
             if (is_friend == is_pet(m_ptr)) {
-                return FALSE;
+                return false;
             }
         }
 
         if (player_bold(target_ptr, y, x) && is_friend)
-            return FALSE;
+            return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!

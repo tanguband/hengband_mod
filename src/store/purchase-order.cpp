@@ -1,5 +1,8 @@
 ﻿#include "store/purchase-order.h"
+#include "autopick/autopick-finder.h"
+#include "autopick/autopick-util.h"
 #include "autopick/autopick.h"
+#include "avatar/avatar.h"
 #include "core/asking-player.h"
 #include "core/stuff-handler.h"
 #include "flavor/flavor-describer.h"
@@ -17,7 +20,6 @@
 #include "object/object-stack.h"
 #include "object/object-value.h"
 #include "perception/object-perception.h"
-#include "player-info/avatar.h"
 #include "player/race-info-table.h"
 #include "store/home.h"
 #include "store/pricing.h"
@@ -45,14 +47,7 @@
  */
 static std::optional<PRICE> prompt_to_buy(player_type *player_ptr, object_type *o_ptr)
 {
-    auto price_ask = price_item(player_ptr, o_ptr, ot_ptr->inflate, FALSE);
-    auto is_low_price = price_ask < LOW_PRICE_THRESHOLD;
-
-    if (!is_low_price)
-        price_ask += price_ask / 10;
-
-    msg_print(_("すんなりとこの金額にまとまった。", "You quickly agree upon the price."));
-    msg_print(NULL);
+    auto price_ask = price_item(player_ptr, o_ptr, ot_ptr->inflate, false);
 
     price_ask *= o_ptr->number;
     concptr s = format(_("買値 $%ld で買いますか？", "Do you buy for $%ld? "), static_cast<long>(price_ask));
@@ -63,7 +58,7 @@ static std::optional<PRICE> prompt_to_buy(player_type *player_ptr, object_type *
     return std::nullopt;
 }
 
-    /*!
+/*!
  * @brief 店舗から購入する際のアイテム選択プロンプト
  * @param item 店舗インベントリ番号(アドレス渡し)
  * @param i 店舗インベントリストック数
@@ -146,7 +141,7 @@ static void shuffle_store(player_type *player_ptr)
     msg_print(_("店主は引退した。", "The shopkeeper retires."));
     store_shuffle(player_ptr, cur_store_num);
     prt("", 3, 0);
-    sprintf(buf, "%s (%s)", ot_ptr->owner_name, race_info[ot_ptr->owner_race].title);
+    sprintf(buf, "%s (%s)", ot_ptr->owner_name, race_info[static_cast<int>(ot_ptr->owner_race)].title);
     put_str(buf, 3, 10);
     sprintf(buf, "%s (%ld)", f_info[cur_store_feat].name.c_str(), (long)(ot_ptr->max_cost));
     prt(buf, 3, 50);
@@ -222,9 +217,9 @@ void store_purchase(player_type *player_ptr)
         return;
     }
 
-    PRICE best = price_item(player_ptr, j_ptr, ot_ptr->inflate, FALSE);
+    PRICE best = price_item(player_ptr, j_ptr, ot_ptr->inflate, false);
     if (o_ptr->number > 1) {
-        if ((cur_store_num != STORE_HOME) && (o_ptr->ident & IDENT_FIXED)) {
+        if (cur_store_num != STORE_HOME) {
             msg_format(_("一つにつき $%ldです。", "That costs %ld gold per item."), (long)(best));
         }
 
@@ -254,25 +249,18 @@ void store_purchase(player_type *player_ptr)
 
     COMMAND_CODE item_new;
     PRICE price;
-    if (o_ptr->ident & (IDENT_FIXED)) {
-        price = (best * j_ptr->number);
-    } else {
-        GAME_TEXT o_name[MAX_NLEN];
-        describe_flavor(player_ptr, o_name, j_ptr, 0);
-        msg_format(_("%s(%c)を購入する。", "Buying %s (%c)."), o_name, I2A(item));
-        msg_print(NULL);
+    GAME_TEXT o_name[MAX_NLEN];
+    describe_flavor(player_ptr, o_name, j_ptr, 0);
+    msg_format(_("%s(%c)を購入する。", "Buying %s (%c)."), o_name, I2A(item));
+    msg_print(NULL);
 
-        auto res = prompt_to_buy(player_ptr, j_ptr);
-        if (st_ptr->store_open >= current_world_ptr->game_turn)
-            return;
-        if (!res)
-            return;
+    auto res = prompt_to_buy(player_ptr, j_ptr);
+    if (st_ptr->store_open >= current_world_ptr->game_turn)
+        return;
+    if (!res)
+        return;
 
-        price = res.value();
-    }
-
-    if (price == (best * j_ptr->number))
-        o_ptr->ident |= (IDENT_FIXED);
+    price = res.value();
 
     if (player_ptr->au < price) {
         msg_print(_("お金が足りません。", "You do not have enough gold."));
@@ -289,9 +277,7 @@ void store_purchase(player_type *player_ptr)
     player_ptr->au -= price;
     store_prt_gold(player_ptr);
     object_aware(player_ptr, j_ptr);
-    j_ptr->ident &= ~(IDENT_FIXED);
 
-    GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(player_ptr, o_name, j_ptr, 0);
     msg_format(_("%sを $%ldで購入しました。", "You bought %s for %ld gold."), o_name, (long)price);
 
@@ -308,13 +294,16 @@ void store_purchase(player_type *player_ptr)
     j_ptr->inscription = 0;
     j_ptr->feeling = FEEL_NONE;
     j_ptr->ident &= ~(IDENT_STORE);
+
+    const auto idx = find_autopick_list(player_ptr, j_ptr);
+    auto_inscribe_item(player_ptr, j_ptr, idx);
+
     item_new = store_item_to_inventory(player_ptr, j_ptr);
     handle_stuff(player_ptr);
 
     describe_flavor(player_ptr, o_name, &player_ptr->inventory_list[item_new], 0);
     msg_format(_("%s(%c)を手に入れた。", "You have %s (%c)."), o_name, index_to_label(item_new));
 
-    autopick_alter_item(player_ptr, item_new, FALSE);
     if ((o_ptr->tval == TV_ROD) || (o_ptr->tval == TV_WAND))
         o_ptr->pval -= j_ptr->pval;
 

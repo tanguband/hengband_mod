@@ -32,6 +32,7 @@
 #include "player/special-defense-types.h"
 #include "status/bad-status-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -52,7 +53,7 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
 {
     floor_type *floor_ptr = caster_ptr->current_floor_ptr;
     if ((floor_ptr->inside_quest && is_fixed_quest_idx(floor_ptr->inside_quest)) || !floor_ptr->dun_level) {
-        return FALSE;
+        return false;
     }
 
     if (r > 12)
@@ -61,12 +62,12 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
     bool map[32][32];
     for (POSITION y = 0; y < 32; y++) {
         for (POSITION x = 0; x < 32; x++) {
-            map[y][x] = FALSE;
+            map[y][x] = false;
         }
     }
 
     int damage = 0;
-    bool hurt = FALSE;
+    bool hurt = false;
     for (POSITION dy = -r; dy <= r; dy++) {
         for (POSITION dx = -r; dx <= r; dx++) {
             POSITION yy = cy + dy;
@@ -88,9 +89,9 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
             if (randint0(100) < 85)
                 continue;
 
-            map[16 + yy - cy][16 + xx - cx] = TRUE;
+            map[16 + yy - cy][16 + xx - cx] = true;
             if (player_bold(caster_ptr, yy, xx))
-                hurt = TRUE;
+                hurt = true;
         }
     }
 
@@ -159,7 +160,7 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
             (void)move_player_effect(caster_ptr, sy, sx, MPE_DONT_PICKUP);
         }
 
-        map[16 + caster_ptr->y - cy][16 + caster_ptr->x - cx] = FALSE;
+        map[16 + caster_ptr->y - cy][16 + caster_ptr->x - cx] = false;
         if (damage) {
             concptr killer;
 
@@ -183,18 +184,18 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
             if (!map[16 + yy - cy][16 + xx - cx])
                 continue;
 
-            grid_type *g_ptr;
-            g_ptr = &floor_ptr->grid_array[yy][xx];
-            if (g_ptr->m_idx == caster_ptr->riding)
+            grid_type *gg_ptr;
+            gg_ptr = &floor_ptr->grid_array[yy][xx];
+            if (gg_ptr->m_idx == caster_ptr->riding)
                 continue;
 
-            if (!g_ptr->m_idx)
+            if (!gg_ptr->m_idx)
                 continue;
 
-            monster_type *m_ptr = &floor_ptr->m_list[g_ptr->m_idx];
+            monster_type *m_ptr = &floor_ptr->m_list[gg_ptr->m_idx];
             monster_race *r_ptr = &r_info[m_ptr->r_idx];
             if (r_ptr->flags1 & RF1_QUESTOR) {
-                map[16 + yy - cy][16 + xx - cx] = FALSE;
+                map[16 + yy - cy][16 + xx - cx] = false;
                 continue;
             }
 
@@ -203,17 +204,18 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
 
             GAME_TEXT m_name[MAX_NLEN];
             sn = 0;
-            if (!(r_ptr->flags1 & RF1_NEVER_MOVE)) {
+            if (none_bits(r_ptr->flags1, RF1_NEVER_MOVE)) {
                 for (DIRECTION i = 0; i < 8; i++) {
                     POSITION y = yy + ddy_ddd[i];
                     POSITION x = xx + ddx_ddd[i];
                     if (!is_cave_empty_bold(caster_ptr, y, x))
                         continue;
 
-                    if (is_rune_protection_grid(&floor_ptr->grid_array[y][x]))
+                    auto *g_ptr = &floor_ptr->grid_array[y][x];
+                    if (g_ptr->is_rune_protection())
                         continue;
 
-                    if (is_rune_explosion_grid(&floor_ptr->grid_array[y][x]))
+                    if (g_ptr->is_rune_explosion())
                         continue;
 
                     if (pattern_tile(floor_ptr, y, x))
@@ -243,14 +245,14 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
                 msg_format(_("%^sは苦痛で泣きわめいた！", "%^s wails out in pain!"), m_name);
 
             damage = (sn ? damroll(4, 8) : (m_ptr->hp + 1));
-            (void)set_monster_csleep(caster_ptr, g_ptr->m_idx, 0);
+            (void)set_monster_csleep(caster_ptr, gg_ptr->m_idx, 0);
             m_ptr->hp -= damage;
             if (m_ptr->hp < 0) {
                 if (!ignore_unview || is_seen(caster_ptr, m_ptr))
                     msg_format(_("%^sは岩石に埋もれてしまった！", "%^s is embedded in the rock!"), m_name);
 
-                if (g_ptr->m_idx) {
-                    if (record_named_pet && is_pet(&floor_ptr->m_list[g_ptr->m_idx]) && floor_ptr->m_list[g_ptr->m_idx].nickname) {
+                if (gg_ptr->m_idx) {
+                    if (record_named_pet && is_pet(&floor_ptr->m_list[gg_ptr->m_idx]) && floor_ptr->m_list[gg_ptr->m_idx].nickname) {
                         char m2_name[MAX_NLEN];
 
                         monster_desc(caster_ptr, m2_name, m_ptr, MD_INDEF_VISIBLE);
@@ -270,7 +272,7 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
             floor_ptr->grid_array[sy][sx].m_idx = m_idx_aux;
             m_ptr->fy = sy;
             m_ptr->fx = sx;
-            update_monster(caster_ptr, m_idx_aux, TRUE);
+            update_monster(caster_ptr, m_idx_aux, true);
             lite_spot(caster_ptr, yy, xx);
             lite_spot(caster_ptr, sy, sx);
         }
@@ -288,7 +290,7 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
                 continue;
 
             delete_all_items_from_floor(caster_ptr, yy, xx);
-            int t = cave_has_flag_bold(floor_ptr, yy, xx, FF_PROJECT) ? randint0(100) : 200;
+            int t = cave_has_flag_bold(floor_ptr, yy, xx, FF::PROJECT) ? randint0(100) : 200;
             if (t < 20) {
                 cave_set_feat(caster_ptr, yy, xx, feat_granite);
                 continue;
@@ -318,9 +320,8 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
             if (distance(cy, cx, yy, xx) > r)
                 continue;
 
-            grid_type *g_ptr;
-            g_ptr = &floor_ptr->grid_array[yy][xx];
-            if (is_mirror_grid(g_ptr)) {
+            auto *g_ptr = &floor_ptr->grid_array[yy][xx];
+            if (g_ptr->is_mirror()) {
                 g_ptr->info |= CAVE_GLOW;
                 continue;
             }
@@ -335,7 +336,7 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
                 if (!in_bounds2(floor_ptr, yyy, xxx))
                     continue;
                 cc_ptr = &floor_ptr->grid_array[yyy][xxx];
-                if (has_flag(f_info[get_feat_mimic(cc_ptr)].flags, FF_GLOW)) {
+                if (f_info[cc_ptr->get_feat_mimic()].flags.has(FF::GLOW)) {
                     g_ptr->info |= CAVE_GLOW;
                     break;
                 }
@@ -348,8 +349,8 @@ bool earthquake(player_type *caster_ptr, POSITION cy, POSITION cx, POSITION r, M
     caster_ptr->window_flags |= (PW_OVERHEAD | PW_DUNGEON);
     if (caster_ptr->special_defense & NINJA_S_STEALTH) {
         if (floor_ptr->grid_array[caster_ptr->y][caster_ptr->x].info & CAVE_GLOW)
-            set_superstealth(caster_ptr, FALSE);
+            set_superstealth(caster_ptr, false);
     }
 
-    return TRUE;
+    return true;
 }

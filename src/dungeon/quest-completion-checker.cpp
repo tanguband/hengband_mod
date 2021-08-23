@@ -11,6 +11,7 @@
 #include "monster/monster-info.h"
 #include "object-enchant/item-apply-magic.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -73,8 +74,8 @@ void check_quest_completion(player_type *player_ptr, monster_type *m_ptr)
         quest_num = i;
     }
 
-    bool create_stairs = FALSE;
-    bool reward = FALSE;
+    bool create_stairs = false;
+    bool reward = false;
     if (quest_num && (quest[quest_num].status == QUEST_STATUS_TAKEN)) {
         quest_type *const q_ptr = &quest[quest_num];
         switch (q_ptr->type) {
@@ -110,7 +111,7 @@ void check_quest_completion(player_type *player_ptr, monster_type *m_ptr)
 
             complete_quest(player_ptr, quest_num);
             if (!(q_ptr->flags & QUEST_FLAG_PRESET)) {
-                create_stairs = TRUE;
+                create_stairs = true;
                 floor_ptr->inside_quest = 0;
             }
 
@@ -118,7 +119,7 @@ void check_quest_completion(player_type *player_ptr, monster_type *m_ptr)
                 q_ptr->status = QUEST_STATUS_FINISHED;
 
             if (q_ptr->type == QUEST_TYPE_RANDOM) {
-                reward = TRUE;
+                reward = true;
                 q_ptr->status = QUEST_STATUS_FINISHED;
             }
 
@@ -154,10 +155,12 @@ void check_quest_completion(player_type *player_ptr, monster_type *m_ptr)
 
     if (create_stairs) {
         POSITION ny, nx;
-        while (cave_has_flag_bold(floor_ptr, y, x, FF_PERMANENT) || !floor_ptr->grid_array[y][x].o_idx_list.empty() || (floor_ptr->grid_array[y][x].info & CAVE_OBJECT)) {
+        auto *g_ptr = &floor_ptr->grid_array[y][x];
+        while (cave_has_flag_bold(floor_ptr, y, x, FF::PERMANENT) || !g_ptr->o_idx_list.empty() || g_ptr->is_object()) {
             scatter(player_ptr, &ny, &nx, y, x, 1, PROJECT_NONE);
             y = ny;
             x = nx;
+            g_ptr = &floor_ptr->grid_array[y][x];
         }
 
         msg_print(_("魔法の階段が現れた...", "A magical staircase appears..."));

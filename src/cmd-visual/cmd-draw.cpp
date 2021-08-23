@@ -53,7 +53,7 @@ void do_cmd_redraw(player_type *creature_ptr)
 
 	update_playtime();
 	handle_stuff(creature_ptr);
-	if (creature_ptr->prace == RACE_ANDROID) calc_android_exp(creature_ptr);
+	if (creature_ptr->prace == player_race_type::ANDROID) calc_android_exp(creature_ptr);
 
 	term_type *old = Term;
 	for (int j = 0; j < 8; j++)
@@ -76,7 +76,7 @@ void do_cmd_player_status(player_type *creature_ptr)
 	int mode = 0;
 	char tmp[160];
 	screen_save();
-	while (TRUE)
+	while (true)
 	{
 		update_playtime();
 		display_player(creature_ptr, mode);
@@ -172,7 +172,7 @@ void do_cmd_messages(int num_now)
 	int i = 0;
 	screen_save();
 	term_clear();
-	while (TRUE)
+	while (true)
 	{
 		int j;
 		int skey;
@@ -198,7 +198,7 @@ void do_cmd_messages(int num_now)
 			i, i + j - 1, n), 0, 0);
 		prt(_("[ 'p' で更に古いもの, 'n' で更に新しいもの, '/' で検索, ESC で中断 ]",
 			"[Press 'p' for older, 'n' for newer, ..., or ESCAPE]"), hgt - 1, 0);
-		skey = inkey_special(TRUE);
+		skey = inkey_special(true);
 		if (skey == ESCAPE) break;
 
 		j = i;

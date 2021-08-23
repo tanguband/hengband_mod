@@ -25,21 +25,21 @@ bool import_magic_device(player_type *user_ptr)
     OBJECT_IDX item;
     object_type *o_ptr = choose_object(user_ptr, &item, q, s, USE_INVEN | USE_FLOOR, TV_NONE);
     if (!o_ptr)
-        return FALSE;
+        return false;
 
     if (o_ptr->tval == TV_STAFF && o_ptr->sval == SV_STAFF_NOTHING) {
         msg_print(_("この杖には発動の為の能力は何も備わっていないようだ。", "This staff doesn't have any magical ability."));
-        return FALSE;
+        return false;
     }
 
     if (!object_is_known(o_ptr)) {
         msg_print(_("鑑定されていないと取り込めない。", "You need to identify before absorbing."));
-        return FALSE;
+        return false;
     }
 
     if (o_ptr->timeout) {
         msg_print(_("充填中のアイテムは取り込めない。", "This item is still charging."));
-        return FALSE;
+        return false;
     }
 
     PARAMETER_VALUE pval = o_ptr->pval;
@@ -50,7 +50,7 @@ bool import_magic_device(player_type *user_ptr)
         ext = 36;
 
     if (o_ptr->tval == TV_ROD) {
-        user_ptr->magic_num2[o_ptr->sval + ext] += (MAGIC_NUM2)o_ptr->number;
+        user_ptr->magic_num2[o_ptr->sval + ext] += (byte)o_ptr->number;
         if (user_ptr->magic_num2[o_ptr->sval + ext] > 99)
             user_ptr->magic_num2[o_ptr->sval + ext] = 99;
     } else {
@@ -65,7 +65,7 @@ bool import_magic_device(player_type *user_ptr)
                 if (gain_num < 1)
                     gain_num = 1;
             }
-            user_ptr->magic_num2[o_ptr->sval + ext] += (MAGIC_NUM2)gain_num;
+            user_ptr->magic_num2[o_ptr->sval + ext] += (byte)gain_num;
             if (user_ptr->magic_num2[o_ptr->sval + ext] > 99)
                 user_ptr->magic_num2[o_ptr->sval + ext] = 99;
             user_ptr->magic_num1[o_ptr->sval + ext] += pval * 0x10000;
@@ -84,5 +84,5 @@ bool import_magic_device(player_type *user_ptr)
 
     vary_item(user_ptr, item, -999);
     PlayerEnergy(user_ptr).set_player_turn_energy(100);
-    return TRUE;
+    return true;
 }

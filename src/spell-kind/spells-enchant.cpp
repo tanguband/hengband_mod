@@ -1,5 +1,6 @@
 ﻿#include "spell-kind/spells-enchant.h"
 #include "artifact/random-art-generator.h"
+#include "avatar/avatar.h"
 #include "flavor/flavor-describer.h"
 #include "flavor/object-flavor-types.h"
 #include "floor/floor-object.h"
@@ -12,7 +13,6 @@
 #include "object-hook/hook-weapon.h"
 #include "object/item-tester-hooker.h"
 #include "object/item-use-flags.h"
-#include "player-info/avatar.h"
 #include "racial/racial-android.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -34,7 +34,7 @@ bool artifact_scroll(player_type *caster_ptr)
     OBJECT_IDX item;
     o_ptr = choose_object(caster_ptr, &item, q, s, (USE_EQUIP | USE_INVEN | USE_FLOOR | IGNORE_BOTHHAND_SLOT), TV_NONE);
     if (!o_ptr)
-        return FALSE;
+        return false;
 
     GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(caster_ptr, o_name, o_ptr, (OD_OMIT_PREFIX | OD_NAME_ONLY));
@@ -44,21 +44,21 @@ bool artifact_scroll(player_type *caster_ptr)
     msg_format("%s %s radiate%s a blinding light!", ((item >= 0) ? "Your" : "The"), o_name, ((o_ptr->number > 1) ? "" : "s"));
 #endif
 
-    bool okay = FALSE;
+    bool okay = false;
     if (object_is_artifact(o_ptr)) {
 #ifdef JP
         msg_format("%sは既に伝説のアイテムです！", o_name);
 #else
         msg_format("The %s %s already %s!", o_name, ((o_ptr->number > 1) ? "are" : "is"), ((o_ptr->number > 1) ? "artifacts" : "an artifact"));
 #endif
-        okay = FALSE;
+        okay = false;
     } else if (object_is_ego(o_ptr)) {
 #ifdef JP
         msg_format("%sは既に名のあるアイテムです！", o_name);
 #else
         msg_format("The %s %s already %s!", o_name, ((o_ptr->number > 1) ? "are" : "is"), ((o_ptr->number > 1) ? "ego items" : "an ego item"));
 #endif
-        okay = FALSE;
+        okay = false;
     } else if (o_ptr->xtra3) {
 #ifdef JP
         msg_format("%sは既に強化されています！", o_name);
@@ -81,7 +81,7 @@ bool artifact_scroll(player_type *caster_ptr)
             }
         }
 
-        okay = become_random_artifact(caster_ptr, o_ptr, TRUE);
+        okay = become_random_artifact(caster_ptr, o_ptr, true);
     }
 
     if (!okay) {
@@ -93,7 +93,7 @@ bool artifact_scroll(player_type *caster_ptr)
             chg_virtue(caster_ptr, V_ENCHANT, -1);
 
         calc_android_exp(caster_ptr);
-        return TRUE;
+        return true;
     }
 
     if (record_rand_art) {
@@ -103,7 +103,7 @@ bool artifact_scroll(player_type *caster_ptr)
 
     chg_virtue(caster_ptr, V_ENCHANT, 1);
     calc_android_exp(caster_ptr);
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -126,18 +126,18 @@ bool mundane_spell(player_type *owner_ptr, bool only_equip)
 
     OBJECT_IDX item;
     object_type *o_ptr;
-    concptr q = _("どれを使いますか？", "Use which item? ");
-    concptr s = _("使えるものがありません。", "You have nothing you can use.");
+    concptr q = _("どのアイテムを凡庸化しますか？", "Mundanify which item? ");
+    concptr s = _("凡庸化できるアイテムがない。", "You have nothing to mundanify.");
 
     o_ptr = choose_object(owner_ptr, &item, q, s, (USE_EQUIP | USE_INVEN | USE_FLOOR | IGNORE_BOTHHAND_SLOT), TV_NONE);
     if (!o_ptr)
-        return FALSE;
+        return false;
 
     msg_print(_("まばゆい閃光が走った！", "There is a bright flash of light!"));
     POSITION iy = o_ptr->iy;
     POSITION ix = o_ptr->ix;
     byte marked = o_ptr->marked;
-    u16b inscription = o_ptr->inscription;
+    uint16_t inscription = o_ptr->inscription;
 
     o_ptr->prep(owner_ptr, o_ptr->k_idx);
 
@@ -147,5 +147,5 @@ bool mundane_spell(player_type *owner_ptr, bool only_equip)
     o_ptr->inscription = inscription;
 
     calc_android_exp(owner_ptr);
-    return TRUE;
+    return true;
 }

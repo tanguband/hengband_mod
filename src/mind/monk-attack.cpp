@@ -12,7 +12,6 @@
 #include "core/stuff-handler.h"
 #include "floor/geometry.h"
 #include "game-option/cheat-options.h"
-#include "grid/grid.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
 #include "mind/mind-force-trainer.h"
@@ -25,6 +24,7 @@
 #include "player/attack-defense-types.h"
 #include "player/special-defense-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -242,14 +242,14 @@ void process_monk_attack(player_type *attacker_ptr, player_attack_type *pa_ptr)
 bool double_attack(player_type *creature_ptr)
 {
     DIRECTION dir;
-    if (!get_rep_dir(creature_ptr, &dir, FALSE))
-        return FALSE;
+    if (!get_rep_dir(creature_ptr, &dir, false))
+        return false;
     POSITION y = creature_ptr->y + ddy[dir];
     POSITION x = creature_ptr->x + ddx[dir];
     if (!creature_ptr->current_floor_ptr->grid_array[y][x].m_idx) {
         msg_print(_("その方向にはモンスターはいません。", "You don't see any monster in this direction"));
         msg_print(NULL);
-        return TRUE;
+        return true;
     }
 
     if (one_in_(3))
@@ -266,5 +266,5 @@ bool double_attack(player_type *creature_ptr)
     }
 
     creature_ptr->energy_need += ENERGY_NEED();
-    return TRUE;
+    return true;
 }

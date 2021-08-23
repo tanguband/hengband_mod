@@ -55,7 +55,7 @@ static void write_birth_diary(player_type *creature_ptr)
     char buf[80];
     sprintf(buf, _("%s性別に%sを選択した。", "%schose %s gender."), indent, sex_info[creature_ptr->psex].title);
     exe_write_diary(creature_ptr, DIARY_DESCRIPTION, 1, buf);
-    sprintf(buf, _("%s種族に%sを選択した。", "%schose %s race."), indent, race_info[creature_ptr->prace].title);
+    sprintf(buf, _("%s種族に%sを選択した。", "%schose %s race."), indent, race_info[static_cast<int>(creature_ptr->prace)].title);
     exe_write_diary(creature_ptr, DIARY_DESCRIPTION, 1, buf);
     sprintf(buf, _("%s職業に%sを選択した。", "%schose %s class."), indent, class_info[creature_ptr->pclass].title);
     exe_write_diary(creature_ptr, DIARY_DESCRIPTION, 1, buf);
@@ -89,7 +89,7 @@ void player_birth(player_type *creature_ptr)
     player_wipe_without_name(creature_ptr);
     if (!ask_quick_start(creature_ptr)) {
         play_music(TERM_XTRA_MUSIC_BASIC, MUSIC_BASIC_NEW_GAME);
-        while (TRUE) {
+        while (true) {
             if (player_birth_wizard(creature_ptr))
                 break;
 
@@ -105,10 +105,10 @@ void player_birth(player_type *creature_ptr)
     }
 
     seed_wilderness();
-    if (creature_ptr->prace == RACE_BEASTMAN)
-        creature_ptr->hack_mutation = TRUE;
+    if (creature_ptr->prace == player_race_type::BEASTMAN)
+        creature_ptr->hack_mutation = true;
     else
-        creature_ptr->hack_mutation = FALSE;
+        creature_ptr->hack_mutation = false;
 
     if (!window_flag[1])
         window_flag[1] |= PW_MESSAGE;

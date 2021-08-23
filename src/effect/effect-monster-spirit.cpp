@@ -1,7 +1,6 @@
 ﻿#include "effect/effect-monster-spirit.h"
 #include "core/player-redraw-types.h"
 #include "effect/effect-monster-util.h"
-#include "grid/grid.h"
 #include "hpmp/hp-mp-processor.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-ability-mask.h"
@@ -12,6 +11,7 @@
 #include "monster/monster-info.h"
 #include "monster/monster-status-setter.h"
 #include "monster/monster-status.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -20,7 +20,7 @@
 process_result effect_monster_drain_mana(player_type *caster_ptr, effect_monster_type *em_ptr)
 {
     if (em_ptr->seen)
-        em_ptr->obvious = TRUE;
+        em_ptr->obvious = true;
     auto ability_flags = em_ptr->r_ptr->ability_flags;
     bool has_mana = ability_flags.reset(RF_ABILITY_NOMAGIC_MASK).any();
     if (!has_mana) {
@@ -65,7 +65,7 @@ process_result effect_monster_drain_mana(player_type *caster_ptr, effect_monster
 process_result effect_monster_mind_blast(player_type *caster_ptr, effect_monster_type *em_ptr)
 {
     if (em_ptr->seen)
-        em_ptr->obvious = TRUE;
+        em_ptr->obvious = true;
     if (!em_ptr->who)
         msg_format(_("%sをじっと睨んだ。", "You gaze intently at %s."), em_ptr->m_name);
 
@@ -104,7 +104,7 @@ process_result effect_monster_mind_blast(player_type *caster_ptr, effect_monster
 process_result effect_monster_brain_smash(player_type *caster_ptr, effect_monster_type *em_ptr)
 {
     if (em_ptr->seen)
-        em_ptr->obvious = TRUE;
+        em_ptr->obvious = true;
     if (!em_ptr->who)
         msg_format(_("%sをじっと睨んだ。", "You gaze intently at %s."), em_ptr->m_name);
 

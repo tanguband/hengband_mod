@@ -4,6 +4,7 @@
 
 #include "mind-elementalist.h"
 #include "action/action-limited.h"
+#include "avatar/avatar.h"
 #include "cmd-action/cmd-mind.h"
 #include "cmd-action/cmd-spell.h"
 #include "cmd-io/cmd-gameoption.h"
@@ -36,7 +37,6 @@
 #include "monster-race/race-flags3.h"
 #include "monster-race/race-flags7.h"
 #include "monster/monster-describer.h"
-#include "player-info/avatar.h"
 #include "player-info/equipment-info.h"
 #include "player-status/player-energy.h"
 #include "player-status/player-status-base.h"
@@ -57,6 +57,7 @@
 #include "status/base-status.h"
 #include "system/floor-type-definition.h"
 #include "system/game-option-types.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -480,7 +481,7 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
     switch (spell) {
     case ElementSpells::BOLT_1ST:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = damroll(3 + ((plev - 1) / 5), 4);
         typ = get_element_spells_type(caster_ptr, power.elem);
         (void)fire_bolt(caster_ptr, typ, dir, dam);
@@ -497,7 +498,7 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
         break;
     case ElementSpells::BOLT_2ND:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = damroll(8 + ((plev - 5) / 4), 8);
         typ = get_element_spells_type(caster_ptr, power.elem);
         if (fire_bolt_or_beam(caster_ptr, plev, typ, dir, dam)) {
@@ -512,7 +513,7 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
     case ElementSpells::BALL_3RD:
         project_length = 4;
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         typ = get_element_spells_type(caster_ptr, power.elem);
         dam = 50 + plev * 2;
         (void)fire_ball(caster_ptr, typ, dir, dam, 1);
@@ -520,14 +521,14 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
         break;
     case ElementSpells::BALL_1ST:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = 55 + plev;
         typ = get_element_spells_type(caster_ptr, power.elem);
         (void)fire_ball(caster_ptr, typ, dir, dam, 2);
         break;
     case ElementSpells::BREATH_2ND:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = MIN(150, caster_ptr->chp / 2);
         typ = get_element_spells_type(caster_ptr, power.elem);
         if (fire_breath(caster_ptr, typ, dir, dam, 3)) {
@@ -538,12 +539,12 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
         break;
     case ElementSpells::ANNIHILATE:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         fire_ball_hide(caster_ptr, GF_E_GENOCIDE, dir, plev + 50, 0);
         break;
     case ElementSpells::BOLT_3RD:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = damroll(12 + ((plev - 5) / 4), 8);
         typ = get_element_spells_type(caster_ptr, power.elem);
         fire_bolt_or_beam(caster_ptr, plev, typ, dir, dam);
@@ -555,7 +556,7 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
         break;
     case ElementSpells::BALL_2ND:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = 75 + plev * 3 / 2;
         typ = get_element_spells_type(caster_ptr, power.elem);
         if (fire_ball(caster_ptr, typ, dir, dam, 3)) {
@@ -573,7 +574,7 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
             int attempts = 1000;
             while (attempts--) {
                 scatter(caster_ptr, &y, &x, caster_ptr->y, caster_ptr->x, 4, PROJECT_NONE);
-                if (!cave_has_flag_bold(caster_ptr->current_floor_ptr, y, x, FF_PROJECT))
+                if (!cave_has_flag_bold(caster_ptr->current_floor_ptr, y, x, FF::PROJECT))
                     continue;
                 if (!player_bold(caster_ptr, y, x))
                     break;
@@ -583,7 +584,7 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
         break;
     case ElementSpells::STORM_2ND:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = 115 + plev * 5 / 2;
         typ = get_element_spells_type(caster_ptr, power.elem);
         if (fire_ball(caster_ptr, typ, dir, dam, 4)) {
@@ -594,23 +595,23 @@ static bool cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx)
         break;
     case ElementSpells::BREATH_1ST:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = caster_ptr->chp * 2 / 3;
         typ = get_element_spells_type(caster_ptr, power.elem);
         (void)fire_breath(caster_ptr, typ, dir, dam, 3);
         break;
     case ElementSpells::STORM_3ND:
         if (!get_aim_dir(caster_ptr, &dir))
-            return FALSE;
+            return false;
         dam = 300 + plev * 5;
         typ = get_element_spells_type(caster_ptr, power.elem);
         (void)fire_ball(caster_ptr, typ, dir, dam, 5);
         break;
     default:
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -677,7 +678,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
     TERM_LEN y = 1;
     TERM_LEN x = 10;
     PLAYER_LEVEL plev = caster_ptr->lev;
-    int ask = TRUE;
+    int ask = true;
     char choice;
     char out_val[160];
     char comment[80];
@@ -689,12 +690,12 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
     if (repeat_pull(&code)) {
         *sn = (SPELL_IDX)code;
         if (get_elemental_info(caster_ptr, *sn).min_lev <= plev)
-            return TRUE;
+            return true;
     }
 
     concptr p = _("元素魔法", "magic");
-    flag = FALSE;
-    redraw = FALSE;
+    flag = false;
+    redraw = false;
 
     for (i = 0; i < static_cast<SPELL_IDX>(ElementSpells::MAX); i++) {
         if (get_elemental_info(caster_ptr, i).min_lev <= plev)
@@ -717,7 +718,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
     while (!flag) {
         if (choice == ESCAPE)
             choice = ' ';
-        else if (!get_com(out_val, &choice, TRUE))
+        else if (!get_com(out_val, &choice, true))
             break;
 
         if (use_menu && choice != ' ') {
@@ -725,7 +726,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
             case '0':
                 if (!only_browse)
                     screen_load();
-                return FALSE;
+                return false;
             case '8':
             case 'k':
             case 'K':
@@ -741,7 +742,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
             case '\r':
             case '\n':
                 i = menu_line - 1;
-                ask = FALSE;
+                ask = false;
                 break;
             }
 
@@ -754,7 +755,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
             if (!redraw || use_menu) {
                 char desc[80];
                 char name[80];
-                redraw = TRUE;
+                redraw = true;
                 if (!only_browse && !use_menu)
                     screen_save();
 
@@ -788,7 +789,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
 
                 prt("", y + i + 1, x);
             } else if (!only_browse) {
-                redraw = FALSE;
+                redraw = false;
                 screen_load();
             }
 
@@ -819,7 +820,7 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
                 continue;
         }
 
-        flag = TRUE;
+        flag = true;
     }
 
     if (redraw && !only_browse)
@@ -828,11 +829,11 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
     set_bits(caster_ptr->window_flags, PW_SPELL);
     handle_stuff(caster_ptr);
     if (!flag)
-        return FALSE;
+        return false;
 
     *sn = i;
     repeat_push((COMMAND_CODE)i);
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -844,11 +845,11 @@ bool get_element_power(player_type *caster_ptr, SPELL_IDX *sn, bool only_browse)
 static bool check_element_mp_sufficiency(player_type *caster_ptr, int mana_cost)
 {
     if (mana_cost <= caster_ptr->csp)
-        return TRUE;
+        return true;
 
     msg_print(_("ＭＰが足りません。", "You do not have enough mana to use this power."));
     if (!over_exert)
-        return FALSE;
+        return false;
 
     return get_check(_("それでも挑戦しますか? ", "Attempt it anyway? "));
 }
@@ -884,10 +885,10 @@ static bool try_cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx,
         set_bits(caster_ptr->redraw, PR_MANA);
         set_bits(caster_ptr->window_flags, PW_PLAYER | PW_SPELL);
 
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -897,7 +898,7 @@ static bool try_cast_element_spell(player_type *caster_ptr, SPELL_IDX spell_idx,
 void do_cmd_element(player_type *caster_ptr)
 {
     SPELL_IDX i;
-    if (cmd_limit_confused(caster_ptr) || !get_element_power(caster_ptr, &i, FALSE))
+    if (cmd_limit_confused(caster_ptr) || !get_element_power(caster_ptr, &i, false))
         return;
 
     mind_type spell = get_elemental_info(caster_ptr, i);
@@ -941,8 +942,8 @@ void do_cmd_element_browse(player_type *caster_ptr)
     char temp[62 * 5];
 
     screen_save();
-    while (TRUE) {
-        if (!get_element_power(caster_ptr, &n, TRUE)) {
+    while (true) {
+        if (!get_element_power(caster_ptr, &n, true)) {
             screen_load();
             return;
         }
@@ -975,41 +976,41 @@ bool is_elemental_genocide_effective(monster_race *r_ptr, spells_type type)
     switch (type) {
     case GF_FIRE:
         if (any_bits(r_ptr->flagsr, RFR_IM_FIRE))
-            return FALSE;
+            return false;
         break;
     case GF_COLD:
         if (any_bits(r_ptr->flagsr, RFR_IM_COLD))
-            return FALSE;
+            return false;
         break;
     case GF_ELEC:
         if (any_bits(r_ptr->flagsr, RFR_IM_ELEC))
-            return FALSE;
+            return false;
         break;
     case GF_ACID:
         if (any_bits(r_ptr->flagsr, RFR_IM_ACID))
-            return FALSE;
+            return false;
         break;
     case GF_DARK:
         if (any_bits(r_ptr->flagsr, RFR_RES_DARK) || any_bits(r_ptr->r_flags3, RF3_HURT_LITE))
-            return FALSE;
+            return false;
         break;
     case GF_CONFUSION:
         if (any_bits(r_ptr->flags3, RF3_NO_CONF))
-            return FALSE;
+            return false;
         break;
     case GF_SHARDS:
         if (any_bits(r_ptr->flagsr, RFR_RES_SHAR))
-            return FALSE;
+            return false;
         break;
     case GF_POIS:
         if (any_bits(r_ptr->flagsr, RFR_IM_POIS))
-            return FALSE;
+            return false;
         break;
     default:
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -1028,7 +1029,7 @@ process_result effect_monster_elemental_genocide(player_type *caster_ptr, effect
         msg_format(_("%sが%sを包み込んだ。", "The %s surrounds %s."), name, em_ptr->m_name);
 
     if (em_ptr->seen)
-        em_ptr->obvious = TRUE;
+        em_ptr->obvious = true;
 
     if (!b) {
         if (em_ptr->seen_msg)
@@ -1045,7 +1046,7 @@ process_result effect_monster_elemental_genocide(player_type *caster_ptr, effect
         return PROCESS_TRUE;
     }
 
-    em_ptr->skipped = TRUE;
+    em_ptr->skipped = true;
     return PROCESS_CONTINUE;
 }
 
@@ -1061,7 +1062,7 @@ process_result effect_monster_elemental_genocide(player_type *caster_ptr, effect
 bool has_element_resist(player_type *creature_ptr, ElementRealm realm, PLAYER_LEVEL lev)
 {
     if (creature_ptr->pclass != CLASS_ELEMENTALIST)
-        return FALSE;
+        return false;
 
     auto prealm = static_cast<ElementRealm>(creature_ptr->element);
     return (prealm == realm && creature_ptr->lev >= lev);
@@ -1136,7 +1137,7 @@ static int get_element_realm(player_type *creature_ptr, int is, int n)
     char buf[80];
     sprintf(buf, _("領域を選んで下さい(%c-%c) ('='初期オプション設定): ", "Choose a realm (%c-%c) ('=' for options): "), I2A(0), I2A(n - 1));
 
-    while (TRUE) {
+    while (true) {
         display_realm_cursor(os, n, TERM_WHITE);
         display_realm_cursor(cs, n, TERM_YELLOW);
         put_str(buf, 10, 10);
@@ -1355,7 +1356,7 @@ bool switch_element_execution(player_type *creature_ptr)
         break;
     case ElementRealm::SEA:
         if (!get_aim_dir(creature_ptr, &dir))
-            return FALSE;
+            return false;
         (void)wall_to_mud(creature_ptr, dir, plev * 3 / 2);
         break;
     case ElementRealm::DARKNESS:
@@ -1372,10 +1373,10 @@ bool switch_element_execution(player_type *creature_ptr)
             creature_ptr->current_floor_ptr->num_repro += MAX_REPRO;
         break;
     default:
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -1388,9 +1389,9 @@ bool switch_element_execution(player_type *creature_ptr)
 static bool is_target_grid_dark(floor_type *f_ptr, POSITION y, POSITION x)
 {
     if (any_bits(f_ptr->grid_array[y][x].info, CAVE_MNLT))
-        return FALSE;
+        return false;
 
-    bool is_dark = FALSE;
+    bool is_dark = false;
     bool is_lite = any_bits(f_ptr->grid_array[y][x].info, CAVE_GLOW | CAVE_LITE);
 
     for (int dx = x - 2; dx <= x + 2; dx++)
@@ -1407,13 +1408,13 @@ static bool is_target_grid_dark(floor_type *f_ptr, POSITION y, POSITION x)
             POSITION d = distance(dy, dx, y, x);
             monster_race *r_ptr = &r_info[f_ptr->m_list[m_idx].r_idx];
             if (d <= 1 && any_bits(r_ptr->flags7, RF7_HAS_LITE_1 | RF7_SELF_LITE_1))
-                return FALSE;
+                return false;
             if (d <= 2 && any_bits(r_ptr->flags7, RF7_HAS_LITE_2 | RF7_SELF_LITE_2))
-                return FALSE;
+                return false;
             if (d <= 1 && any_bits(r_ptr->flags7, RF7_HAS_DARK_1 | RF7_SELF_DARK_1))
-                is_dark = TRUE;
+                is_dark = true;
             if (d <= 2 && any_bits(r_ptr->flags7, RF7_HAS_DARK_2 | RF7_SELF_DARK_2))
-                is_dark = TRUE;
+                is_dark = true;
         }
 
     return !is_lite || is_dark;
@@ -1431,7 +1432,7 @@ static bool door_to_darkness(player_type *caster_ptr, POSITION dist)
 
     for (int i = 0; i < 3; i++) {
         if (!tgt_pt(caster_ptr, &x, &y))
-            return FALSE;
+            return false;
 
         f_ptr = caster_ptr->current_floor_ptr;
 
@@ -1440,7 +1441,7 @@ static bool door_to_darkness(player_type *caster_ptr, POSITION dist)
             continue;
         }
 
-        if (!is_cave_empty_bold(caster_ptr, y, x) || f_ptr->grid_array[y][x].info & CAVE_ICKY) {
+        if (!is_cave_empty_bold(caster_ptr, y, x) || f_ptr->grid_array[y][x].is_icky()) {
             msg_print(_("そこには移動できない。", "Can not teleport to there."));
             continue;
         }
@@ -1454,5 +1455,5 @@ static bool door_to_darkness(player_type *caster_ptr, POSITION dist)
     } else {
         msg_print(_("闇の扉は開かなかった！", "Door to darkness does not open!"));
     }
-    return TRUE;
+    return true;
 }

@@ -1,6 +1,7 @@
 ﻿#include "store/sell-order.h"
 #include "action/weapon-shield.h"
 #include "autopick/autopick.h"
+#include "avatar/avatar.h"
 #include "core/asking-player.h"
 #include "core/player-update-types.h"
 #include "core/stuff-handler.h"
@@ -23,7 +24,6 @@
 #include "object/object-info.h"
 #include "object/object-stack.h"
 #include "object/object-value.h"
-#include "player-info/avatar.h"
 #include "racial/racial-android.h"
 #include "spell-kind/spells-perception.h"
 #include "store/home.h"
@@ -51,23 +51,9 @@
  */
 static std::optional<PRICE> prompt_to_sell(player_type *player_ptr, object_type *o_ptr)
 {
-    auto price_ask = price_item(player_ptr, o_ptr, ot_ptr->inflate, TRUE);
-    auto is_low_price = price_ask < LOW_PRICE_THRESHOLD;
+    auto price_ask = price_item(player_ptr, o_ptr, ot_ptr->inflate, true);
 
-    if (!is_low_price)
-        price_ask -= price_ask / 10;
-
-    auto max_price = (PRICE)ot_ptr->max_cost;
-
-    if (price_ask > max_price) {
-        msg_print(_("即座にこの金額にまとまった。", "You instantly agree upon the price."));
-        msg_print(NULL);
-        price_ask = max_price;
-    } else {
-        msg_print(_("すんなりとこの金額にまとまった。", "You quickly agree upon the price."));
-        msg_print(NULL);
-    }
-
+    price_ask = std::min(price_ask, ot_ptr->max_cost);
     price_ask *= o_ptr->number;
     concptr s = format(_("売値 $%ld で売りますか？", "Do you sell for $%ld? "), static_cast<long>(price_ask));
     if (get_check_strict(player_ptr, s, CHECK_DEFAULT_Y)) {
@@ -191,7 +177,7 @@ void store_sell(player_type *owner_ptr)
             inven_item_increase(owner_ptr, item, -amt);
             inven_item_describe(owner_ptr, item);
             if (o_ptr->number > 0)
-                autopick_alter_item(owner_ptr, item, FALSE);
+                autopick_alter_item(owner_ptr, item, false);
 
             inven_item_optimize(owner_ptr, item);
             int item_pos = store_carry(owner_ptr, q_ptr);

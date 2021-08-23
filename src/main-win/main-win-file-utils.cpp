@@ -5,27 +5,33 @@
 
 #include "main-win/main-win-file-utils.h"
 #include "main-win/main-win-define.h"
-#include "main-win/main-win-windows.h"
+#include "main-win/main-win-utils.h"
 #include "util/angband-files.h"
+
+#include <windows.h>
 
 /*
  * Check for existance of a file
+ * @param s path of file
+ * @retval true 指定ファイルが存在する（かつディレクトリではない）
+ * @retval false 指定ファイルが存在しない、またはディレクトリである
  */
 bool check_file(concptr s)
 {
-    char path[MAIN_WIN_MAX_PATH];
-    strcpy(path, s);
-    DWORD attrib = GetFileAttributes(path);
+    DWORD attrib = GetFileAttributesW(to_wchar(s).wc_str());
     if (attrib == INVALID_FILE_NAME)
-        return FALSE;
+        return false;
     if (attrib & FILE_ATTRIBUTE_DIRECTORY)
-        return FALSE;
+        return false;
 
-    return TRUE;
+    return true;
 }
 
 /*
  * Check for existance of a directory
+ * @param s path of directory
+ * @retval true 指定ディレクトリが存在する
+ * @retval false 指定ディレクトリが存在しない、またはディレクトリではない
  */
 bool check_dir(concptr s)
 {
@@ -35,13 +41,13 @@ bool check_dir(concptr s)
     if (i && (path[i - 1] == '\\'))
         path[--i] = '\0';
 
-    DWORD attrib = GetFileAttributes(path);
+    DWORD attrib = GetFileAttributesW(to_wchar(path).wc_str());
     if (attrib == INVALID_FILE_NAME)
-        return FALSE;
+        return false;
     if (!(attrib & FILE_ATTRIBUTE_DIRECTORY))
-        return FALSE;
+        return false;
 
-    return TRUE;
+    return true;
 }
 
 /*!

@@ -25,6 +25,7 @@
 #include "player/player-sex.h"
 #include "player/player-status-table.h"
 #include "player/player-status.h"
+#include "player/player-status-flags.h"
 #include "realm/realm-names-table.h"
 #include "status-first-page.h"
 #include "system/floor-type-definition.h"
@@ -53,25 +54,25 @@ static bool display_player_info(player_type *creature_ptr, int mode)
         display_player_misc_info(creature_ptr);
         display_player_stat_info(creature_ptr);
         display_player_flag_info_1(creature_ptr, display_player_equippy);
-        return TRUE;
+        return true;
     }
 
     if (mode == 3) {
         display_player_flag_info_2(creature_ptr, display_player_equippy);
-        return TRUE;
+        return true;
     }
 
     if (mode == 4) {
         display_player_flag_info_3(creature_ptr, display_player_equippy);
-        return TRUE;
+        return true;
     }
 
     if (mode == 5) {
         do_cmd_knowledge_mutations(creature_ptr);
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -173,13 +174,13 @@ static bool search_death_cause(player_type *creature_ptr, char *statmsg)
 {
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if (!creature_ptr->is_dead)
-        return FALSE;
+        return false;
 
     if (current_world_ptr->total_winner) {
         sprintf(statmsg, _("…あなたは勝利の後%sした。", "...You %s after winning."),
             streq(creature_ptr->died_from, "Seppuku") ? _("切腹", "committed seppuku") : _("引退", "retired from the adventure"));
 
-        return TRUE;
+        return true;
     }
 
     if (!floor_ptr->dun_level) {
@@ -188,7 +189,7 @@ static bool search_death_cause(player_type *creature_ptr, char *statmsg)
 #else
         sprintf(statmsg, "...You were killed by %s in %s.", creature_ptr->died_from, map_name(creature_ptr));
 #endif
-        return TRUE;
+        return true;
     }
 
     if (floor_ptr->inside_quest && is_fixed_quest_idx(floor_ptr->inside_quest)) {
@@ -201,7 +202,7 @@ static bool search_death_cause(player_type *creature_ptr, char *statmsg)
 #else
         sprintf(statmsg, "...You were killed by %s in the quest '%s'.", creature_ptr->died_from, quest[floor_ptr->inside_quest].name);
 #endif
-        return TRUE;
+        return true;
     }
 
 #ifdef JP
@@ -210,7 +211,7 @@ static bool search_death_cause(player_type *creature_ptr, char *statmsg)
     sprintf(statmsg, "...You were killed by %s on level %d of %s.", creature_ptr->died_from, floor_ptr->dun_level, map_name(creature_ptr));
 #endif
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -223,7 +224,7 @@ static bool decide_death_in_quest(player_type *creature_ptr, char *statmsg)
 {
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if (!floor_ptr->inside_quest || !is_fixed_quest_idx(floor_ptr->inside_quest))
-        return FALSE;
+        return false;
 
     for (int i = 0; i < 10; i++)
         quest_text[i][0] = '\0';
@@ -232,7 +233,7 @@ static bool decide_death_in_quest(player_type *creature_ptr, char *statmsg)
     init_flags = INIT_NAME_ONLY;
     parse_fixed_map(creature_ptr, "q_info.txt", 0, 0, 0, 0);
     sprintf(statmsg, _("…あなたは現在、 クエスト「%s」を遂行中だ。", "...Now, you are in the quest '%s'."), quest[floor_ptr->inside_quest].name);
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -299,7 +300,7 @@ static void display_current_floor(char *statmsg)
  */
 void display_player(player_type *creature_ptr, int mode)
 {
-    if (creature_ptr->muta.any() && display_mutations)
+    if ((creature_ptr->muta.any() || has_good_luck(creature_ptr)) && display_mutations)
         mode = (mode % 6);
     else
         mode = (mode % 5);

@@ -4,15 +4,15 @@
  * @author Hourier
  */
 
+#include "knowledge-self.h"
+#include "avatar/avatar.h"
 #include "birth/birth-explanations-table.h"
 #include "core/show-file.h"
 #include "flavor/flavor-describer.h"
 #include "floor/floor-town.h"
 #include "info-reader/fixed-map-parser.h"
 #include "io-dump/dump-util.h"
-#include "knowledge-self.h"
 #include "player-info/alignment.h"
-#include "player-info/avatar.h"
 #include "player/player-class.h"
 #include "player/player-status-table.h"
 #include "player/race-info-table.h"
@@ -40,7 +40,7 @@ void do_cmd_knowledge_virtues(player_type *creature_ptr)
     fprintf(fff, _("現在の属性 : %s\n\n", "Your alignment : %s\n\n"), alg.c_str());
     dump_virtues(creature_ptr, fff);
     angband_fclose(fff);
-    (void)show_file(creature_ptr, TRUE, file_name, _("八つの徳", "Virtues"), 0, 0);
+    (void)show_file(creature_ptr, true, file_name, _("八つの徳", "Virtues"), 0, 0);
     fd_kill(file_name);
 }
 
@@ -55,9 +55,9 @@ static void dump_yourself(player_type *creature_ptr, FILE *fff)
         return;
 
     char temp[80 * 10];
-    shape_buffer(race_explanations[creature_ptr->prace], 78, temp, sizeof(temp));
+    shape_buffer(race_explanations[static_cast<int>(creature_ptr->prace)], 78, temp, sizeof(temp));
     fprintf(fff, "\n\n");
-    fprintf(fff, _("種族: %s\n", "Race: %s\n"), race_info[creature_ptr->prace].title);
+    fprintf(fff, _("種族: %s\n", "Race: %s\n"), race_info[static_cast<int>(creature_ptr->prace)].title);
     concptr t = temp;
 
     for (int i = 0; i < 10; i++) {
@@ -172,8 +172,8 @@ void do_cmd_knowledge_stat(player_type *creature_ptr)
         return;
 
     update_playtime();
-    u32b play_time = current_world_ptr->play_time;
-    u32b all_time = current_world_ptr->sf_play_time + play_time;
+    uint32_t play_time = current_world_ptr->play_time;
+    uint32_t all_time = current_world_ptr->sf_play_time + play_time;
     fprintf(fff, _("現在のプレイ時間 : %d:%02d:%02d\n", "Current Play Time is %d:%02d:%02d\n"), play_time / (60 * 60), (play_time / 60) % 60, play_time % 60);
     fprintf(fff, _("合計のプレイ時間 : %d:%02d:%02d\n", "  Total play Time is %d:%02d:%02d\n"), all_time / (60 * 60), (all_time / 60) % 60, all_time % 60);
     fputs("\n", fff);
@@ -198,7 +198,7 @@ void do_cmd_knowledge_stat(player_type *creature_ptr)
     dump_winner_classes(fff);
     angband_fclose(fff);
 
-    (void)show_file(creature_ptr, TRUE, file_name, _("自分に関する情報", "HP-rate & Max stat"), 0, 0);
+    (void)show_file(creature_ptr, true, file_name, _("自分に関する情報", "HP-rate & Max stat"), 0, 0);
     fd_kill(file_name);
 }
 
@@ -256,6 +256,6 @@ void do_cmd_knowledge_home(player_type *player_ptr)
     }
 
     angband_fclose(fff);
-    (void)show_file(player_ptr, TRUE, file_name, _("我が家のアイテム", "Home Inventory"), 0, 0);
+    (void)show_file(player_ptr, true, file_name, _("我が家のアイテム", "Home Inventory"), 0, 0);
     fd_kill(file_name);
 }

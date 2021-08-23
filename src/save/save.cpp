@@ -52,7 +52,7 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
     compact_objects(player_ptr, 0);
     compact_monsters(player_ptr, 0);
 
-    u32b now = (u32b)time((time_t *)0);
+    uint32_t now = (uint32_t)time((time_t *)0);
     current_world_ptr->sf_system = 0L;
     current_world_ptr->sf_when = now;
     current_world_ptr->sf_saves++;
@@ -95,7 +95,7 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
 
     wr_randomizer();
     wr_options(type);
-    u32b tmp32u = message_num();
+    uint32_t tmp32u = message_num();
     if ((compress_savefile || (type == SAVE_TYPE_DEBUG)) && (tmp32u > 40))
         tmp32u = 40;
 
@@ -103,7 +103,7 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
     for (int i = tmp32u - 1; i >= 0; i--)
         wr_string(message_str(i));
 
-    u16b tmp16u = max_r_idx;
+    uint16_t tmp16u = max_r_idx;
     wr_u16b(tmp16u);
     for (MONRACE_IDX r_idx = 0; r_idx < tmp16u; r_idx++)
         wr_lore(r_idx);
@@ -125,7 +125,7 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
     for (int i = 0; i < max_q_idx; i++) {
         quest_type *const q_ptr = &quest[i];
         wr_s16b(q_ptr->status);
-        wr_s16b((s16b)q_ptr->level);
+        wr_s16b((int16_t)q_ptr->level);
         wr_byte((byte)q_ptr->complev);
         wr_u32b(q_ptr->comptime);
 
@@ -135,8 +135,8 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
         if (!is_quest_running)
             continue;
 
-        wr_s16b((s16b)q_ptr->cur_num);
-        wr_s16b((s16b)q_ptr->max_num);
+        wr_s16b((int16_t)q_ptr->cur_num);
+        wr_s16b((int16_t)q_ptr->max_num);
         wr_s16b(q_ptr->type);
         wr_s16b(q_ptr->r_idx);
         wr_s16b(q_ptr->k_idx);
@@ -170,7 +170,7 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
     tmp16u = PY_MAX_LEVEL;
     wr_u16b(tmp16u);
     for (int i = 0; i < tmp16u; i++)
-        wr_s16b((s16b)player_ptr->player_hp[i]);
+        wr_s16b((int16_t)player_ptr->player_hp[i]);
 
     wr_u32b(player_ptr->spell_learned1);
     wr_u32b(player_ptr->spell_learned2);
@@ -188,7 +188,7 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
         if (!o_ptr->k_idx)
             continue;
 
-        wr_u16b((u16b)i);
+        wr_u16b((uint16_t)i);
         wr_item(o_ptr);
     }
 
@@ -211,7 +211,7 @@ static bool wr_savefile_new(player_type *player_ptr, save_type type)
 
     if (!player_ptr->is_dead) {
         if (!wr_dungeon(player_ptr))
-            return FALSE;
+            return false;
 
         wr_ghost();
         wr_s32b(0);
@@ -237,7 +237,7 @@ static bool save_player_aux(player_type *player_ptr, char *name, save_type type)
     int fd = fd_make(name, file_permission);
     safe_setuid_drop();
 
-    bool is_save_successful = FALSE;
+    bool is_save_successful = false;
     saving_savefile = NULL;
     if (fd >= 0) {
         (void)fd_close(fd);
@@ -246,10 +246,10 @@ static bool save_player_aux(player_type *player_ptr, char *name, save_type type)
         safe_setuid_drop();
         if (saving_savefile) {
             if (wr_savefile_new(player_ptr, type))
-                is_save_successful = TRUE;
+                is_save_successful = true;
 
             if (angband_fclose(saving_savefile))
-                is_save_successful = FALSE;
+                is_save_successful = false;
         }
 
         safe_setuid_grab(player_ptr);
@@ -260,11 +260,11 @@ static bool save_player_aux(player_type *player_ptr, char *name, save_type type)
     }
 
     if (!is_save_successful)
-        return FALSE;
+        return false;
 
     counts_write(player_ptr, 0, current_world_ptr->play_time);
-    current_world_ptr->character_saved = TRUE;
-    return TRUE;
+    current_world_ptr->character_saved = true;
+    return true;
 }
 
 /*!
@@ -282,7 +282,7 @@ bool save_player(player_type *player_ptr, save_type type)
     fd_kill(safe);
     safe_setuid_drop();
     update_playtime();
-    bool result = FALSE;
+    bool result = false;
     if (save_player_aux(player_ptr, safe, type)) {
         char temp[1024];
         char filename[1024];
@@ -300,15 +300,15 @@ bool save_player(player_type *player_ptr, save_type type)
         fd_move(safe, filename);
         fd_kill(temp);
         safe_setuid_drop();
-        current_world_ptr->character_loaded = TRUE;
-        result = TRUE;
+        current_world_ptr->character_loaded = true;
+        result = true;
     }
 
     if (type != SAVE_TYPE_CLOSE_GAME) {
-        current_world_ptr->is_loading_now = FALSE;
+        current_world_ptr->is_loading_now = false;
         update_creature(player_ptr);
         mproc_init(player_ptr->current_floor_ptr);
-        current_world_ptr->is_loading_now = TRUE;
+        current_world_ptr->is_loading_now = true;
     }
 
     return result;

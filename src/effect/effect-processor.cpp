@@ -28,6 +28,7 @@
 #include "spell/range-calc.h"
 #include "spell/spell-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -50,7 +51,7 @@ static void next_mirror(player_type *creature_ptr, POSITION *next_y, POSITION *n
     int mirror_num = 0; /* 鏡の数 */
     for (POSITION x = 0; x < creature_ptr->current_floor_ptr->width; x++) {
         for (POSITION y = 0; y < creature_ptr->current_floor_ptr->height; y++) {
-            if (is_mirror_grid(&creature_ptr->current_floor_ptr->grid_array[y][x])) {
+            if (creature_ptr->current_floor_ptr->grid_array[y][x].is_mirror()) {
                 mirror_y[mirror_num] = y;
                 mirror_x[mirror_num] = x;
                 mirror_num++;
@@ -97,21 +98,21 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
     POSITION y_saver;
     POSITION x_saver;
     int msec = delay_factor * delay_factor * delay_factor;
-    bool visual = FALSE;
-    bool drawn = FALSE;
-    bool breath = FALSE;
+    bool visual = false;
+    bool drawn = false;
+    bool breath = false;
     bool blind = caster_ptr->blind != 0;
-    bool old_hide = FALSE;
+    bool old_hide = false;
     int path_n = 0;
-    u16b path_g[512];
+    uint16_t path_g[512];
     int grids = 0;
     POSITION gx[1024];
     POSITION gy[1024];
     POSITION gm[32];
     POSITION gm_rad = rad;
-    bool jump = FALSE;
+    bool jump = false;
     GAME_TEXT who_name[MAX_NLEN];
-    bool see_s_msg = TRUE;
+    bool see_s_msg = true;
     who_name[0] = '\0';
     rakubadam_p = 0;
     rakubadam_m = 0;
@@ -124,7 +125,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
         x1 = x;
         y1 = y;
         flag &= ~(PROJECT_JUMP);
-        jump = TRUE;
+        jump = true;
     } else if (who <= 0) {
         x1 = caster_ptr->x;
         y1 = caster_ptr->y;
@@ -150,9 +151,9 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
 
     if (rad < 0) {
         rad = 0 - rad;
-        breath = TRUE;
+        breath = true;
         if (flag & PROJECT_HIDE)
-            old_hide = TRUE;
+            old_hide = true;
         flag |= PROJECT_HIDE;
     }
 
@@ -205,7 +206,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             if (msec > 0) {
                 if (!blind && !(flag & (PROJECT_HIDE))) {
                     if (panel_contains(y, x) && player_has_los_bold(caster_ptr, y, x)) {
-                        u16b p = bolt_pict(oy, ox, y, x, typ);
+                        uint16_t p = bolt_pict(oy, ox, y, x, typ);
                         TERM_COLOR a = PICT_A(p);
                         SYMBOL_CODE c = PICT_C(p);
                         print_rel(caster_ptr, c, a, y, x);
@@ -221,7 +222,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
                             print_rel(caster_ptr, c, a, y, x);
                         }
 
-                        visual = TRUE;
+                        visual = true;
                     } else if (visual) {
                         term_xtra(TERM_XTRA_DELAY, msec);
                     }
@@ -229,8 +230,8 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             }
 
             if (affect_item(caster_ptr, 0, 0, y, x, dam, GF_SEEKER))
-                res.notice = TRUE;
-            if (!is_mirror_grid(&caster_ptr->current_floor_ptr->grid_array[y][x]))
+                res.notice = true;
+            if (!caster_ptr->current_floor_ptr->grid_array[y][x].is_mirror())
                 continue;
 
             monster_target_y = y;
@@ -241,8 +242,8 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             for (j = last_i; j <= i; j++) {
                 y = get_grid_y(path_g[j]);
                 x = get_grid_x(path_g[j]);
-                if (affect_monster(caster_ptr, 0, 0, y, x, dam, GF_SEEKER, flag, TRUE))
-                    res.notice = TRUE;
+                if (affect_monster(caster_ptr, 0, 0, y, x, dam, GF_SEEKER, flag, true))
+                    res.notice = true;
                 if (!who && (project_m_n == 1) && !jump && (caster_ptr->current_floor_ptr->grid_array[project_m_y][project_m_x].m_idx > 0)) {
                     monster_type *m_ptr = &caster_ptr->current_floor_ptr->m_list[caster_ptr->current_floor_ptr->grid_array[project_m_y][project_m_x].m_idx];
                     if (m_ptr->ml) {
@@ -262,8 +263,8 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             POSITION py, px;
             py = get_grid_y(path_g[i]);
             px = get_grid_x(path_g[i]);
-            if (affect_monster(caster_ptr, 0, 0, py, px, dam, GF_SEEKER, flag, TRUE))
-                res.notice = TRUE;
+            if (affect_monster(caster_ptr, 0, 0, py, px, dam, GF_SEEKER, flag, true))
+                res.notice = true;
             if (!who && (project_m_n == 1) && !jump) {
                 if (caster_ptr->current_floor_ptr->grid_array[project_m_y][project_m_x].m_idx > 0) {
                     monster_type *m_ptr = &caster_ptr->current_floor_ptr->m_list[caster_ptr->current_floor_ptr->grid_array[project_m_y][project_m_x].m_idx];
@@ -299,7 +300,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             {
                 if (msec > 0) {
                     if (panel_contains(y, x) && player_has_los_bold(caster_ptr, y, x)) {
-                        u16b p;
+                        uint16_t p;
                         TERM_COLOR a;
                         SYMBOL_CODE c;
                         p = bolt_pict(oy, ox, y, x, typ);
@@ -318,7 +319,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
                             print_rel(caster_ptr, c, a, y, x);
                         }
 
-                        visual = TRUE;
+                        visual = true;
                     } else if (visual) {
                         term_xtra(TERM_XTRA_DELAY, msec);
                     }
@@ -326,14 +327,14 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             }
 
             if (affect_item(caster_ptr, 0, 0, y, x, dam, GF_SUPER_RAY))
-                res.notice = TRUE;
-            if (!cave_has_flag_bold(caster_ptr->current_floor_ptr, y, x, FF_PROJECT)) {
+                res.notice = true;
+            if (!cave_has_flag_bold(caster_ptr->current_floor_ptr, y, x, FF::PROJECT)) {
                 if (second_step)
                     continue;
                 break;
             }
 
-            if (is_mirror_grid(&caster_ptr->current_floor_ptr->grid_array[y][x]) && !second_step) {
+            if (caster_ptr->current_floor_ptr->grid_array[y][x].is_mirror() && !second_step) {
                 monster_target_y = y;
                 monster_target_x = x;
                 remove_mirror(caster_ptr, y, x);
@@ -367,7 +368,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
         for (int i = 0; i < path_n; i++) {
             POSITION py = get_grid_y(path_g[i]);
             POSITION px = get_grid_x(path_g[i]);
-            (void)affect_monster(caster_ptr, 0, 0, py, px, dam, GF_SUPER_RAY, flag, TRUE);
+            (void)affect_monster(caster_ptr, 0, 0, py, px, dam, GF_SUPER_RAY, flag, true);
             if (!who && (project_m_n == 1) && !jump) {
                 if (caster_ptr->current_floor_ptr->grid_array[project_m_y][project_m_x].m_idx > 0) {
                     monster_type *m_ptr = &caster_ptr->current_floor_ptr->m_list[caster_ptr->current_floor_ptr->grid_array[project_m_y][project_m_x].m_idx];
@@ -399,7 +400,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             if (!cave_los_bold(caster_ptr->current_floor_ptr, ny, nx) && (rad > 0))
                 break;
         } else {
-            if (!cave_has_flag_bold(caster_ptr->current_floor_ptr, ny, nx, FF_PROJECT) && (rad > 0))
+            if (!cave_has_flag_bold(caster_ptr->current_floor_ptr, ny, nx, FF::PROJECT) && (rad > 0))
                 break;
         }
 
@@ -414,7 +415,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
         if (msec > 0) {
             if (!blind && !(flag & (PROJECT_HIDE | PROJECT_FAST))) {
                 if (panel_contains(y, x) && player_has_los_bold(caster_ptr, y, x)) {
-                    u16b p;
+                    uint16_t p;
                     TERM_COLOR a;
                     SYMBOL_CODE c;
                     p = bolt_pict(oy, ox, y, x, typ);
@@ -433,7 +434,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
                         print_rel(caster_ptr, c, a, y, x);
                     }
 
-                    visual = TRUE;
+                    visual = true;
                 } else if (visual) {
                     term_xtra(TERM_XTRA_DELAY, msec);
                 }
@@ -445,7 +446,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
     POSITION by = y;
     POSITION bx = x;
     if (breath && !path_n) {
-        breath = FALSE;
+        breath = false;
         gm_rad = rad;
         if (!old_hide) {
             flag &= ~(PROJECT_HIDE);
@@ -520,10 +521,10 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
                 y = gy[i];
                 x = gx[i];
                 if (panel_contains(y, x) && player_has_los_bold(caster_ptr, y, x)) {
-                    u16b p;
+                    uint16_t p;
                     TERM_COLOR a;
                     SYMBOL_CODE c;
-                    drawn = TRUE;
+                    drawn = true;
                     p = bolt_pict(y, x, y, x, typ);
                     a = PICT_A(p);
                     c = PICT_C(p);
@@ -556,7 +557,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
 
     if (flag & PROJECT_KILL) {
         see_s_msg = (who > 0) ? is_seen(caster_ptr, &caster_ptr->current_floor_ptr->m_list[who])
-                              : (!who ? TRUE : (player_can_see_bold(caster_ptr, y1, x1) && projectable(caster_ptr, caster_ptr->y, caster_ptr->x, y1, x1)));
+                              : (!who ? true : (player_can_see_bold(caster_ptr, y1, x1) && projectable(caster_ptr, caster_ptr->y, caster_ptr->x, y1, x1)));
     }
 
     if (flag & (PROJECT_GRID)) {
@@ -569,10 +570,10 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             if (breath) {
                 int d = dist_to_line(y, x, y1, x1, by, bx);
                 if (affect_feature(caster_ptr, who, d, y, x, dam, typ))
-                    res.notice = TRUE;
+                    res.notice = true;
             } else {
                 if (affect_feature(caster_ptr, who, dist, y, x, dam, typ))
-                    res.notice = TRUE;
+                    res.notice = true;
             }
         }
     }
@@ -589,10 +590,10 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             if (breath) {
                 int d = dist_to_line(y, x, y1, x1, by, bx);
                 if (affect_item(caster_ptr, who, d, y, x, dam, typ))
-                    res.notice = TRUE;
+                    res.notice = true;
             } else {
                 if (affect_item(caster_ptr, who, dist, y, x, dam, typ))
-                    res.notice = TRUE;
+                    res.notice = true;
             }
         }
     }
@@ -628,14 +629,16 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
                         t_x = x_saver;
                     }
 
-                    sound(SOUND_REFLECT);
                     if (is_seen(caster_ptr, m_ptr)) {
+                        sound(SOUND_REFLECT);
                         if ((m_ptr->r_idx == MON_KENSHIROU) || (m_ptr->r_idx == MON_RAOU))
                             msg_print(_("「北斗神拳奥義・二指真空把！」", "The attack bounces!"));
                         else if (m_ptr->r_idx == MON_DIO)
                             msg_print(_("ディオ・ブランドーは指一本で攻撃を弾き返した！", "The attack bounces!"));
                         else
                             msg_print(_("攻撃は跳ね返った！", "The attack bounces!"));
+                    } else if (who <= 0) {
+                        sound(SOUND_REFLECT);
                     }
 
                     if (is_original_ap_and_seen(caster_ptr, m_ptr))
@@ -714,7 +717,7 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             }
 
             if (affect_monster(caster_ptr, who, effective_dist, y, x, dam, typ, flag, see_s_msg))
-                res.notice = TRUE;
+                res.notice = true;
         }
 
         /* Player affected one monster (without "jumping") */
@@ -785,8 +788,8 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
             }
 
             if (affect_player(who, caster_ptr, who_name, effective_dist, y, x, dam, typ, flag, project)) {
-                res.notice = TRUE;
-                res.affected_player = TRUE;
+                res.notice = true;
+                res.affected_player = true;
             }
         }
     }
@@ -795,13 +798,13 @@ ProjectResult project(player_type *caster_ptr, const MONSTER_IDX who, POSITION r
         GAME_TEXT m_name[MAX_NLEN];
         monster_desc(caster_ptr, m_name, &caster_ptr->current_floor_ptr->m_list[caster_ptr->riding], 0);
         if (rakubadam_m > 0) {
-            if (process_fall_off_horse(caster_ptr, rakubadam_m, FALSE)) {
+            if (process_fall_off_horse(caster_ptr, rakubadam_m, false)) {
                 msg_format(_("%^sに振り落とされた！", "%^s has thrown you off!"), m_name);
             }
         }
 
         if (caster_ptr->riding && rakubadam_p > 0) {
-            if (process_fall_off_horse(caster_ptr, rakubadam_p, FALSE)) {
+            if (process_fall_off_horse(caster_ptr, rakubadam_p, false)) {
                 msg_format(_("%^sから落ちてしまった！", "You have fallen from %s."), m_name);
             }
         }

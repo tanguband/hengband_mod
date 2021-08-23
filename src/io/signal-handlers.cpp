@@ -18,7 +18,7 @@
 #include "term/term-color-types.h"
 #include "world/world.h"
 
-s16b signal_count; /* Hack -- Count interupts */
+int16_t signal_count; /* Hack -- Count interupts */
 
 #include <signal.h>
 
@@ -79,10 +79,10 @@ static void handle_signal_simple(int sig)
         forget_lite(p_ptr->current_floor_ptr);
         forget_view(p_ptr->current_floor_ptr);
         clear_mon_lite(p_ptr->current_floor_ptr);
-        p_ptr->playing = FALSE;
+        p_ptr->playing = false;
         if (!cheat_immortal)
-            p_ptr->is_dead = TRUE;
-        p_ptr->leaving = TRUE;
+            p_ptr->is_dead = true;
+        p_ptr->leaving = true;
         close_game(p_ptr);
         quit(_("強制終了", "interrupt"));
     } else if (signal_count >= 4) {

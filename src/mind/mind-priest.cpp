@@ -35,11 +35,11 @@ bool bless_weapon(player_type *caster_ptr)
     OBJECT_IDX item;
     object_type *o_ptr = choose_object(caster_ptr, &item, q, s, USE_EQUIP | USE_INVEN | USE_FLOOR | IGNORE_BOTHHAND_SLOT, TV_NONE);
     if (!o_ptr)
-        return FALSE;
+        return false;
 
     GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(caster_ptr, o_name, o_ptr, OD_OMIT_PREFIX | OD_NAME_ONLY);
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     object_flags(caster_ptr, o_ptr, flgs);
 
     if (object_is_cursed(o_ptr)) {
@@ -51,7 +51,7 @@ bool bless_weapon(player_type *caster_ptr)
             msg_format("The black aura on %s %s disrupts the blessing!", ((item >= 0) ? "your" : "the"), o_name);
 #endif
 
-            return TRUE;
+            return true;
         }
 
 #ifdef JP
@@ -61,7 +61,7 @@ bool bless_weapon(player_type *caster_ptr)
 #endif
         o_ptr->curse_flags.clear();
         set_bits(o_ptr->ident, IDENT_SENSE);
-        set_bits(o_ptr->feeling, FEEL_NONE);
+        o_ptr->feeling = FEEL_NONE;
         set_bits(caster_ptr->update, PU_BONUS);
         set_bits(caster_ptr->window_flags, PW_EQUIP | PW_FLOOR_ITEM_LIST);
     }
@@ -80,7 +80,7 @@ bool bless_weapon(player_type *caster_ptr)
 #else
         msg_format("%s %s %s blessed already.", ((item >= 0) ? "Your" : "The"), o_name, ((o_ptr->number > 1) ? "were" : "was"));
 #endif
-        return TRUE;
+        return true;
     }
 
     if (!(object_is_artifact(o_ptr) || object_is_ego(o_ptr)) || one_in_(3)) {
@@ -92,13 +92,13 @@ bool bless_weapon(player_type *caster_ptr)
         add_flag(o_ptr->art_flags, TR_BLESSED);
         o_ptr->discount = 99;
     } else {
-        bool dis_happened = FALSE;
+        bool dis_happened = false;
         msg_print(_("その武器は祝福を嫌っている！", "The weapon resists your blessing!"));
 
         /* Disenchant tohit */
         if (o_ptr->to_h > 0) {
             o_ptr->to_h--;
-            dis_happened = TRUE;
+            dis_happened = true;
         }
 
         if ((o_ptr->to_h > 5) && (randint0(100) < 33))
@@ -107,7 +107,7 @@ bool bless_weapon(player_type *caster_ptr)
         /* Disenchant todam */
         if (o_ptr->to_d > 0) {
             o_ptr->to_d--;
-            dis_happened = TRUE;
+            dis_happened = true;
         }
 
         if ((o_ptr->to_d > 5) && (randint0(100) < 33))
@@ -116,7 +116,7 @@ bool bless_weapon(player_type *caster_ptr)
         /* Disenchant toac */
         if (o_ptr->to_a > 0) {
             o_ptr->to_a--;
-            dis_happened = TRUE;
+            dis_happened = true;
         }
 
         if ((o_ptr->to_a > 5) && (randint0(100) < 33))
@@ -136,5 +136,5 @@ bool bless_weapon(player_type *caster_ptr)
     set_bits(caster_ptr->update, PU_BONUS);
     set_bits(caster_ptr->window_flags, PW_EQUIP | PW_PLAYER | PW_FLOOR_ITEM_LIST);
     calc_android_exp(caster_ptr);
-    return TRUE;
+    return true;
 }

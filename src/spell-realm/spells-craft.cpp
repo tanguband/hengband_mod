@@ -1,4 +1,5 @@
 ﻿#include "spell-realm/spells-craft.h"
+#include "avatar/avatar.h"
 #include "core/disturbance.h"
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
@@ -14,7 +15,6 @@
 #include "object-hook/hook-enchant.h"
 #include "object/item-use-flags.h"
 #include "object/object-flags.h"
-#include "player-info/avatar.h"
 #include "player-info/equipment-info.h"
 #include "player/attack-defense-types.h"
 #include "player/special-defense-types.h"
@@ -33,7 +33,7 @@
  * @param v 継続時間
  * @return ステータスに影響を及ぼす変化があった場合TRUEを返す。
  */
-bool set_ele_attack(player_type *creature_ptr, u32b attack_type, TIME_EFFECT v)
+bool set_ele_attack(player_type *creature_ptr, uint32_t attack_type, TIME_EFFECT v)
 {
     v = (v > 10000) ? 10000 : (v < 0) ? 0 : v;
 
@@ -87,12 +87,12 @@ bool set_ele_attack(player_type *creature_ptr, u32b attack_type, TIME_EFFECT v)
     }
 
     if (disturb_state)
-        disturb(creature_ptr, FALSE, FALSE);
+        disturb(creature_ptr, false, false);
     creature_ptr->redraw |= (PR_STATUS);
     creature_ptr->update |= (PU_BONUS);
     handle_stuff(creature_ptr);
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -101,7 +101,7 @@ bool set_ele_attack(player_type *creature_ptr, u32b attack_type, TIME_EFFECT v)
  * @param v 継続時間
  * @return ステータスに影響を及ぼす変化があった場合TRUEを返す。
  */
-bool set_ele_immune(player_type *creature_ptr, u32b immune_type, TIME_EFFECT v)
+bool set_ele_immune(player_type *creature_ptr, uint32_t immune_type, TIME_EFFECT v)
 {
     v = (v > 10000) ? 10000 : (v < 0) ? 0 : v;
 
@@ -146,12 +146,12 @@ bool set_ele_immune(player_type *creature_ptr, u32b immune_type, TIME_EFFECT v)
     }
 
     if (disturb_state)
-        disturb(creature_ptr, FALSE, FALSE);
+        disturb(creature_ptr, false, false);
     creature_ptr->redraw |= (PR_STATUS);
     creature_ptr->update |= (PU_BONUS);
     handle_stuff(creature_ptr);
 
-    return TRUE;
+    return true;
 }
 
 /*
@@ -161,7 +161,7 @@ bool choose_ele_attack(player_type *creature_ptr)
 {
     if (!has_melee_weapon(creature_ptr, INVEN_MAIN_HAND) && !has_melee_weapon(creature_ptr, INVEN_SUB_HAND)) {
         msg_format(_("武器を持たないと魔法剣は使えない。", "You cannot use temporary branding with no weapon."));
-        return FALSE;
+        return false;
     }
 
     screen_save();
@@ -210,11 +210,11 @@ bool choose_ele_attack(player_type *creature_ptr)
     else {
         msg_print(_("魔法剣を使うのをやめた。", "You cancel the temporary branding."));
         screen_load();
-        return FALSE;
+        return false;
     }
 
     screen_load();
-    return TRUE;
+    return true;
 }
 /*
  * Choose a elemental immune. -LM-
@@ -249,11 +249,11 @@ bool choose_ele_immune(player_type *creature_ptr, TIME_EFFECT immune_turn)
     else {
         msg_print(_("免疫を付けるのをやめた。", "You cancel the temporary immunity."));
         screen_load();
-        return FALSE;
+        return false;
     }
 
     screen_load();
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -269,11 +269,11 @@ bool pulish_shield(player_type *caster_ptr)
     OBJECT_IDX item;
     object_type *o_ptr = choose_object(caster_ptr, &item, q, s, USE_EQUIP | USE_INVEN | USE_FLOOR | IGNORE_BOTHHAND_SLOT, TV_SHIELD);
     if (o_ptr == NULL)
-        return FALSE;
+        return false;
 
     GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(caster_ptr, o_name, o_ptr, OD_OMIT_PREFIX | OD_NAME_ONLY);
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     object_flags(caster_ptr, o_ptr, flgs);
 
     bool is_pulish_successful = o_ptr->k_idx && !object_is_artifact(o_ptr) && !object_is_ego(o_ptr);
@@ -289,7 +289,7 @@ bool pulish_shield(player_type *caster_ptr)
         enchant_equipment(caster_ptr, o_ptr, randint0(3) + 4, ENCH_TOAC);
         o_ptr->discount = 99;
         chg_virtue(caster_ptr, V_ENCHANT, 2);
-        return TRUE;
+        return true;
     }
 
     if (flush_failure)
@@ -298,5 +298,5 @@ bool pulish_shield(player_type *caster_ptr)
     msg_print(_("失敗した。", "Failed."));
     chg_virtue(caster_ptr, V_ENCHANT, -2);
     calc_android_exp(caster_ptr);
-    return FALSE;
+    return false;
 }

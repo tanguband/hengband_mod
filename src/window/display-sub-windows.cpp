@@ -6,7 +6,6 @@
 #include "game-option/special-options.h"
 #include "game-option/text-display-options.h"
 #include "grid/feature.h"
-#include "grid/grid.h"
 #include "inventory/inventory-describer.h"
 #include "inventory/inventory-slot-types.h"
 #include "inventory/inventory-util.h"
@@ -24,6 +23,7 @@
 #include "player/player-status.h"
 #include "spell-kind/magic-item-recharger.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -95,10 +95,10 @@ static void print_monster_line(TERM_LEN x, TERM_LEN y, monster_type *m_ptr, int 
     if (!r_ptr)
         return;
     if (r_ptr->flags1 & RF1_UNIQUE) {
-        bool is_bounty = FALSE;
+        bool is_bounty = false;
         for (int i = 0; i < MAX_BOUNTY; i++) {
             if (current_world_ptr->bounty_r_idx[i] == r_idx) {
-                is_bounty = TRUE;
+                is_bounty = true;
                 break;
             }
         }
@@ -349,7 +349,7 @@ void fix_message(void)
         TERM_LEN w, h;
         term_get_size(&w, &h);
         for (int i = 0; i < h; i++) {
-            term_putstr(0, (h - 1) - i, -1, (byte)((i < now_message) ? TERM_WHITE : TERM_SLATE), message_str((s16b)i));
+            term_putstr(0, (h - 1) - i, -1, (byte)((i < now_message) ? TERM_WHITE : TERM_SLATE), message_str((int16_t)i));
             TERM_LEN x, y;
             term_locate(&x, &y);
             term_erase(x, y, 255);
@@ -548,7 +548,7 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
         if (player_ptr->image) {
             sprintf(line, _("(X:%03d Y:%03d) 何か奇妙な物の足元の発見済みアイテム一覧", "Found items at (%03d,%03d) under something strange"), x, y);
         } else {
-            const monster_race *const r_ptr = &r_info[m_ptr->r_idx];
+            const monster_race *const r_ptr = &r_info[m_ptr->ap_r_idx];
             sprintf(line, _("(X:%03d Y:%03d) %sの足元の発見済みアイテム一覧", "Found items at (%03d,%03d) under %s"), x, y, r_ptr->name.c_str());
         }
     } else {
@@ -556,9 +556,9 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
         concptr fn = f_ptr->name.c_str();
         char buf[512];
 
-        if (has_flag(f_ptr->flags, FF_STORE) || (has_flag(f_ptr->flags, FF_BLDG) && !floor_ptr->inside_arena))
+        if (f_ptr->flags.has(FF::STORE) || (f_ptr->flags.has(FF::BLDG) && !floor_ptr->inside_arena))
             sprintf(buf, _("%sの入口", "on the entrance of %s"), fn);
-        else if (has_flag(f_ptr->flags, FF_WALL))
+        else if (f_ptr->flags.has(FF::WALL))
             sprintf(buf, _("%sの中", "in %s"), fn);
         else
             sprintf(buf, _("%s", "on %s"), fn);

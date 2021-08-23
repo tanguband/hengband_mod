@@ -31,6 +31,7 @@
 #include "player/special-defense-types.h"
 #include "status/action-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "term/screen-processor.h"
@@ -59,39 +60,39 @@ void do_cmd_search(player_type *creature_ptr)
 static bool exe_alter(player_type *creature_ptr)
 {
     DIRECTION dir;
-    if (!get_rep_dir(creature_ptr, &dir, TRUE))
-        return FALSE;
+    if (!get_rep_dir(creature_ptr, &dir, true))
+        return false;
 
     POSITION y = creature_ptr->y + ddy[dir];
     POSITION x = creature_ptr->x + ddx[dir];
     grid_type *g_ptr;
     g_ptr = &creature_ptr->current_floor_ptr->grid_array[y][x];
-    FEAT_IDX feat = get_feat_mimic(g_ptr);
+    FEAT_IDX feat = g_ptr->get_feat_mimic();
     feature_type *f_ptr;
     f_ptr = &f_info[feat];
     PlayerEnergy(creature_ptr).set_player_turn_energy(100);
     if (g_ptr->m_idx) {
         do_cmd_attack(creature_ptr, y, x, HISSATSU_NONE);
-        return FALSE;
+        return false;
     }
     
-    if (has_flag(f_ptr->flags, FF_OPEN))
+    if (f_ptr->flags.has(FF::OPEN))
         return exe_open(creature_ptr, y, x);
     
-    if (has_flag(f_ptr->flags, FF_BASH))
+    if (f_ptr->flags.has(FF::BASH))
         return exe_bash(creature_ptr, y, x, dir);
     
-    if (has_flag(f_ptr->flags, FF_TUNNEL))
+    if (f_ptr->flags.has(FF::TUNNEL))
         return exe_tunnel(creature_ptr, y, x);
     
-    if (has_flag(f_ptr->flags, FF_CLOSE))
+    if (f_ptr->flags.has(FF::CLOSE))
         return exe_close(creature_ptr, y, x);
     
-    if (has_flag(f_ptr->flags, FF_DISARM))
+    if (f_ptr->flags.has(FF::DISARM))
         return exe_disarm(creature_ptr, y, x, dir);
 
     msg_print(_("何もない空中を攻撃した。", "You attack the empty air."));
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -110,7 +111,7 @@ void do_cmd_alter(player_type *creature_ptr)
     }
 
     if (!exe_alter(creature_ptr))
-        disturb(creature_ptr, FALSE, FALSE);
+        disturb(creature_ptr, false, false);
 }
 
 /*!
@@ -121,7 +122,7 @@ void do_cmd_alter(player_type *creature_ptr)
 static bool decide_suicide(void)
 {
     if (current_world_ptr->noscore)
-        return TRUE;
+        return true;
 
     prt(_("確認のため '@' を押して下さい。", "Please verify SUICIDE by typing the '@' sign: "), 0, 0);
     flush();
@@ -171,9 +172,9 @@ void do_cmd_suicide(player_type *creature_ptr)
         string_free(creature_ptr->last_message);
 
     creature_ptr->last_message = NULL;
-    creature_ptr->playing = FALSE;
-    creature_ptr->is_dead = TRUE;
-    creature_ptr->leaving = TRUE;
+    creature_ptr->playing = false;
+    creature_ptr->is_dead = true;
+    creature_ptr->leaving = true;
     if (current_world_ptr->total_winner) {
         accept_winner_message(creature_ptr);
         add_retired_class(creature_ptr->pclass);

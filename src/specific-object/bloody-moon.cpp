@@ -55,13 +55,13 @@ void get_bloody_moon_flags(object_type *o_ptr)
 bool activate_bloody_moon(player_type *user_ptr, object_type *o_ptr)
 {
     if (o_ptr->name1 != ART_BLOOD)
-        return FALSE;
+        return false;
 
     msg_print(_("鎌が明るく輝いた...", "Your scythe glows brightly!"));
     get_bloody_moon_flags(o_ptr);
-    if (user_ptr->prace == RACE_ANDROID)
+    if (user_ptr->prace == player_race_type::ANDROID)
         calc_android_exp(user_ptr);
 
     user_ptr->update |= PU_BONUS | PU_HP;
-    return TRUE;
+    return true;
 }

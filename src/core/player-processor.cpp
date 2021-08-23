@@ -47,6 +47,7 @@
 #include "spell-realm/spells-song.h"
 #include "status/action-setter.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/player-type-definition.h"
 #include "term/screen-processor.h"
@@ -55,15 +56,15 @@
 #include "window/display-sub-windows.h"
 #include "world/world-turn-processor.h"
 
-bool load = TRUE;
-bool can_save = FALSE;
+bool load = true;
+bool can_save = false;
 
 static void process_fishing(player_type *creature_ptr)
 {
     term_xtra(TERM_XTRA_DELAY, 10);
     if (one_in_(1000)) {
         MONRACE_IDX r_idx;
-        bool success = FALSE;
+        bool success = false;
         get_mon_num_prep(creature_ptr, monster_is_fishing_target, NULL);
         r_idx = get_mon_num(creature_ptr, 0,
             is_in_dungeon(creature_ptr) ? creature_ptr->current_floor_ptr->dun_level
@@ -78,7 +79,7 @@ static void process_fishing(player_type *creature_ptr)
                 GAME_TEXT m_name[MAX_NLEN];
                 monster_desc(creature_ptr, m_name, &creature_ptr->current_floor_ptr->m_list[creature_ptr->current_floor_ptr->grid_array[y][x].m_idx], 0);
                 msg_format(_("%sが釣れた！", "You have a good catch!"), m_name);
-                success = TRUE;
+                success = true;
             }
         }
 
@@ -86,7 +87,7 @@ static void process_fishing(player_type *creature_ptr)
             msg_print(_("餌だけ食われてしまった！くっそ～！", "Damn!  The fish stole your bait!"));
         }
 
-        disturb(creature_ptr, FALSE, TRUE);
+        disturb(creature_ptr, false, true);
     }
 }
 
@@ -107,13 +108,13 @@ void process_player(player_type *creature_ptr)
     if (creature_ptr->hack_mutation) {
         msg_print(_("何か変わった気がする！", "You feel different!"));
         (void)gain_mutation(creature_ptr, 0);
-        creature_ptr->hack_mutation = FALSE;
+        creature_ptr->hack_mutation = false;
     }
 
     if (creature_ptr->invoking_midnight_curse) {
         int count = 0;
-        activate_ty_curse(creature_ptr, FALSE, &count);
-        creature_ptr->invoking_midnight_curse = FALSE;
+        activate_ty_curse(creature_ptr, false, &count);
+        creature_ptr->invoking_midnight_curse = false;
     }
 
     if (creature_ptr->phase_out) {
@@ -123,10 +124,10 @@ void process_player(player_type *creature_ptr)
                 continue;
 
             m_ptr->mflag2.set({MFLAG2::MARK, MFLAG2::SHOW});
-            update_monster(creature_ptr, m_idx, FALSE);
+            update_monster(creature_ptr, m_idx, false);
         }
 
-        print_time(creature_ptr);
+        WorldTurnProcessor(creature_ptr).print_time();        
     } else if (!(load && creature_ptr->energy_need <= 0)) {
         creature_ptr->energy_need -= SPEED_TO_ENERGY(creature_ptr->pspeed);
     }
@@ -134,7 +135,7 @@ void process_player(player_type *creature_ptr)
     if (creature_ptr->energy_need > 0)
         return;
     if (!command_rep) {
-        print_time(creature_ptr);
+        WorldTurnProcessor(creature_ptr).print_time();
     }
 
     if (fresh_once && (continuous_action_running(creature_ptr) || !command_rep)) {
@@ -160,10 +161,10 @@ void process_player(player_type *creature_ptr)
 
     if (check_abort) {
         if (continuous_action_running(creature_ptr)) {
-            inkey_scan = TRUE;
+            inkey_scan = true;
             if (inkey()) {
                 flush();
-                disturb(creature_ptr, FALSE, TRUE);
+                disturb(creature_ptr, false, true);
                 msg_print(_("中断しました。", "Canceled."));
             }
         }
@@ -209,21 +210,21 @@ void process_player(player_type *creature_ptr)
         handle_stuff(creature_ptr);
     }
 
-    load = FALSE;
+    load = false;
     if (creature_ptr->lightspeed)
-        set_lightspeed(creature_ptr, creature_ptr->lightspeed - 1, TRUE);
+        set_lightspeed(creature_ptr, creature_ptr->lightspeed - 1, true);
 
     if ((creature_ptr->pclass == CLASS_FORCETRAINER) && get_current_ki(creature_ptr)) {
         if (get_current_ki(creature_ptr) < 40)
-            set_current_ki(creature_ptr, TRUE, 0);
+            set_current_ki(creature_ptr, true, 0);
         else
-            set_current_ki(creature_ptr, FALSE, -40);
+            set_current_ki(creature_ptr, false, -40);
         creature_ptr->update |= (PU_BONUS);
     }
 
     if (creature_ptr->action == ACTION_LEARN) {
-        s32b cost = 0L;
-        u32b cost_frac = (creature_ptr->msp + 30L) * 256L;
+        int32_t cost = 0L;
+        uint32_t cost_frac = (creature_ptr->msp + 30L) * 256L;
         s64b_lshift(&cost, &cost_frac, 16);
         if (s64b_cmp(creature_ptr->csp, creature_ptr->csp_frac, cost, cost_frac) < 0) {
             creature_ptr->csp = 0;
@@ -250,11 +251,11 @@ void process_player(player_type *creature_ptr)
     /*** Handle actual user input ***/
     while (creature_ptr->energy_need <= 0) {
         creature_ptr->window_flags |= PW_PLAYER;
-        creature_ptr->sutemi = FALSE;
-        creature_ptr->counter = FALSE;
-        creature_ptr->now_damaged = FALSE;
+        creature_ptr->sutemi = false;
+        creature_ptr->counter = false;
+        creature_ptr->now_damaged = false;
 
-        update_monsters(creature_ptr, FALSE);
+        update_monsters(creature_ptr, false);
         handle_stuff(creature_ptr);
         move_cursor_relative(creature_ptr->y, creature_ptr->x);
         if (fresh_before)
@@ -262,7 +263,7 @@ void process_player(player_type *creature_ptr)
 
         pack_overflow(creature_ptr);
         if (!command_new)
-            command_see = FALSE;
+            command_see = false;
 
         PlayerEnergy energy(creature_ptr);
         energy.reset_player_turn();
@@ -291,7 +292,7 @@ void process_player(player_type *creature_ptr)
             command_rep--;
             creature_ptr->redraw |= (PR_STATE);
             handle_stuff(creature_ptr);
-            msg_flag = FALSE;
+            msg_flag = false;
             prt("", 0, 0);
             process_command(creature_ptr);
         } else {
@@ -300,9 +301,9 @@ void process_player(player_type *creature_ptr)
             creature_ptr->window_flags |= PW_MONSTER_LIST;
             window_stuff(creature_ptr);
 
-            can_save = TRUE;
-            request_command(creature_ptr, FALSE);
-            can_save = FALSE;
+            can_save = true;
+            request_command(creature_ptr, false);
+            can_save = false;
             process_command(creature_ptr);
         }
 
@@ -311,7 +312,7 @@ void process_player(player_type *creature_ptr)
             if (creature_ptr->timewalk || creature_ptr->energy_use > 400) {
                 creature_ptr->energy_need += creature_ptr->energy_use * TURNS_PER_TICK / 10;
             } else {
-                creature_ptr->energy_need += (s16b)((s32b)creature_ptr->energy_use * ENERGY_NEED() / 100L);
+                creature_ptr->energy_need += (int16_t)((int32_t)creature_ptr->energy_use * ENERGY_NEED() / 100L);
             }
 
             if (creature_ptr->image)
@@ -338,7 +339,7 @@ void process_player(player_type *creature_ptr)
 
                 if (m_ptr->mflag.has(MFLAG::SANITY_BLAST)) {
                     m_ptr->mflag.reset(MFLAG::SANITY_BLAST);
-                    sanity_blast(creature_ptr, m_ptr, FALSE);
+                    sanity_blast(creature_ptr, m_ptr, false);
                 }
 
                 // 感知中のモンスターのフラグを落とす処理
@@ -348,8 +349,8 @@ void process_player(player_type *creature_ptr)
                         m_ptr->mflag2.reset(MFLAG2::SHOW);
                     } else {
                         m_ptr->mflag2.reset(MFLAG2::MARK);
-                        m_ptr->ml = FALSE;
-                        update_monster(creature_ptr, m_idx, FALSE);
+                        m_ptr->ml = false;
+                        update_monster(creature_ptr, m_idx, false);
                         if (creature_ptr->health_who == m_idx)
                             creature_ptr->redraw |= (PR_HEALTH);
                         if (creature_ptr->riding == m_idx)
@@ -369,12 +370,12 @@ void process_player(player_type *creature_ptr)
                     }
                 }
 
-                creature_ptr->new_mane = FALSE;
+                creature_ptr->new_mane = false;
                 creature_ptr->redraw |= (PR_IMITATION);
             }
 
             if (creature_ptr->action == ACTION_LEARN) {
-                creature_ptr->new_mane = FALSE;
+                creature_ptr->new_mane = false;
                 creature_ptr->redraw |= (PR_STATE);
             }
 
@@ -385,7 +386,7 @@ void process_player(player_type *creature_ptr)
 
                 msg_print(_("「時は動きだす…」", "You feel time flowing around you once more."));
                 msg_print(NULL);
-                creature_ptr->timewalk = FALSE;
+                creature_ptr->timewalk = false;
                 creature_ptr->energy_need = ENERGY_NEED();
 
                 handle_stuff(creature_ptr);
@@ -393,12 +394,12 @@ void process_player(player_type *creature_ptr)
         }
 
         if (!creature_ptr->playing || creature_ptr->is_dead) {
-            creature_ptr->timewalk = FALSE;
+            creature_ptr->timewalk = false;
             break;
         }
 
         if (creature_ptr->energy_use && creature_ptr->reset_concent)
-            reset_concentration(creature_ptr, TRUE);
+            reset_concentration(creature_ptr, true);
 
         if (creature_ptr->leaving)
             break;

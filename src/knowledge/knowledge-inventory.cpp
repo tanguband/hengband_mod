@@ -42,7 +42,7 @@ static concptr inven_res_label = _(
  * @param flags 耐性配列へのポインタ
  * @param fff 一時ファイルへのポインタ
  */
-static void print_im_or_res_flag(int immunity, int resistance, BIT_FLAGS *flags, FILE *fff)
+static void print_im_or_res_flag(int immunity, int resistance, const TrFlags &flags, FILE *fff)
 {
     fputs(has_flag(flags, immunity) ? IM_FLAG_STR : (has_flag(flags, resistance) ? HAS_FLAG_STR : NO_FLAG_STR), fff);
 }
@@ -53,7 +53,10 @@ static void print_im_or_res_flag(int immunity, int resistance, BIT_FLAGS *flags,
  * @param flags 耐性配列へのポインタ
  * @param fff 一時ファイルへのポインタ
  */
-static void print_flag(int tr, BIT_FLAGS *flags, FILE *fff) { fputs(has_flag(flags, tr) ? HAS_FLAG_STR : NO_FLAG_STR, fff); }
+static void print_flag(int tr, const TrFlags &flags, FILE *fff)
+{
+    fputs(has_flag(flags, tr) ? HAS_FLAG_STR : NO_FLAG_STR, fff);
+}
 
 /*!
  * @brief 特殊なアイテムかどうかを調べる
@@ -80,15 +83,15 @@ static bool determine_spcial_item_type(object_type *o_ptr, tval_type tval)
 static bool check_item_knowledge(object_type *o_ptr, tval_type tval)
 {
     if (o_ptr->k_idx == 0)
-        return FALSE;
+        return false;
     if (o_ptr->tval != tval)
-        return FALSE;
+        return false;
     if (!object_is_known(o_ptr))
-        return FALSE;
+        return false;
     if (!determine_spcial_item_type(o_ptr, tval))
-        return FALSE;
+        return false;
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -99,7 +102,7 @@ static bool check_item_knowledge(object_type *o_ptr, tval_type tval)
  */
 static void display_identified_resistances_flag(player_type *creature_ptr, object_type *o_ptr, FILE *fff)
 {
-    BIT_FLAGS flags[TR_FLAG_SIZE];
+    TrFlags flags;
     object_flags_known(creature_ptr, o_ptr, flags);
 
     print_im_or_res_flag(TR_IM_ACID, TR_RES_ACID, flags, fff);
@@ -289,6 +292,6 @@ void do_cmd_knowledge_inventory(player_type *creature_ptr)
     }
 
     angband_fclose(fff);
-    (void)show_file(creature_ptr, TRUE, file_name, _("*鑑定*済み武器/防具の耐性リスト", "Resistances of *identified* equipment"), 0, 0);
+    (void)show_file(creature_ptr, true, file_name, _("*鑑定*済み武器/防具の耐性リスト", "Resistances of *identified* equipment"), 0, 0);
     fd_kill(file_name);
 }

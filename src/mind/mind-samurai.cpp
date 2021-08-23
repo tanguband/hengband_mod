@@ -6,10 +6,10 @@
 
 #include "mind/mind-samurai.h"
 #include "action/action-limited.h"
+#include "avatar/avatar.h"
 #include "cmd-action/cmd-attack.h"
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
-#include "grid/grid.h"
 #include "inventory/inventory-slot-types.h"
 #include "io/input-key-acceptor.h"
 #include "mind/stances-table.h"
@@ -25,9 +25,9 @@
 #include "object-enchant/tr-types.h"
 #include "pet/pet-util.h"
 #include "player-attack/player-attack-util.h"
-#include "player-info/avatar.h"
 #include "player/attack-defense-types.h"
 #include "status/action-setter.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -39,17 +39,17 @@
 
 typedef struct samurai_slaying_type {
     MULTIPLY mult;
-    BIT_FLAGS *flags;
+    TrFlags flags;
     monster_type *m_ptr;
     combat_options mode;
     monster_race *r_ptr;
 } samurai_slaying_type;
 
 static samurai_slaying_type *initialize_samurai_slaying_type(
-    samurai_slaying_type *samurai_slaying_ptr, MULTIPLY mult, BIT_FLAGS *flags, monster_type *m_ptr, combat_options mode, monster_race *r_ptr)
+    samurai_slaying_type *samurai_slaying_ptr, MULTIPLY mult, const TrFlags &flags, monster_type *m_ptr, combat_options mode, monster_race *r_ptr)
 {
     samurai_slaying_ptr->mult = mult;
-    samurai_slaying_ptr->flags = flags;
+    std::copy_n(flags, TR_FLAG_SIZE, samurai_slaying_ptr->flags);
     samurai_slaying_ptr->m_ptr = m_ptr;
     samurai_slaying_ptr->mode = mode;
     samurai_slaying_ptr->r_ptr = r_ptr;
@@ -280,7 +280,7 @@ static void hissatsu_keiun_kininken(player_type *attacker_ptr, samurai_slaying_t
  * @param mode 剣術のスレイ型ID
  * @return スレイの倍率(/10倍)
  */
-MULTIPLY mult_hissatsu(player_type *attacker_ptr, MULTIPLY mult, BIT_FLAGS *flags, monster_type *m_ptr, combat_options mode)
+MULTIPLY mult_hissatsu(player_type *attacker_ptr, MULTIPLY mult, const TrFlags &flags, monster_type *m_ptr, combat_options mode)
 {
     monster_race *r_ptr = &r_info[m_ptr->r_idx];
     samurai_slaying_type tmp_slaying;
@@ -337,16 +337,16 @@ bool choose_kata(player_type *creature_ptr)
     char buf[80];
 
     if (cmd_limit_confused(creature_ptr))
-        return FALSE;
+        return false;
 
     if (creature_ptr->stun) {
         msg_print(_("意識がはっきりとしない。", "You are not clear-headed"));
-        return FALSE;
+        return false;
     }
 
     if (creature_ptr->afraid) {
         msg_print(_("体が震えて構えられない！", "You are trembling with fear!"));
-        return FALSE;
+        return false;
     }
 
     screen_save();
@@ -361,19 +361,19 @@ bool choose_kata(player_type *creature_ptr)
     prt("", 1, 0);
     prt(_("        どの型で構えますか？", "        Choose Stance: "), 1, 14);
 
-    while (TRUE) {
+    while (true) {
         choice = inkey();
 
         if (choice == ESCAPE) {
             screen_load();
-            return FALSE;
+            return false;
         } else if ((choice == 'a') || (choice == 'A')) {
             if (creature_ptr->action == ACTION_KATA) {
                 set_action(creature_ptr, ACTION_NONE);
             } else
                 msg_print(_("もともと構えていない。", "You are not in a special stance."));
             screen_load();
-            return TRUE;
+            return true;
         } else if ((choice == 'b') || (choice == 'B')) {
             new_kata = 0;
             break;
@@ -401,7 +401,7 @@ bool choose_kata(player_type *creature_ptr)
 
     creature_ptr->redraw |= (PR_STATE | PR_STATUS);
     screen_load();
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -476,6 +476,6 @@ void musou_counterattack(player_type *attacker_ptr, monap_type *monap_ptr)
     attacker_ptr->csp -= 7;
     msg_format(_("%^sに反撃した！", "You counterattacked %s!"), m_target_name);
     do_cmd_attack(attacker_ptr, monap_ptr->m_ptr->fy, monap_ptr->m_ptr->fx, HISSATSU_COUNTER);
-    monap_ptr->fear = FALSE;
+    monap_ptr->fear = false;
     attacker_ptr->redraw |= (PR_MANA);
 }

@@ -15,6 +15,7 @@
 #include "monster/monster-processor-util.h"
 #include "mspell/mspell-checker.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -49,10 +50,10 @@ static coordinate_candidate sweep_safe_coordinate(player_type *target_ptr, MONST
             continue;
 
         if (m_ptr->mflag2.has_not(MFLAG2::NOFLOW)) {
-            byte dist = grid_dist(g_ptr, r_ptr);
+            byte dist = g_ptr->get_distance(r_ptr);
             if (dist == 0)
                 continue;
-            if (dist > grid_dist(&floor_ptr->grid_array[m_ptr->fy][m_ptr->fx], r_ptr) + 2 * d)
+            if (dist > floor_ptr->grid_array[m_ptr->fy][m_ptr->fx].get_distance(r_ptr) + 2 * d)
                 continue;
         }
 
@@ -108,10 +109,10 @@ bool find_safety(player_type *target_ptr, MONSTER_IDX m_idx, POSITION *yp, POSIT
         *yp = m_ptr->fy - candidate.gy;
         *xp = m_ptr->fx - candidate.gx;
 
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -133,7 +134,7 @@ static void sweep_hiding_candidate(
             continue;
         if (!monster_can_enter(target_ptr, y, x, r_ptr, 0))
             continue;
-        if (projectable(target_ptr, target_ptr->y, target_ptr->x, y, x) || !clean_shot(target_ptr, m_ptr->fy, m_ptr->fx, y, x, FALSE))
+        if (projectable(target_ptr, target_ptr->y, target_ptr->x, y, x) || !clean_shot(target_ptr, m_ptr->fy, m_ptr->fx, y, x, false))
             continue;
 
         POSITION dis = distance(y, x, target_ptr->y, target_ptr->x);
@@ -178,8 +179,8 @@ bool find_hiding(player_type *target_ptr, MONSTER_IDX m_idx, POSITION *yp, POSIT
 
         *yp = m_ptr->fy - candidate.gy;
         *xp = m_ptr->fx - candidate.gx;
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }

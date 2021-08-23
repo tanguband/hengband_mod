@@ -13,7 +13,6 @@
 #include "floor/cave.h"
 #include "floor/wild.h"
 #include "grid/feature.h"
-#include "grid/grid.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags-resistance.h"
 #include "monster-race/race-flags1.h"
@@ -28,6 +27,7 @@
 #include "monster/smart-learn-types.h"
 #include "player/player-status-flags.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -53,67 +53,67 @@ bool monster_can_cross_terrain(player_type *player_ptr, FEAT_IDX feat, monster_r
 {
     feature_type *f_ptr = &f_info[feat];
 
-    if (has_flag(f_ptr->flags, FF_PATTERN)) {
+    if (f_ptr->flags.has(FF::PATTERN)) {
         if (!(mode & CEM_RIDING)) {
             if (!(r_ptr->flags7 & RF7_CAN_FLY))
-                return FALSE;
+                return false;
         } else {
             if (!(mode & CEM_P_CAN_ENTER_PATTERN))
-                return FALSE;
+                return false;
         }
     }
 
-    if (has_flag(f_ptr->flags, FF_CAN_FLY) && (r_ptr->flags7 & RF7_CAN_FLY))
-        return TRUE;
-    if (has_flag(f_ptr->flags, FF_CAN_SWIM) && (r_ptr->flags7 & RF7_CAN_SWIM))
-        return TRUE;
-    if (has_flag(f_ptr->flags, FF_CAN_PASS)) {
+    if (f_ptr->flags.has(FF::CAN_FLY) && (r_ptr->flags7 & RF7_CAN_FLY))
+        return true;
+    if (f_ptr->flags.has(FF::CAN_SWIM) && (r_ptr->flags7 & RF7_CAN_SWIM))
+        return true;
+    if (f_ptr->flags.has(FF::CAN_PASS)) {
         if ((r_ptr->flags2 & RF2_PASS_WALL) && (!(mode & CEM_RIDING) || has_pass_wall(player_ptr)))
-            return TRUE;
+            return true;
     }
 
-    if (!has_flag(f_ptr->flags, FF_MOVE))
-        return FALSE;
+    if (f_ptr->flags.has_not(FF::MOVE))
+        return false;
 
-    if (has_flag(f_ptr->flags, FF_MOUNTAIN) && (r_ptr->flags8 & RF8_WILD_MOUNTAIN))
-        return TRUE;
+    if (f_ptr->flags.has(FF::MOUNTAIN) && (r_ptr->flags8 & RF8_WILD_MOUNTAIN))
+        return true;
 
-    if (has_flag(f_ptr->flags, FF_WATER)) {
+    if (f_ptr->flags.has(FF::WATER)) {
         if (!(r_ptr->flags7 & RF7_AQUATIC)) {
-            if (has_flag(f_ptr->flags, FF_DEEP))
-                return FALSE;
+            if (f_ptr->flags.has(FF::DEEP))
+                return false;
             else if (r_ptr->flags2 & RF2_AURA_FIRE)
-                return FALSE;
+                return false;
         }
     } else if (r_ptr->flags7 & RF7_AQUATIC)
-        return FALSE;
+        return false;
 
-    if (has_flag(f_ptr->flags, FF_LAVA)) {
+    if (f_ptr->flags.has(FF::LAVA)) {
         if (!(r_ptr->flagsr & RFR_EFF_IM_FIRE_MASK))
-            return FALSE;
+            return false;
     }
 
-    if (has_flag(f_ptr->flags, FF_COLD_PUDDLE)) {
+    if (f_ptr->flags.has(FF::COLD_PUDDLE)) {
         if (!(r_ptr->flagsr & RFR_EFF_IM_COLD_MASK))
-            return FALSE;
+            return false;
     }
 
-    if (has_flag(f_ptr->flags, FF_ELEC_PUDDLE)) {
+    if (f_ptr->flags.has(FF::ELEC_PUDDLE)) {
         if (!(r_ptr->flagsr & RFR_EFF_IM_ELEC_MASK))
-            return FALSE;
+            return false;
     }
 
-    if (has_flag(f_ptr->flags, FF_ACID_PUDDLE)) {
+    if (f_ptr->flags.has(FF::ACID_PUDDLE)) {
         if (!(r_ptr->flagsr & RFR_EFF_IM_ACID_MASK))
-            return FALSE;
+            return false;
     }
 
-    if (has_flag(f_ptr->flags, FF_POISON_PUDDLE)) {
+    if (f_ptr->flags.has(FF::POISON_PUDDLE)) {
         if (!(r_ptr->flagsr & RFR_EFF_IM_POIS_MASK))
-            return FALSE;
+            return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -130,9 +130,9 @@ bool monster_can_enter(player_type *player_ptr, POSITION y, POSITION x, monster_
 {
     grid_type *g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
     if (player_bold(player_ptr, y, x))
-        return FALSE;
+        return false;
     if (g_ptr->m_idx)
-        return FALSE;
+        return false;
 
     return monster_can_cross_terrain(player_ptr, g_ptr->feat, r_ptr, mode);
 }
@@ -148,10 +148,10 @@ static bool check_hostile_align(byte sub_align1, byte sub_align2)
 {
     if (sub_align1 != sub_align2) {
         if (((sub_align1 & SUB_ALIGN_EVIL) && (sub_align2 & SUB_ALIGN_GOOD)) || ((sub_align1 & SUB_ALIGN_GOOD) && (sub_align2 & SUB_ALIGN_EVIL)))
-            return TRUE;
+            return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -168,25 +168,25 @@ bool are_enemies(player_type *player_ptr, monster_type *m_ptr, monster_type *n_p
 
     if (player_ptr->phase_out) {
         if (is_pet(m_ptr) || is_pet(n_ptr))
-            return FALSE;
-        return TRUE;
+            return false;
+        return true;
     }
 
     if ((r_ptr->flags8 & (RF8_WILD_TOWN | RF8_WILD_ALL)) && (s_ptr->flags8 & (RF8_WILD_TOWN | RF8_WILD_ALL))) {
         if (!is_pet(m_ptr) && !is_pet(n_ptr))
-            return FALSE;
+            return false;
     }
 
     if (check_hostile_align(m_ptr->sub_align, n_ptr->sub_align)) {
         if (m_ptr->mflag2.has_not(MFLAG2::CHAMELEON) || n_ptr->mflag2.has_not(MFLAG2::CHAMELEON))
-            return TRUE;
+            return true;
     }
 
     if (is_hostile(m_ptr) != is_hostile(n_ptr)) {
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -224,9 +224,9 @@ bool monster_has_hostile_align(player_type *player_ptr, monster_type *m_ptr, int
         sub_align2 |= SUB_ALIGN_GOOD;
 
     if (check_hostile_align(sub_align1, sub_align2))
-        return TRUE;
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 bool is_original_ap_and_seen(player_type *player_ptr, monster_type *m_ptr) { return m_ptr->ml && !player_ptr->image && (m_ptr->ap_r_idx == m_ptr->r_idx); }
@@ -257,18 +257,18 @@ bool is_hostile(monster_type *m_ptr) { return !is_friendly(m_ptr) && !is_pet(m_p
 bool is_mimicry(monster_type *m_ptr)
 {
     if (m_ptr->ap_r_idx == MON_IT || m_ptr->ap_r_idx == MON_NULL || m_ptr->ap_r_idx == MON_BEHINDER)
-        return TRUE;
+        return true;
 
     monster_race *r_ptr = &r_info[m_ptr->ap_r_idx];
 
     if (angband_strchr("/|\\()[]=$,.!?&`#%<>+~", r_ptr->d_char) == NULL)
-        return FALSE;
+        return false;
 
     if (none_bits(r_ptr->flags1, RF1_NEVER_MOVE) && !monster_csleep_remaining(m_ptr)) {
-        return FALSE;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!

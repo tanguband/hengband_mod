@@ -5,6 +5,7 @@
 #include "grid/grid.h"
 #include "system/dungeon-data-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
 
 /*!
@@ -16,13 +17,13 @@
 static bool get_is_floor(floor_type *floor_ptr, POSITION x, POSITION y)
 {
     if (!in_bounds(floor_ptr, y, x)) {
-        return FALSE;
+        return false;
     }
 
-    if (is_floor_bold(floor_ptr, y, x))
-        return TRUE;
+    if (floor_ptr->grid_array[y][x].is_floor())
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -37,10 +38,11 @@ static void set_floor(player_type *player_ptr, POSITION x, POSITION y)
     if (!in_bounds(floor_ptr, y, x))
         return;
 
-    if (floor_ptr->grid_array[y][x].info & CAVE_ROOM)
+    auto *g_ptr = &floor_ptr->grid_array[y][x];
+    if (g_ptr->is_room())
         return;
 
-    if (is_extra_bold(floor_ptr, y, x))
+    if (g_ptr->is_extra())
         place_bold(player_ptr, y, x, GB_FLOOR);
 }
 
@@ -116,21 +118,21 @@ static bool find_space_aux(dun_data_type *dd_ptr, POSITION blocks_high, POSITION
 {
     if (blocks_wide < 3) {
         if ((blocks_wide == 2) && (block_x % 3) == 2)
-            return FALSE;
+            return false;
     } else if ((blocks_wide % 3) == 0) {
         if ((block_x % 3) != 0)
-            return FALSE;
+            return false;
     } else {
         if (block_x + (blocks_wide / 2) <= dd_ptr->col_rooms / 2) {
             if (((block_x % 3) == 2) && ((blocks_wide % 3) == 2))
-                return FALSE;
+                return false;
             if ((block_x % 3) == 1)
-                return FALSE;
+                return false;
         } else {
             if (((block_x % 3) == 2) && ((blocks_wide % 3) == 2))
-                return FALSE;
+                return false;
             if ((block_x % 3) == 1)
-                return FALSE;
+                return false;
         }
     }
 
@@ -140,14 +142,14 @@ static bool find_space_aux(dun_data_type *dd_ptr, POSITION blocks_high, POSITION
     POSITION bx2 = block_x + blocks_wide;
 
     if ((by1 < 0) || (by2 > dd_ptr->row_rooms) || (bx1 < 0) || (bx2 > dd_ptr->col_rooms))
-        return FALSE;
+        return false;
 
     for (POSITION by = by1; by < by2; by++)
         for (POSITION bx = bx1; bx < bx2; bx++)
             if (dd_ptr->room_map[by][bx])
-                return FALSE;
+                return false;
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -179,7 +181,7 @@ bool find_space(player_type *player_ptr, dun_data_type *dd_ptr, POSITION *y, POS
     POSITION blocks_high = 1 + ((height - 1) / BLOCK_HGT);
     POSITION blocks_wide = 1 + ((width - 1) / BLOCK_WID);
     if ((dd_ptr->row_rooms < blocks_high) || (dd_ptr->col_rooms < blocks_wide))
-        return FALSE;
+        return false;
 
     int candidates = 0;
     for (block_y = dd_ptr->row_rooms - blocks_high; block_y >= 0; block_y--) {
@@ -192,7 +194,7 @@ bool find_space(player_type *player_ptr, dun_data_type *dd_ptr, POSITION *y, POS
     }
 
     if (!candidates)
-        return FALSE;
+        return false;
 
     if (d_info[player_ptr->current_floor_ptr->dungeon_idx].flags.has_not(DF::NO_CAVE))
         pick = randint1(candidates);
@@ -226,8 +228,8 @@ bool find_space(player_type *player_ptr, dun_data_type *dd_ptr, POSITION *y, POS
 
     for (POSITION by = by1; by < by2; by++)
         for (POSITION bx = bx1; bx < bx2; bx++)
-            dd_ptr->room_map[by][bx] = TRUE;
+            dd_ptr->room_map[by][bx] = true;
 
     check_room_boundary(player_ptr, *x - width / 2 - 1, *y - height / 2 - 1, *x + (width - 1) / 2 + 1, *y + (height - 1) / 2 + 1);
-    return TRUE;
+    return true;
 }

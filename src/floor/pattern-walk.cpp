@@ -9,7 +9,6 @@
 #include "game-option/play-record-options.h"
 #include "game-option/special-options.h"
 #include "grid/feature.h"
-#include "grid/grid.h"
 #include "io/input-key-requester.h"
 #include "io/write-diary.h"
 #include "player-status/player-energy.h"
@@ -23,16 +22,18 @@
 #include "status/bad-status-setter.h"
 #include "status/experience.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 #include "world/world.h"
+#include "world/world-movement-processor.h"
 
 /*!
  * @brief パターン終点到達時のテレポート処理を行う
  * @param creature_ptr プレーヤーへの参照ポインタ
  */
-static void pattern_teleport(player_type *creature_ptr)
+void pattern_teleport(player_type *creature_ptr)
 {
     DEPTH min_level = 0;
     DEPTH max_level = 99;
@@ -74,7 +75,7 @@ static void pattern_teleport(player_type *creature_ptr)
 
     msg_format(_("%d 階にテレポートしました。", "You teleport to dungeon level %d."), command_arg);
     if (autosave_l)
-        do_cmd_save_game(creature_ptr, TRUE);
+        do_cmd_save_game(creature_ptr, true);
 
     creature_ptr->current_floor_ptr->dun_level = command_arg;
     leave_quest_check(creature_ptr);
@@ -89,7 +90,10 @@ static void pattern_teleport(player_type *creature_ptr)
      * and create a first saved floor
      */
     prepare_change_floor_mode(creature_ptr, CFM_FIRST_FLOOR);
-    creature_ptr->leaving = TRUE;
+
+    check_random_quest_auto_failure(creature_ptr);
+
+    creature_ptr->leaving = true;
 }
 
 /*!
@@ -100,9 +104,9 @@ bool pattern_effect(player_type *creature_ptr)
 {
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if (!pattern_tile(floor_ptr, creature_ptr->y, creature_ptr->x))
-        return FALSE;
+        return false;
 
-    if ((is_specific_player_race(creature_ptr, RACE_AMBERITE)) && (creature_ptr->cut > 0) && one_in_(10)) {
+    if ((is_specific_player_race(creature_ptr, player_race_type::AMBERITE)) && (creature_ptr->cut > 0) && one_in_(10)) {
         wreck_the_pattern(creature_ptr);
     }
 
@@ -139,14 +143,14 @@ bool pattern_effect(player_type *creature_ptr)
         break;
 
     default:
-        if (is_specific_player_race(creature_ptr, RACE_AMBERITE) && !one_in_(2))
-            return TRUE;
+        if (is_specific_player_race(creature_ptr, player_race_type::AMBERITE) && !one_in_(2))
+            return true;
         else if (!is_invuln(creature_ptr))
             take_hit(creature_ptr, DAMAGE_NOESCAPE, damroll(1, 3), _("「パターン」を歩いたダメージ", "walking the Pattern"));
         break;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -162,10 +166,10 @@ bool pattern_seq(player_type *creature_ptr, POSITION c_y, POSITION c_x, POSITION
 {
     feature_type *cur_f_ptr = &f_info[creature_ptr->current_floor_ptr->grid_array[c_y][c_x].feat];
     feature_type *new_f_ptr = &f_info[creature_ptr->current_floor_ptr->grid_array[n_y][n_x].feat];
-    bool is_pattern_tile_cur = has_flag(cur_f_ptr->flags, FF_PATTERN);
-    bool is_pattern_tile_new = has_flag(new_f_ptr->flags, FF_PATTERN);
+    bool is_pattern_tile_cur = cur_f_ptr->flags.has(FF::PATTERN);
+    bool is_pattern_tile_new = new_f_ptr->flags.has(FF::PATTERN);
     if (!is_pattern_tile_cur && !is_pattern_tile_new)
-        return TRUE;
+        return true;
 
     int pattern_type_cur = is_pattern_tile_cur ? cur_f_ptr->subtype : NOT_PATTERN_TILE;
     int pattern_type_new = is_pattern_tile_new ? new_f_ptr->subtype : NOT_PATTERN_TILE;
@@ -173,47 +177,47 @@ bool pattern_seq(player_type *creature_ptr, POSITION c_y, POSITION c_x, POSITION
         if (!is_pattern_tile_cur && !creature_ptr->confused && !creature_ptr->stun && !creature_ptr->image) {
             if (get_check(_("パターンの上を歩き始めると、全てを歩かなければなりません。いいですか？",
                     "If you start walking the Pattern, you must walk the whole way. Ok? ")))
-                return TRUE;
+                return true;
             else
-                return FALSE;
+                return false;
         } else
-            return TRUE;
+            return true;
     }
 
     if ((pattern_type_new == PATTERN_TILE_OLD) || (pattern_type_new == PATTERN_TILE_END) || (pattern_type_new == PATTERN_TILE_WRECKED)) {
         if (is_pattern_tile_cur) {
-            return TRUE;
+            return true;
         } else {
             msg_print(_("パターンの上を歩くにはスタート地点から歩き始めなくてはなりません。", "You must start walking the Pattern from the startpoint."));
-            return FALSE;
+            return false;
         }
     }
 
     if ((pattern_type_new == PATTERN_TILE_TELEPORT) || (pattern_type_cur == PATTERN_TILE_TELEPORT))
-        return TRUE;
+        return true;
 
     if (pattern_type_cur == PATTERN_TILE_START) {
         if (is_pattern_tile_new)
-            return TRUE;
+            return true;
         else {
             msg_print(_("パターンの上は正しい順序で歩かねばなりません。", "You must walk the Pattern in correct order."));
-            return FALSE;
+            return false;
         }
     }
 
     if ((pattern_type_cur == PATTERN_TILE_OLD) || (pattern_type_cur == PATTERN_TILE_END) || (pattern_type_cur == PATTERN_TILE_WRECKED)) {
         if (!is_pattern_tile_new) {
             msg_print(_("パターンを踏み外してはいけません。", "You may not step off from the Pattern."));
-            return FALSE;
+            return false;
         } else {
-            return TRUE;
+            return true;
         }
     }
 
     if (!is_pattern_tile_cur) {
         msg_print(_("パターンの上を歩くにはスタート地点から歩き始めなくてはなりません。", "You must start walking the Pattern from the startpoint."));
 
-        return FALSE;
+        return false;
     }
 
     byte ok_move = PATTERN_TILE_START;
@@ -233,16 +237,16 @@ bool pattern_seq(player_type *creature_ptr, POSITION c_y, POSITION c_x, POSITION
     default:
         if (current_world_ptr->wizard)
             msg_format(_("おかしなパターン歩行、%d。", "Funny Pattern walking, %d."), pattern_type_cur);
-        return TRUE;
+        return true;
     }
 
     if ((pattern_type_new == ok_move) || (pattern_type_new == pattern_type_cur))
-        return TRUE;
+        return true;
 
     if (!is_pattern_tile_new)
         msg_print(_("パターンを踏み外してはいけません。", "You may not step off from the Pattern."));
     else
         msg_print(_("パターンの上は正しい順序で歩かねばなりません。", "You must walk the Pattern in correct order."));
 
-    return FALSE;
+    return false;
 }

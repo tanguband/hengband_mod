@@ -33,6 +33,7 @@
 #include "system/alloc-entries.h"
 #include "system/artifact-type-definition.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -115,7 +116,7 @@ bool make_object(player_type *owner_ptr, object_type *j_ptr, BIT_FLAGS mode)
         }
 
         if (!k_idx)
-            return FALSE;
+            return false;
 
         j_ptr->prep(owner_ptr, k_idx);
     }
@@ -138,7 +139,7 @@ bool make_object(player_type *owner_ptr, object_type *j_ptr, BIT_FLAGS mode)
     if (cheat_peek)
         object_mention(owner_ptr, j_ptr);
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -164,10 +165,10 @@ bool make_gold(player_type *player_ptr, object_type *j_ptr)
         i = MAX_GOLD - 1;
     j_ptr->prep(player_ptr, OBJ_GOLD_LIST + i);
 
-    s32b base = k_info[OBJ_GOLD_LIST + i].cost;
+    int32_t base = k_info[OBJ_GOLD_LIST + i].cost;
     j_ptr->pval = (base + (8L * randint1(base)) + randint1(8));
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -325,8 +326,8 @@ OBJECT_IDX drop_near(player_type *owner_ptr, object_type *j_ptr, PERCENTAGE chan
     OBJECT_IDX o_idx = 0;
     grid_type *g_ptr;
     GAME_TEXT o_name[MAX_NLEN];
-    bool flag = FALSE;
-    bool done = FALSE;
+    bool flag = false;
+    bool done = false;
 #ifdef JP
 #else
     bool plural = (j_ptr->number != 1);
@@ -352,7 +353,7 @@ OBJECT_IDX drop_near(player_type *owner_ptr, object_type *j_ptr, PERCENTAGE chan
     floor_type *floor_ptr = owner_ptr->current_floor_ptr;
     for (dy = -3; dy <= 3; dy++) {
         for (dx = -3; dx <= 3; dx++) {
-            bool comb = FALSE;
+            bool comb = false;
             d = (dy * dy) + (dx * dx);
             if (d > 10)
                 continue;
@@ -373,7 +374,7 @@ OBJECT_IDX drop_near(player_type *owner_ptr, object_type *j_ptr, PERCENTAGE chan
                 object_type *o_ptr;
                 o_ptr = &floor_ptr->o_list[this_o_idx];
                 if (object_similar(o_ptr, j_ptr))
-                    comb = TRUE;
+                    comb = true;
 
                 k++;
             }
@@ -397,7 +398,7 @@ OBJECT_IDX drop_near(player_type *owner_ptr, object_type *j_ptr, PERCENTAGE chan
             by = ty;
             bx = tx;
 
-            flag = TRUE;
+            flag = true;
         }
     }
 
@@ -426,7 +427,7 @@ OBJECT_IDX drop_near(player_type *owner_ptr, object_type *j_ptr, PERCENTAGE chan
         if (!cave_drop_bold(floor_ptr, by, bx))
             continue;
 
-        flag = TRUE;
+        flag = true;
     }
 
     if (!flag) {
@@ -481,7 +482,7 @@ OBJECT_IDX drop_near(player_type *owner_ptr, object_type *j_ptr, PERCENTAGE chan
         o_ptr = &floor_ptr->o_list[this_o_idx];
         if (object_similar(o_ptr, j_ptr)) {
             object_absorb(o_ptr, j_ptr);
-            done = TRUE;
+            done = true;
             break;
         }
     }
@@ -512,7 +513,7 @@ OBJECT_IDX drop_near(player_type *owner_ptr, object_type *j_ptr, PERCENTAGE chan
         j_ptr->ix = bx;
         j_ptr->held_m_idx = 0;
         g_ptr->o_idx_list.add(floor_ptr, o_idx);
-        done = TRUE;
+        done = true;
     }
 
     note_spot(owner_ptr, by, bx);

@@ -12,6 +12,7 @@
 #include "monster/monster-status-setter.h"
 #include "monster/monster-status.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -51,7 +52,7 @@ void delete_monster_idx(player_type *player_ptr, MONSTER_IDX i)
     if (monster_fear_remaining(m_ptr))
         (void)set_monster_monfear(player_ptr, i, 0);
     if (monster_invulner_remaining(m_ptr))
-        (void)set_monster_invulner(player_ptr, i, 0, FALSE);
+        (void)set_monster_invulner(player_ptr, i, 0, false);
 
     if (i == target_who)
         target_who = 0;

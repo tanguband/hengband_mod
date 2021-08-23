@@ -35,6 +35,7 @@
 #include "player/player-status-flags.h"
 #include "spell/spell-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -44,7 +45,7 @@
 
 static bool check_hp_for_feat_destruction(feature_type *f_ptr, monster_type *m_ptr)
 {
-    return !has_flag(f_ptr->flags, FF_GLASS) || (r_info[m_ptr->r_idx].flags2 & RF2_STUPID) || (m_ptr->hp >= MAX(m_ptr->maxhp / 3, 200));
+    return f_ptr->flags.has_not(FF::GLASS) || (r_info[m_ptr->r_idx].flags2 & RF2_STUPID) || (m_ptr->hp >= MAX(m_ptr->maxhp / 3, 200));
 }
 
 /*!
@@ -64,34 +65,34 @@ static bool process_wall(player_type *target_ptr, turn_flags *turn_flags_ptr, mo
     feature_type *f_ptr;
     f_ptr = &f_info[g_ptr->feat];
     if (player_bold(target_ptr, ny, nx)) {
-        turn_flags_ptr->do_move = TRUE;
-        return TRUE;
+        turn_flags_ptr->do_move = true;
+        return true;
     }
 
     if (g_ptr->m_idx > 0) {
-        turn_flags_ptr->do_move = TRUE;
-        return TRUE;
+        turn_flags_ptr->do_move = true;
+        return true;
     }
 
-    if (((r_ptr->flags2 & RF2_KILL_WALL) != 0) && (can_cross ? !has_flag(f_ptr->flags, FF_LOS) : !turn_flags_ptr->is_riding_mon)
-        && has_flag(f_ptr->flags, FF_HURT_DISI) && !has_flag(f_ptr->flags, FF_PERMANENT) && check_hp_for_feat_destruction(f_ptr, m_ptr)) {
-        turn_flags_ptr->do_move = TRUE;
+    if (((r_ptr->flags2 & RF2_KILL_WALL) != 0) && (can_cross ? f_ptr->flags.has_not(FF::LOS) : !turn_flags_ptr->is_riding_mon)
+        && f_ptr->flags.has(FF::HURT_DISI) && f_ptr->flags.has_not(FF::PERMANENT) && check_hp_for_feat_destruction(f_ptr, m_ptr)) {
+        turn_flags_ptr->do_move = true;
         if (!can_cross)
-            turn_flags_ptr->must_alter_to_move = TRUE;
+            turn_flags_ptr->must_alter_to_move = true;
 
-        turn_flags_ptr->did_kill_wall = TRUE;
-        return TRUE;
+        turn_flags_ptr->did_kill_wall = true;
+        return true;
     }
 
     if (!can_cross)
-        return FALSE;
+        return false;
 
-    turn_flags_ptr->do_move = TRUE;
-    if (((r_ptr->flags2 & RF2_PASS_WALL) != 0) && (!turn_flags_ptr->is_riding_mon || has_pass_wall(target_ptr)) && has_flag(f_ptr->flags, FF_CAN_PASS)) {
-        turn_flags_ptr->did_pass_wall = TRUE;
+    turn_flags_ptr->do_move = true;
+    if (((r_ptr->flags2 & RF2_PASS_WALL) != 0) && (!turn_flags_ptr->is_riding_mon || has_pass_wall(target_ptr)) && f_ptr->flags.has(FF::CAN_PASS)) {
+        turn_flags_ptr->did_pass_wall = true;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -110,23 +111,23 @@ static bool bash_normal_door(player_type *target_ptr, turn_flags *turn_flags_ptr
     g_ptr = &target_ptr->current_floor_ptr->grid_array[ny][nx];
     feature_type *f_ptr;
     f_ptr = &f_info[g_ptr->feat];
-    turn_flags_ptr->do_move = FALSE;
-    if (((r_ptr->flags2 & RF2_OPEN_DOOR) == 0) || !has_flag(f_ptr->flags, FF_OPEN) || (is_pet(m_ptr) && ((target_ptr->pet_extra_flags & PF_OPEN_DOORS) == 0)))
-        return TRUE;
+    turn_flags_ptr->do_move = false;
+    if (((r_ptr->flags2 & RF2_OPEN_DOOR) == 0) || f_ptr->flags.has_not(FF::OPEN) || (is_pet(m_ptr) && ((target_ptr->pet_extra_flags & PF_OPEN_DOORS) == 0)))
+        return true;
 
     if (f_ptr->power == 0) {
-        turn_flags_ptr->did_open_door = TRUE;
-        turn_flags_ptr->do_turn = TRUE;
-        return FALSE;
+        turn_flags_ptr->did_open_door = true;
+        turn_flags_ptr->do_turn = true;
+        return false;
     }
 
     if (randint0(m_ptr->hp / 10) > f_ptr->power) {
-        cave_alter_feat(target_ptr, ny, nx, FF_DISARM);
-        turn_flags_ptr->do_turn = TRUE;
-        return FALSE;
+        cave_alter_feat(target_ptr, ny, nx, FF::DISARM);
+        turn_flags_ptr->do_turn = true;
+        return false;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -140,24 +141,24 @@ static bool bash_normal_door(player_type *target_ptr, turn_flags *turn_flags_ptr
 static void bash_glass_door(player_type *target_ptr, turn_flags *turn_flags_ptr, monster_type *m_ptr, feature_type *f_ptr, bool may_bash)
 {
     monster_race *r_ptr = &r_info[m_ptr->r_idx];
-    if (!may_bash || ((r_ptr->flags2 & RF2_BASH_DOOR) == 0) || !has_flag(f_ptr->flags, FF_BASH)
+    if (!may_bash || ((r_ptr->flags2 & RF2_BASH_DOOR) == 0) || f_ptr->flags.has_not(FF::BASH)
         || (is_pet(m_ptr) && ((target_ptr->pet_extra_flags & PF_OPEN_DOORS) == 0)))
         return;
 
     if (!check_hp_for_feat_destruction(f_ptr, m_ptr) || (randint0(m_ptr->hp / 10) <= f_ptr->power))
         return;
 
-    if (has_flag(f_ptr->flags, FF_GLASS))
+    if (f_ptr->flags.has(FF::GLASS))
         msg_print(_("ガラスが砕ける音がした！", "You hear glass breaking!"));
     else
         msg_print(_("ドアを叩き開ける音がした！", "You hear a door burst open!"));
 
     if (disturb_minor)
-        disturb(target_ptr, FALSE, FALSE);
+        disturb(target_ptr, false, false);
 
-    turn_flags_ptr->did_bash_door = TRUE;
-    turn_flags_ptr->do_move = TRUE;
-    turn_flags_ptr->must_alter_to_move = TRUE;
+    turn_flags_ptr->did_bash_door = true;
+    turn_flags_ptr->do_move = true;
+    turn_flags_ptr->must_alter_to_move = true;
 }
 
 /*!
@@ -175,7 +176,7 @@ static bool process_door(player_type *target_ptr, turn_flags *turn_flags_ptr, mo
     grid_type *g_ptr;
     g_ptr = &target_ptr->current_floor_ptr->grid_array[ny][nx];
     if (!is_closed_door(target_ptr, g_ptr->feat))
-        return TRUE;
+        return true;
 
     feature_type *f_ptr;
     f_ptr = &f_info[g_ptr->feat];
@@ -183,26 +184,26 @@ static bool process_door(player_type *target_ptr, turn_flags *turn_flags_ptr, mo
     bash_glass_door(target_ptr, turn_flags_ptr, m_ptr, f_ptr, may_bash);
 
     if (!turn_flags_ptr->did_open_door && !turn_flags_ptr->did_bash_door)
-        return TRUE;
+        return true;
 
     if (turn_flags_ptr->did_bash_door
-        && ((randint0(100) < 50) || (feat_state(target_ptr->current_floor_ptr, g_ptr->feat, FF_OPEN) == g_ptr->feat) || has_flag(f_ptr->flags, FF_GLASS))) {
-        cave_alter_feat(target_ptr, ny, nx, FF_BASH);
+        && ((randint0(100) < 50) || (feat_state(target_ptr->current_floor_ptr, g_ptr->feat, FF::OPEN) == g_ptr->feat) || f_ptr->flags.has(FF::GLASS))) {
+        cave_alter_feat(target_ptr, ny, nx, FF::BASH);
         if (!monster_is_valid(m_ptr)) {
             target_ptr->update |= (PU_FLOW);
             target_ptr->window_flags |= (PW_OVERHEAD | PW_DUNGEON);
             if (is_original_ap_and_seen(target_ptr, m_ptr))
                 r_ptr->r_flags2 |= (RF2_BASH_DOOR);
 
-            return FALSE;
+            return false;
         }
     } else {
-        cave_alter_feat(target_ptr, ny, nx, FF_OPEN);
+        cave_alter_feat(target_ptr, ny, nx, FF::OPEN);
     }
 
     f_ptr = &f_info[g_ptr->feat];
-    turn_flags_ptr->do_view = TRUE;
-    return TRUE;
+    turn_flags_ptr->do_view = true;
+    return true;
 }
 
 /*!
@@ -219,23 +220,23 @@ static bool process_protection_rune(player_type *target_ptr, turn_flags *turn_fl
     grid_type *g_ptr;
     g_ptr = &target_ptr->current_floor_ptr->grid_array[ny][nx];
     monster_race *r_ptr = &r_info[m_ptr->r_idx];
-    if (!turn_flags_ptr->do_move || !is_rune_protection_grid(g_ptr) || (((r_ptr->flags1 & RF1_NEVER_BLOW) != 0) && player_bold(target_ptr, ny, nx)))
-        return FALSE;
+    if (!turn_flags_ptr->do_move || !g_ptr->is_rune_protection() || (((r_ptr->flags1 & RF1_NEVER_BLOW) != 0) && player_bold(target_ptr, ny, nx)))
+        return false;
 
-    turn_flags_ptr->do_move = FALSE;
+    turn_flags_ptr->do_move = false;
     if (is_pet(m_ptr) || (randint1(BREAK_RUNE_PROTECTION) >= r_ptr->level))
-        return TRUE;
+        return true;
 
-    if (g_ptr->info & CAVE_MARK) {
+    if (g_ptr->is_mark()) {
         msg_print(_("守りのルーンが壊れた！", "The rune of protection is broken!"));
     }
 
     g_ptr->info &= ~(CAVE_MARK);
     g_ptr->info &= ~(CAVE_OBJECT);
     g_ptr->mimic = 0;
-    turn_flags_ptr->do_move = TRUE;
+    turn_flags_ptr->do_move = true;
     note_spot(target_ptr, ny, nx);
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -252,12 +253,12 @@ static bool process_explosive_rune(player_type *target_ptr, turn_flags *turn_fla
     grid_type *g_ptr;
     g_ptr = &target_ptr->current_floor_ptr->grid_array[ny][nx];
     monster_race *r_ptr = &r_info[m_ptr->r_idx];
-    if (!turn_flags_ptr->do_move || !is_rune_explosion_grid(g_ptr) || (((r_ptr->flags1 & RF1_NEVER_BLOW) != 0) && player_bold(target_ptr, ny, nx)))
-        return TRUE;
+    if (!turn_flags_ptr->do_move || !g_ptr->is_rune_explosion() || (((r_ptr->flags1 & RF1_NEVER_BLOW) != 0) && player_bold(target_ptr, ny, nx)))
+        return true;
 
-    turn_flags_ptr->do_move = FALSE;
+    turn_flags_ptr->do_move = false;
     if (is_pet(m_ptr))
-        return TRUE;
+        return true;
 
     if (randint1(BREAK_RUNE_EXPLOSION) > r_ptr->level) {
         if (g_ptr->info & CAVE_MARK) {
@@ -277,10 +278,10 @@ static bool process_explosive_rune(player_type *target_ptr, turn_flags *turn_fla
     lite_spot(target_ptr, ny, nx);
 
     if (!monster_is_valid(m_ptr))
-        return FALSE;
+        return false;
 
-    turn_flags_ptr->do_move = TRUE;
-    return TRUE;
+    turn_flags_ptr->do_move = true;
+    return true;
 }
 
 /*!
@@ -300,16 +301,16 @@ static bool process_post_dig_wall(player_type *target_ptr, turn_flags *turn_flag
     feature_type *f_ptr;
     f_ptr = &f_info[g_ptr->feat];
     if (!turn_flags_ptr->did_kill_wall || !turn_flags_ptr->do_move)
-        return TRUE;
+        return true;
 
     if (one_in_(GRINDNOISE)) {
-        if (has_flag(f_ptr->flags, FF_GLASS))
+        if (f_ptr->flags.has(FF::GLASS))
             msg_print(_("何かの砕ける音が聞こえる。", "There is a crashing sound."));
         else
             msg_print(_("ギシギシいう音が聞こえる。", "There is a grinding sound."));
     }
 
-    cave_alter_feat(target_ptr, ny, nx, FF_HURT_DISI);
+    cave_alter_feat(target_ptr, ny, nx, FF::HURT_DISI);
 
     if (!monster_is_valid(m_ptr)) {
         target_ptr->update |= (PU_FLOW);
@@ -317,13 +318,13 @@ static bool process_post_dig_wall(player_type *target_ptr, turn_flags *turn_flag
         if (is_original_ap_and_seen(target_ptr, m_ptr))
             r_ptr->r_flags2 |= (RF2_KILL_WALL);
 
-        return FALSE;
+        return false;
     }
 
     f_ptr = &f_info[g_ptr->feat];
-    turn_flags_ptr->do_view = TRUE;
-    turn_flags_ptr->do_turn = TRUE;
-    return TRUE;
+    turn_flags_ptr->do_view = true;
+    turn_flags_ptr->do_turn = true;
+    return true;
 }
 
 /*!
@@ -358,39 +359,39 @@ bool process_monster_movement(player_type *target_ptr, turn_flags *turn_flags_pt
 
         if (!process_wall(target_ptr, turn_flags_ptr, m_ptr, ny, nx, can_cross)) {
             if (!process_door(target_ptr, turn_flags_ptr, m_ptr, ny, nx))
-                return FALSE;
+                return false;
         }
 
         if (!process_protection_rune(target_ptr, turn_flags_ptr, m_ptr, ny, nx)) {
             if (!process_explosive_rune(target_ptr, turn_flags_ptr, m_ptr, ny, nx))
-                return FALSE;
+                return false;
         }
 
         exe_monster_attack_to_player(target_ptr, turn_flags_ptr, m_idx, ny, nx);
         if (process_monster_attack_to_monster(target_ptr, turn_flags_ptr, m_idx, g_ptr, can_cross))
-            return FALSE;
+            return false;
 
         if (turn_flags_ptr->is_riding_mon) {
             if (!target_ptr->riding_ryoute && !monster_fear_remaining(&target_ptr->current_floor_ptr->m_list[target_ptr->riding]))
-                turn_flags_ptr->do_move = FALSE;
+                turn_flags_ptr->do_move = false;
         }
 
         if (!process_post_dig_wall(target_ptr, turn_flags_ptr, m_ptr, ny, nx))
-            return FALSE;
+            return false;
 
         if (turn_flags_ptr->must_alter_to_move && (r_ptr->flags7 & RF7_AQUATIC)) {
             if (!monster_can_cross_terrain(target_ptr, g_ptr->feat, r_ptr, turn_flags_ptr->is_riding_mon ? CEM_RIDING : 0))
-                turn_flags_ptr->do_move = FALSE;
+                turn_flags_ptr->do_move = false;
         }
 
         if (turn_flags_ptr->do_move && !can_cross && !turn_flags_ptr->did_kill_wall && !turn_flags_ptr->did_bash_door)
-            turn_flags_ptr->do_move = FALSE;
+            turn_flags_ptr->do_move = false;
 
         if (turn_flags_ptr->do_move && (r_ptr->flags1 & RF1_NEVER_MOVE)) {
             if (is_original_ap_and_seen(target_ptr, m_ptr))
                 r_ptr->r_flags1 |= (RF1_NEVER_MOVE);
 
-            turn_flags_ptr->do_move = FALSE;
+            turn_flags_ptr->do_move = false;
         }
 
         if (!turn_flags_ptr->do_move) {
@@ -400,10 +401,10 @@ bool process_monster_movement(player_type *target_ptr, turn_flags *turn_flags_pt
             continue;
         }
 
-        turn_flags_ptr->do_turn = TRUE;
+        turn_flags_ptr->do_turn = true;
         feature_type *f_ptr;
         f_ptr = &f_info[g_ptr->feat];
-        if (has_flag(f_ptr->flags, FF_TREE) && ((r_ptr->flags7 & RF7_CAN_FLY) == 0) && ((r_ptr->flags8 & RF8_WILD_WOOD) == 0))
+        if (f_ptr->flags.has(FF::TREE) && ((r_ptr->flags7 & RF7_CAN_FLY) == 0) && ((r_ptr->flags8 & RF8_WILD_WOOD) == 0))
             m_ptr->energy_need += ENERGY_NEED();
 
         if (!update_riding_monster(target_ptr, turn_flags_ptr, m_idx, oy, ox, ny, nx))
@@ -414,7 +415,7 @@ bool process_monster_movement(player_type *target_ptr, turn_flags *turn_flags_pt
             && (disturb_move || (disturb_near && m_ptr->mflag.has(MFLAG::VIEW) && projectable(target_ptr, target_ptr->y, target_ptr->x, m_ptr->fy, m_ptr->fx))
                 || (disturb_high && ap_r_ptr->r_tkills && ap_r_ptr->level >= target_ptr->lev))) {
             if (is_hostile(m_ptr))
-                disturb(target_ptr, FALSE, TRUE);
+                disturb(target_ptr, false, true);
         }
 
         bool is_takable_or_killable = !g_ptr->o_idx_list.empty();
@@ -438,7 +439,7 @@ bool process_monster_movement(player_type *target_ptr, turn_flags *turn_flags_pt
         (*count)++;
     }
 
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -458,7 +459,7 @@ void process_speak_sound(player_type *target_ptr, MONSTER_IDX m_idx, POSITION oy
     monster_race *ap_r_ptr = &r_info[m_ptr->ap_r_idx];
     if (m_ptr->ap_r_idx == MON_CYBER && one_in_(CYBERNOISE) && !m_ptr->ml && (m_ptr->cdis <= MAX_SIGHT)) {
         if (disturb_minor)
-            disturb(target_ptr, FALSE, FALSE);
+            disturb(target_ptr, false, false);
         msg_print(_("重厚な足音が聞こえた。", "You hear heavy steps."));
     }
 

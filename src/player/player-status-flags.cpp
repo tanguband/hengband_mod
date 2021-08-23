@@ -1,6 +1,5 @@
 ﻿#include "player/player-status-flags.h"
 #include "artifact/fixed-art-types.h"
-#include "grid/grid.h"
 #include "inventory/inventory-slot-types.h"
 #include "mind/mind-elementalist.h"
 #include "monster-race/monster-race.h"
@@ -36,6 +35,7 @@
 #include "spell-realm/spells-song.h"
 #include "sv-definition/sv-weapon-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
@@ -86,7 +86,7 @@ BIT_FLAGS convert_inventory_slot_type_to_flag_cause(inventory_slot_type inventor
 BIT_FLAGS check_equipment_flags(player_type *creature_ptr, tr_type tr_flag)
 {
     object_type *o_ptr;
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     BIT_FLAGS result = 0L;
     for (int i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
         o_ptr = &creature_ptr->inventory_list[i];
@@ -436,17 +436,17 @@ BIT_FLAGS get_player_flags(player_type *creature_ptr, tr_type tr_flag)
 bool has_kill_wall(player_type *creature_ptr)
 {
     if (creature_ptr->mimic_form == MIMIC_DEMON_LORD || music_singing(creature_ptr, MUSIC_WALL)) {
-        return TRUE;
+        return true;
     }
 
     if (creature_ptr->riding) {
         monster_type *riding_m_ptr = &creature_ptr->current_floor_ptr->m_list[creature_ptr->riding];
         monster_race *riding_r_ptr = &r_info[riding_m_ptr->r_idx];
         if (riding_r_ptr->flags2 & RF2_KILL_WALL)
-            return TRUE;
+            return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!
@@ -459,17 +459,17 @@ bool has_kill_wall(player_type *creature_ptr)
  */
 bool has_pass_wall(player_type *creature_ptr)
 {
-    bool pow = FALSE;
+    bool pow = false;
 
-    if (creature_ptr->wraith_form || creature_ptr->tim_pass_wall || (!creature_ptr->mimic_form && creature_ptr->prace == RACE_SPECTRE)) {
-        pow = TRUE;
+    if (creature_ptr->wraith_form || creature_ptr->tim_pass_wall || (!creature_ptr->mimic_form && creature_ptr->prace == player_race_type::SPECTRE)) {
+        pow = true;
     }
 
     if (creature_ptr->riding) {
         monster_type *riding_m_ptr = &creature_ptr->current_floor_ptr->m_list[creature_ptr->riding];
         monster_race *riding_r_ptr = &r_info[riding_m_ptr->r_idx];
         if (!(riding_r_ptr->flags2 & RF2_PASS_WALL))
-            pow = FALSE;
+            pow = false;
     }
 
     return pow;
@@ -675,46 +675,46 @@ BIT_FLAGS has_invuln_arrow(player_type *creature_ptr)
 void check_no_flowed(player_type *creature_ptr)
 {
     object_type *o_ptr;
-    bool has_sw = FALSE, has_kabe = FALSE;
+    bool has_sw = false, has_kabe = false;
 
-    creature_ptr->no_flowed = FALSE;
+    creature_ptr->no_flowed = false;
 
     if (has_pass_wall(creature_ptr) && !has_kill_wall(creature_ptr)) {
-        creature_ptr->no_flowed = TRUE;
+        creature_ptr->no_flowed = true;
         return;
     }
 
     if (!creature_ptr->realm1) {
-        creature_ptr->no_flowed = FALSE;
+        creature_ptr->no_flowed = false;
         return;
     }
 
     for (int i = 0; i < INVEN_PACK; i++) {
         if ((creature_ptr->inventory_list[i].tval == TV_NATURE_BOOK) && (creature_ptr->inventory_list[i].sval == 2))
-            has_sw = TRUE;
+            has_sw = true;
         if ((creature_ptr->inventory_list[i].tval == TV_CRAFT_BOOK) && (creature_ptr->inventory_list[i].sval == 2))
-            has_kabe = TRUE;
+            has_kabe = true;
     }
 
     for (const auto this_o_idx : creature_ptr->current_floor_ptr->grid_array[creature_ptr->y][creature_ptr->x].o_idx_list) {
         o_ptr = &creature_ptr->current_floor_ptr->o_list[this_o_idx];
 
         if ((o_ptr->tval == TV_NATURE_BOOK) && (o_ptr->sval == 2))
-            has_sw = TRUE;
+            has_sw = true;
         if ((o_ptr->tval == TV_CRAFT_BOOK) && (o_ptr->sval == 2))
-            has_kabe = TRUE;
+            has_kabe = true;
     }
 
     if (has_sw && ((creature_ptr->realm1 == REALM_NATURE) || (creature_ptr->realm2 == REALM_NATURE) || (creature_ptr->pclass == CLASS_SORCERER))) {
         const magic_type *s_ptr = &mp_ptr->info[REALM_NATURE - 1][SPELL_SW];
         if (creature_ptr->lev >= s_ptr->slevel)
-            creature_ptr->no_flowed = TRUE;
+            creature_ptr->no_flowed = true;
     }
 
     if (has_kabe && ((creature_ptr->realm1 == REALM_CRAFT) || (creature_ptr->realm2 == REALM_CRAFT) || (creature_ptr->pclass == CLASS_SORCERER))) {
         const magic_type *s_ptr = &mp_ptr->info[REALM_CRAFT - 1][SPELL_WALL];
         if (creature_ptr->lev >= s_ptr->slevel)
-            creature_ptr->no_flowed = TRUE;
+            creature_ptr->no_flowed = true;
     }
 }
 
@@ -762,7 +762,7 @@ BIT_FLAGS has_warning(player_type *creature_ptr)
 {
     BIT_FLAGS result = 0L;
     object_type *o_ptr;
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
 
     for (int i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
         o_ptr = &creature_ptr->inventory_list[i];
@@ -1118,12 +1118,12 @@ BIT_FLAGS has_levitation(player_type *creature_ptr)
 
 bool has_can_swim(player_type *creature_ptr)
 {
-    bool can_swim = FALSE;
+    bool can_swim = false;
     if (creature_ptr->riding) {
         monster_type *riding_m_ptr = &creature_ptr->current_floor_ptr->m_list[creature_ptr->riding];
         monster_race *riding_r_ptr = &r_info[riding_m_ptr->r_idx];
         if (riding_r_ptr->flags7 & (RF7_CAN_SWIM | RF7_AQUATIC))
-            can_swim = TRUE;
+            can_swim = true;
     }
 
     return can_swim;
@@ -1185,7 +1185,7 @@ BIT_FLAGS has_regenerate(player_type *creature_ptr)
 void update_curses(player_type *creature_ptr)
 {
     object_type *o_ptr;
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     creature_ptr->cursed.clear();
     creature_ptr->cursed_special.clear();
 
@@ -1272,8 +1272,11 @@ BIT_FLAGS has_earthquake(player_type *creature_ptr)
 void update_extra_blows(player_type *creature_ptr)
 {
     object_type *o_ptr;
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     creature_ptr->extra_blows[0] = creature_ptr->extra_blows[1] = 0;
+
+    const melee_type melee_type = player_melee_type(creature_ptr);
+    const bool two_handed = (melee_type == MELEE_TYPE_WEAPON_TWOHAND || melee_type == MELEE_TYPE_BAREHAND_TWO);
 
     for (int i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
         o_ptr = &creature_ptr->inventory_list[i];
@@ -1282,9 +1285,9 @@ void update_extra_blows(player_type *creature_ptr)
 
         object_flags(creature_ptr, o_ptr, flgs);
         if (has_flag(flgs, TR_BLOWS)) {
-            if ((i == INVEN_MAIN_HAND || i == INVEN_MAIN_RING) && !has_two_handed_weapons(creature_ptr))
+            if ((i == INVEN_MAIN_HAND || i == INVEN_MAIN_RING) && !two_handed)
                 creature_ptr->extra_blows[0] += o_ptr->pval;
-            else if ((i == INVEN_SUB_HAND || i == INVEN_SUB_RING) && !has_two_handed_weapons(creature_ptr))
+            else if ((i == INVEN_SUB_HAND || i == INVEN_SUB_RING) && !two_handed)
                 creature_ptr->extra_blows[1] += o_ptr->pval;
             else {
                 creature_ptr->extra_blows[0] += o_ptr->pval;
@@ -1920,13 +1923,13 @@ melee_type player_melee_type(player_type *creature_ptr)
     if (has_melee_weapon(creature_ptr, INVEN_SUB_HAND))
         return MELEE_TYPE_WEAPON_SUB;
 
-    if (empty_hands(creature_ptr, FALSE) == (EMPTY_HAND_MAIN | EMPTY_HAND_SUB))
+    if (empty_hands(creature_ptr, false) == (EMPTY_HAND_MAIN | EMPTY_HAND_SUB))
         return MELEE_TYPE_BAREHAND_TWO;
 
-    if (empty_hands(creature_ptr, FALSE) == EMPTY_HAND_MAIN)
+    if (empty_hands(creature_ptr, false) == EMPTY_HAND_MAIN)
         return MELEE_TYPE_BAREHAND_MAIN;
 
-    if (empty_hands(creature_ptr, FALSE) == EMPTY_HAND_SUB)
+    if (empty_hands(creature_ptr, false) == EMPTY_HAND_SUB)
         return MELEE_TYPE_BAREHAND_SUB;
 
     return MELEE_TYPE_SHIELD_DOUBLE;
@@ -1941,12 +1944,12 @@ melee_type player_melee_type(player_type *creature_ptr)
 bool can_attack_with_main_hand(player_type *creature_ptr)
 {
     if (has_melee_weapon(creature_ptr, INVEN_MAIN_HAND))
-        return TRUE;
+        return true;
 
-    if ((empty_hands(creature_ptr, TRUE) & EMPTY_HAND_MAIN) && !can_attack_with_sub_hand(creature_ptr))
-        return TRUE;
+    if ((empty_hands(creature_ptr, true) & EMPTY_HAND_MAIN) && !can_attack_with_sub_hand(creature_ptr))
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 /*
@@ -1965,15 +1968,15 @@ bool can_attack_with_sub_hand(player_type *creature_ptr)
 bool has_two_handed_weapons(player_type *creature_ptr)
 {
     if (can_two_hands_wielding(creature_ptr)) {
-        if (can_attack_with_main_hand(creature_ptr) && (empty_hands(creature_ptr, FALSE) == EMPTY_HAND_SUB)
+        if (can_attack_with_main_hand(creature_ptr) && (empty_hands(creature_ptr, false) == EMPTY_HAND_SUB)
             && object_allow_two_hands_wielding(&creature_ptr->inventory_list[INVEN_MAIN_HAND])) {
-            return TRUE;
-        } else if (can_attack_with_sub_hand(creature_ptr) && (empty_hands(creature_ptr, FALSE) == EMPTY_HAND_MAIN)
+            return true;
+        } else if (can_attack_with_sub_hand(creature_ptr) && (empty_hands(creature_ptr, false) == EMPTY_HAND_MAIN)
             && object_allow_two_hands_wielding(&creature_ptr->inventory_list[INVEN_SUB_HAND])) {
-            return TRUE;
+            return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 BIT_FLAGS has_lite(player_type *creature_ptr)
@@ -2012,15 +2015,15 @@ bool has_disable_two_handed_bonus(player_type *creature_ptr, int i)
 {
     if (has_melee_weapon(creature_ptr, INVEN_MAIN_HAND + i) && has_two_handed_weapons(creature_ptr)) {
         object_type *o_ptr = &creature_ptr->inventory_list[INVEN_MAIN_HAND + i];
-        int limit = calc_weapon_weight_limit(creature_ptr) * 2;
+        int limit = calc_weapon_weight_limit(creature_ptr);
 
         /* Enable when two hand wields an enough light weapon */
         if (limit >= o_ptr->weight / 5)
-            return FALSE;
+            return false;
     }
 
     /* Disable when empty hands, one hand wieldings and heavy weapons */
-    return TRUE;
+    return true;
 }
 
 /*!
@@ -2029,7 +2032,7 @@ bool has_disable_two_handed_bonus(player_type *creature_ptr, int i)
  */
 bool has_icky_wield_weapon(player_type *creature_ptr, int i)
 {
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     object_type *o_ptr = &creature_ptr->inventory_list[INVEN_MAIN_HAND + i];
     object_flags(creature_ptr, o_ptr, flgs);
 
@@ -2047,28 +2050,28 @@ bool has_icky_wield_weapon(player_type *creature_ptr, int i)
     }
 
     if (has_not_monk_weapon(creature_ptr, i) || has_not_ninja_weapon(creature_ptr, i))
-        return TRUE;
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 bool has_riding_wield_weapon(player_type *creature_ptr, int i)
 {
     object_type *o_ptr;
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     o_ptr = &creature_ptr->inventory_list[INVEN_MAIN_HAND + i];
     object_flags(creature_ptr, o_ptr, flgs);
     if (creature_ptr->riding != 0 && !(o_ptr->tval == TV_POLEARM) && ((o_ptr->sval == SV_LANCE) || (o_ptr->sval == SV_HEAVY_LANCE))
         && !has_flag(flgs, TR_RIDING)) {
-        return TRUE;
+        return true;
     }
-    return FALSE;
+    return false;
 }
 
 bool has_not_ninja_weapon(player_type *creature_ptr, int i)
 {
     if (!has_melee_weapon(creature_ptr, INVEN_MAIN_HAND + i)) {
-        return FALSE;
+        return false;
     }
     int tval = creature_ptr->inventory_list[INVEN_MAIN_HAND + i].tval - TV_WEAPON_BEGIN;
     OBJECT_SUBTYPE_VALUE sval = creature_ptr->inventory_list[INVEN_MAIN_HAND + i].sval;
@@ -2079,7 +2082,7 @@ bool has_not_ninja_weapon(player_type *creature_ptr, int i)
 bool has_not_monk_weapon(player_type *creature_ptr, int i)
 {
     if (!has_melee_weapon(creature_ptr, INVEN_MAIN_HAND + i)) {
-        return FALSE;
+        return false;
     }
     int tval = creature_ptr->inventory_list[INVEN_MAIN_HAND + i].tval - TV_WEAPON_BEGIN;
     OBJECT_SUBTYPE_VALUE sval = creature_ptr->inventory_list[INVEN_MAIN_HAND + i].sval;
@@ -2094,7 +2097,7 @@ bool has_good_luck(player_type *creature_ptr)
 BIT_FLAGS player_aggravate_state(player_type *creature_ptr)
 {
     if (creature_ptr->cursed.has(TRC::AGGRAVATE)) {
-        if ((is_specific_player_race(creature_ptr, RACE_S_FAIRY)) && (creature_ptr->pseikaku != PERSONALITY_SEXY)) {
+        if ((is_specific_player_race(creature_ptr, player_race_type::S_FAIRY)) && (creature_ptr->pseikaku != PERSONALITY_SEXY)) {
             return AGGRAVATE_S_FAIRY;
         }
         return AGGRAVATE_NORMAL;

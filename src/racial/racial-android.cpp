@@ -24,48 +24,48 @@ bool android_inside_weapon(player_type *creature_ptr)
 {
     DIRECTION dir;
     if (!get_aim_dir(creature_ptr, &dir))
-        return FALSE;
+        return false;
 
     if (creature_ptr->lev < 10) {
         msg_print(_("レイガンを発射した。", "You fire your ray gun."));
         fire_bolt(creature_ptr, GF_MISSILE, dir, (creature_ptr->lev + 1) / 2);
-        return TRUE;
+        return true;
     }
 
     if (creature_ptr->lev < 25) {
         msg_print(_("ブラスターを発射した。", "You fire your blaster."));
         fire_bolt(creature_ptr, GF_MISSILE, dir, creature_ptr->lev);
-        return TRUE;
+        return true;
     }
 
     if (creature_ptr->lev < 35) {
         msg_print(_("バズーカを発射した。", "You fire your bazooka."));
         fire_ball(creature_ptr, GF_MISSILE, dir, creature_ptr->lev * 2, 2);
-        return TRUE;
+        return true;
     }
 
     if (creature_ptr->lev < 45) {
         msg_print(_("ビームキャノンを発射した。", "You fire a beam cannon."));
         fire_beam(creature_ptr, GF_MISSILE, dir, creature_ptr->lev * 2);
-        return TRUE;
+        return true;
     }
 
     msg_print(_("ロケットを発射した。", "You fire a rocket."));
     fire_rocket(creature_ptr, GF_ROCKET, dir, creature_ptr->lev * 5, 2);
-    return TRUE;
+    return true;
 }
 
 void calc_android_exp(player_type *creature_ptr)
 {
-    u32b total_exp = 0;
-    if (creature_ptr->is_dead || (creature_ptr->prace != RACE_ANDROID))
+    uint32_t total_exp = 0;
+    if (creature_ptr->is_dead || (creature_ptr->prace != player_race_type::ANDROID))
         return;
 
     for (int i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
         object_type *o_ptr = &creature_ptr->inventory_list[i];
         object_type forge;
         object_type *q_ptr = &forge;
-        u32b value, exp;
+        uint32_t value, exp;
         DEPTH level = MAX(k_info[o_ptr->k_idx].level - 8, 1);
 
         if ((i == INVEN_MAIN_RING) || (i == INVEN_SUB_RING) || (i == INVEN_NECK) || (i == INVEN_LITE))
@@ -84,7 +84,7 @@ void calc_android_exp(player_type *creature_ptr)
         } else if (object_is_ego(o_ptr)) {
             level += MAX(3, (e_info[o_ptr->name2].rating - 5) / 2);
         } else if (o_ptr->art_name) {
-            s32b total_flags = flag_cost(creature_ptr, o_ptr, o_ptr->pval);
+            int32_t total_flags = flag_cost(creature_ptr, o_ptr, o_ptr->pval);
             int fake_level;
 
             if (!object_is_weapon_ammo(o_ptr)) {

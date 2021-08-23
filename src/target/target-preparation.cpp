@@ -1,7 +1,4 @@
-﻿#include <algorithm>
-#include <utility>
-#include <vector>
-
+﻿#include "target/target-preparation.h"
 #include "floor/cave.h"
 #include "game-option/input-options.h"
 #include "grid/feature.h"
@@ -13,16 +10,19 @@
 #include "monster/monster-status.h"
 #include "object/object-mark-types.h"
 #include "system/floor-type-definition.h"
+#include "system/grid-type-definition.h"
+#include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
-#include "system/monster-race-definition.h"
 #include "system/player-type-definition.h"
 #include "target/projection-path-calculator.h"
-#include "target/target-preparation.h"
 #include "target/target-types.h"
 #include "util/bit-flags-calculator.h"
 #include "util/sort.h"
 #include "window/main-window-util.h"
+#include <algorithm>
+#include <utility>
+#include <vector>
 
 /*
  * Determine is a monster makes a reasonable target
@@ -43,21 +43,21 @@ bool target_able(player_type *creature_ptr, MONSTER_IDX m_idx)
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     monster_type *m_ptr = &floor_ptr->m_list[m_idx];
     if (!monster_is_valid(m_ptr))
-        return FALSE;
+        return false;
 
     if (creature_ptr->image)
-        return FALSE;
+        return false;
 
     if (!m_ptr->ml)
-        return FALSE;
+        return false;
 
     if (creature_ptr->riding && (creature_ptr->riding == m_idx))
-        return TRUE;
+        return true;
 
     if (!projectable(creature_ptr, creature_ptr->y, creature_ptr->x, m_ptr->fy, m_ptr->fx))
-        return FALSE;
+        return false;
 
-    return TRUE;
+    return true;
 }
 
 /*
@@ -67,38 +67,38 @@ static bool target_set_accept(player_type *creature_ptr, POSITION y, POSITION x)
 {
     floor_type *floor_ptr = creature_ptr->current_floor_ptr;
     if (!(in_bounds(floor_ptr, y, x)))
-        return FALSE;
+        return false;
 
     if (player_bold(creature_ptr, y, x))
-        return TRUE;
+        return true;
 
     if (creature_ptr->image)
-        return FALSE;
+        return false;
 
     grid_type *g_ptr;
     g_ptr = &floor_ptr->grid_array[y][x];
     if (g_ptr->m_idx) {
         monster_type *m_ptr = &floor_ptr->m_list[g_ptr->m_idx];
         if (m_ptr->ml)
-            return TRUE;
+            return true;
     }
 
     for (const auto this_o_idx : g_ptr->o_idx_list) {
         object_type *o_ptr;
         o_ptr = &floor_ptr->o_list[this_o_idx];
         if (o_ptr->marked & OM_FOUND)
-            return TRUE;
+            return true;
     }
 
-    if (g_ptr->info & (CAVE_MARK)) {
-        if (g_ptr->info & CAVE_OBJECT)
-            return TRUE;
+    if (g_ptr->is_mark()) {
+        if (g_ptr->is_object())
+            return true;
 
-        if (has_flag(f_info[get_feat_mimic(g_ptr)].flags, FF_NOTICE))
-            return TRUE;
+        if (f_info[g_ptr->get_feat_mimic()].flags.has(FF::NOTICE))
+            return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 /*!

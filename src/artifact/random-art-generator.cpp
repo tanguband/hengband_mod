@@ -13,6 +13,7 @@
 #include "artifact/random-art-pval-investor.h"
 #include "artifact/random-art-resistance.h"
 #include "artifact/random-art-slay.h"
+#include "avatar/avatar.h"
 #include "core/asking-player.h"
 #include "core/window-redrawer.h"
 #include "flavor/object-flavor.h"
@@ -28,7 +29,6 @@
 #include "object/object-value-calc.h"
 #include "perception/identification.h"
 #include "perception/object-perception.h"
-#include "player-info/avatar.h"
 #include "sv-definition/sv-weapon-types.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
@@ -43,23 +43,23 @@ static bool weakening_artifact(player_type *player_ptr, object_type *o_ptr)
 {
     KIND_OBJECT_IDX k_idx = lookup_kind(o_ptr->tval, o_ptr->sval);
     object_kind *k_ptr = &k_info[k_idx];
-    BIT_FLAGS flgs[TR_FLAG_SIZE];
+    TrFlags flgs;
     object_flags(player_ptr, o_ptr, flgs);
 
     if (has_flag(flgs, TR_KILL_EVIL)) {
         remove_flag(o_ptr->art_flags, TR_KILL_EVIL);
         add_flag(o_ptr->art_flags, TR_SLAY_EVIL);
-        return TRUE;
+        return true;
     }
 
     if (k_ptr->dd < o_ptr->dd) {
         o_ptr->dd--;
-        return TRUE;
+        return true;
     }
 
     if (k_ptr->ds < o_ptr->ds) {
         o_ptr->ds--;
-        return TRUE;
+        return true;
     }
 
     if (o_ptr->to_d > 10) {
@@ -68,10 +68,10 @@ static bool weakening_artifact(player_type *player_ptr, object_type *o_ptr)
             o_ptr->to_d = 10;
         }
 
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 static void set_artifact_bias(player_type *player_ptr, object_type *o_ptr, int *warrior_artifact_bias)
@@ -167,12 +167,12 @@ static void decide_warrior_bias(player_type *player_ptr, object_type *o_ptr, con
 static bool decide_random_art_cursed(const bool a_scroll, object_type *o_ptr)
 {
     if (!a_scroll && one_in_(A_CURSED))
-        return TRUE;
+        return true;
 
     if (((o_ptr->tval == TV_AMULET) || (o_ptr->tval == TV_RING)) && object_is_cursed(o_ptr))
-        return TRUE;
+        return true;
 
-    return FALSE;
+    return false;
 }
 
 static int decide_random_art_power(const bool a_cursed)
@@ -198,7 +198,7 @@ static void invest_powers(player_type *player_ptr, object_type *o_ptr, int *powe
         case 1:
         case 2:
             random_plus(o_ptr);
-            *has_pval = TRUE;
+            *has_pval = true;
             break;
         case 3:
         case 4:
@@ -259,7 +259,7 @@ static void invest_positive_modified_value(player_type *player_ptr, object_type 
         o_ptr->to_a += randint1(o_ptr->to_a > 19 ? 1 : 20 - o_ptr->to_a);
         return;
     }
-    
+
     if (!object_is_weapon_ammo(o_ptr))
         return;
 
@@ -377,7 +377,8 @@ static void name_unnatural_random_artifact(player_type *player_ptr, object_type 
     chg_virtue(player_ptr, V_ENCHANT, 5);
 }
 
-static void generate_unnatural_random_artifact(player_type *player_ptr, object_type *o_ptr, const bool a_scroll, const int power_level, const int max_powers, const int total_flags)
+static void generate_unnatural_random_artifact(
+    player_type *player_ptr, object_type *o_ptr, const bool a_scroll, const int power_level, const int max_powers, const int total_flags)
 {
     GAME_TEXT new_name[1024];
     strcpy(new_name, "");
@@ -421,7 +422,7 @@ bool become_random_artifact(player_type *player_ptr, object_type *o_ptr, bool a_
     add_flag(o_ptr->art_flags, TR_IGNORE_FIRE);
     add_flag(o_ptr->art_flags, TR_IGNORE_COLD);
 
-    s32b total_flags = flag_cost(player_ptr, o_ptr, o_ptr->pval);
+    int32_t total_flags = flag_cost(player_ptr, o_ptr, o_ptr->pval);
     if (a_cursed)
         curse_artifact(player_ptr, o_ptr);
 
@@ -440,5 +441,5 @@ bool become_random_artifact(player_type *player_ptr, object_type *o_ptr, bool a_
         weakening_artifact(player_ptr, o_ptr);
 
     generate_unnatural_random_artifact(player_ptr, o_ptr, a_scroll, power_level, max_powers, total_flags);
-    return TRUE;
+    return true;
 }
