@@ -1,5 +1,6 @@
 ﻿#include "floor/fixed-map-generator.h"
 #include "artifact/fixed-art-generator.h"
+#include "artifact/random-art-generator.h"
 #include "dungeon/quest.h"
 #include "floor/floor-object.h"
 #include "floor/floor-town.h"
@@ -22,6 +23,7 @@
 #include "object-enchant/item-apply-magic.h"
 #include "object-enchant/object-ego.h"
 #include "object-enchant/trg-types.h"
+#include "object-hook/hook-checker.h"
 #include "object/object-info.h"
 #include "object/object-kind-hook.h"
 #include "object/object-kind.h"
@@ -89,6 +91,69 @@ static void generate_artifact(player_type *player_ptr, qtwg_type *qtwg_ptr, cons
     object_type *q_ptr = &forge;
     q_ptr->prep(player_ptr, k_idx);
     drop_here(player_ptr->current_floor_ptr, q_ptr, *qtwg_ptr->y, *qtwg_ptr->x);
+}
+
+static bool is_equipment(tval_type tval)
+{
+    switch (tval) {
+    case TV_BOW:
+    case TV_DIGGING:
+    case TV_HAFTED:
+    case TV_POLEARM:
+    case TV_SWORD:
+    case TV_BOOTS:
+    case TV_GLOVES:
+    case TV_HELM:
+    case TV_CROWN:
+    case TV_SHIELD:
+    case TV_CLOAK:
+    case TV_SOFT_ARMOR:
+    case TV_HARD_ARMOR:
+    case TV_DRAG_ARMOR:
+    case TV_LITE:
+    case TV_AMULET:
+    case TV_RING:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static void drop_quest_reward(player_type *player_ptr, qtwg_type *qtwg_ptr, object_type *o_ptr)
+{
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    apply_magic_to_object(player_ptr, o_ptr, floor_ptr->base_level, AM_NO_FIXED_ART | AM_GOOD);
+    auto is_reward = !floor_ptr->inside_quest;
+    is_reward &= is_equipment(o_ptr->tval);
+    if (!is_reward) {
+        drop_here(floor_ptr, o_ptr, *qtwg_ptr->y, *qtwg_ptr->x);
+        return;
+    }
+
+    object_type forge;
+    auto *q_ptr = &forge;
+    while (true) {
+        q_ptr->copy_from(o_ptr);
+        if (q_ptr->art_name > 0) {
+            break;
+        }
+
+        if ((q_ptr->name1 != 0) && (q_ptr->name2 != 0)) {
+            continue;
+        }
+
+        (void)become_random_artifact(player_ptr, q_ptr, false);
+        auto is_good_random_art = !object_is_cursed(q_ptr);
+        is_good_random_art &= q_ptr->to_h > 0;
+        is_good_random_art &= q_ptr->to_d > 0;
+        is_good_random_art &= q_ptr->to_a > 0;
+        is_good_random_art &= q_ptr->pval > 0;
+        if (is_good_random_art) {
+            break;
+        }
+    }
+
+    drop_here(floor_ptr, q_ptr, *qtwg_ptr->y, *qtwg_ptr->x);
 }
 
 static void parse_qtw_D(player_type *player_ptr, qtwg_type *qtwg_ptr, char *s)
@@ -182,8 +247,7 @@ static void parse_qtw_D(player_type *player_ptr, qtwg_type *qtwg_ptr, char *s)
                 coin_type = 0;
             }
 
-            apply_magic_to_object(player_ptr, o_ptr, floor_ptr->base_level, AM_NO_FIXED_ART | AM_GOOD);
-            drop_here(floor_ptr, o_ptr, *qtwg_ptr->y, *qtwg_ptr->x);
+            drop_quest_reward(player_ptr, qtwg_ptr, o_ptr);
         }
 
         generate_artifact(player_ptr, qtwg_ptr, artifact_index);
