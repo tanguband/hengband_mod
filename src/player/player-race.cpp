@@ -7,13 +7,14 @@
 #include "player/race-info-table.h"
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
+#include "util/enum-converter.h"
 
 const player_race *rp_ptr;
 
 const player_race *get_player_race_info(player_type* creature_ptr, bool base_race = false)
 {
     if (base_race) {
-        return &race_info[static_cast<int>(creature_ptr->prace)];
+        return &race_info[enum2i(creature_ptr->prace)];
     }
 
     switch (creature_ptr->mimic_form) {
@@ -22,7 +23,7 @@ const player_race *get_player_race_info(player_type* creature_ptr, bool base_rac
     case MIMIC_VAMPIRE:
         return &mimic_info[creature_ptr->mimic_form];
     default: // MIMIC_NONE or undefined
-        return &race_info[static_cast<int>(creature_ptr->prace)];
+        return &race_info[enum2i(creature_ptr->prace)];
     }
 }
 
@@ -87,7 +88,7 @@ void add_player_race_flags(player_type *creature_ptr, TrFlags &flags, bool base_
 {
     auto race_ptr = get_player_race_info(creature_ptr, base_race);
     if (race_ptr->infra > 0)
-        add_flag(flags, TR_INFRA);
+        flags.set(TR_INFRA);
 
     for (auto &cond : race_ptr->extra_flags) {
         if (creature_ptr->lev < cond.level)
@@ -99,7 +100,7 @@ void add_player_race_flags(player_type *creature_ptr, TrFlags &flags, bool base_
                 continue;
         }
 
-        add_flag(flags, cond.type);
+        flags.set(cond.type);
     }
 }
 

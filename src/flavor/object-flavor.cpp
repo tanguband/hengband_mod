@@ -27,8 +27,6 @@
 #include "object-enchant/special-object-flags.h"
 #include "object-enchant/tr-types.h"
 #include "object-enchant/trg-types.h"
-#include "object-hook/hook-checker.h"
-#include "object-hook/hook-enchant.h"
 #include "object-hook/hook-quest.h"
 #include "object/object-flags.h"
 #include "object/object-info.h"
@@ -203,7 +201,7 @@ static void shuffle_flavors(tval_type tval)
         if (!k_ptr->flavor)
             continue;
 
-        if (has_flag(k_ptr->flags, TR_FIXED_FLAVOR))
+        if (k_ptr->flags.has(TR_FIXED_FLAVOR))
             continue;
 
         k_idx_list[k_idx_list_num] = i;

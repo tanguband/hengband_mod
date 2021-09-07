@@ -104,7 +104,7 @@ static void compensate_death_scythe_reflection_magnification(player_type *attack
     if (!(has_resist_pois(attacker_ptr) || is_oppose_pois(attacker_ptr)) && (*magnification < 25))
         *magnification = 25;
 
-    if ((attacker_ptr->pclass != CLASS_SAMURAI) && (has_flag(death_scythe_flags, TR_FORCE_WEAPON)) && (attacker_ptr->csp > (attacker_ptr->msp / 30))) {
+    if ((attacker_ptr->pclass != CLASS_SAMURAI) && (death_scythe_flags.has(TR_FORCE_WEAPON)) && (attacker_ptr->csp > (attacker_ptr->msp / 30))) {
         attacker_ptr->csp -= (1 + (attacker_ptr->msp / 30));
         attacker_ptr->redraw |= (PR_MANA);
         *magnification = *magnification * 3 / 2 + 20;
@@ -135,13 +135,12 @@ static void death_scythe_reflection_critial_hit(player_attack_type *pa_ptr)
  */
 void process_death_scythe_reflection(player_type *attacker_ptr, player_attack_type *pa_ptr)
 {
-    TrFlags death_scythe_flags;
     sound(SOUND_HIT);
     msg_format(_("ミス！ %sにかわされた。", "You miss %s."), pa_ptr->m_name);
     msg_print(_("振り回した大鎌が自分自身に返ってきた！", "Your scythe returns to you!"));
 
     object_type *o_ptr = &attacker_ptr->inventory_list[INVEN_MAIN_HAND + pa_ptr->hand];
-    object_flags(attacker_ptr, o_ptr, death_scythe_flags);
+    auto death_scythe_flags = object_flags(o_ptr);
     pa_ptr->attack_damage = damroll(o_ptr->dd + attacker_ptr->to_dd[pa_ptr->hand], o_ptr->ds + attacker_ptr->to_ds[pa_ptr->hand]);
     int magnification = calc_death_scythe_reflection_magnification(attacker_ptr);
     compensate_death_scythe_reflection_magnification(attacker_ptr, &magnification, death_scythe_flags);

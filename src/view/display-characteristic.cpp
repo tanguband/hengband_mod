@@ -106,13 +106,12 @@ static void process_cursed_equipment_characteristics(player_type *creature_ptr, 
 {
     int max_i = (mode & DP_WP) ? INVEN_BOW + 1 : INVEN_TOTAL;
     for (int i = INVEN_MAIN_HAND; i < max_i; i++) {
-        TrFlags flags;
         auto *o_ptr = &creature_ptr->inventory_list[i];
-        auto is_known = object_is_known(o_ptr);
+        auto is_known = o_ptr->is_known();
         auto is_sensed = is_known || o_ptr->ident & IDENT_SENSE;
-        object_flags_known(creature_ptr, o_ptr, flags);
+        auto flags = object_flags_known(o_ptr);
 
-        if (has_flag(flags, TR_ADD_L_CURSE) || has_flag(flags, TR_ADD_H_CURSE)) {
+        if (flags.has(TR_ADD_L_CURSE) || flags.has(TR_ADD_H_CURSE)) {
             if (is_known) {
                 char_stat.syms.emplace_back("+");
                 char_stat.has_res = true;
@@ -156,13 +155,12 @@ static void process_light_equipment_characteristics(player_type *creature_ptr, a
 {
     int max_i = (mode & DP_WP) ? INVEN_BOW + 1 : INVEN_TOTAL;
     for (int i = INVEN_MAIN_HAND; i < max_i; i++) {
-        TrFlags flags;
         auto *o_ptr = &creature_ptr->inventory_list[i];
-        object_flags_known(creature_ptr, o_ptr, flags);
+        auto flags = object_flags_known(o_ptr);
 
         auto b = false;
         for (auto flg : lite_flags) {
-            if (has_flag(flags, flg)) {
+            if (flags.has(flg)) {
                 b = true;
                 break;
             }
@@ -177,12 +175,12 @@ static void process_light_equipment_characteristics(player_type *creature_ptr, a
     }
 
     for (auto flg : lite_flags) {
-        if (has_flag(f->tim_player_flags, flg)) {
+        if (f->tim_player_flags.has(flg)) {
             char_stat.syms.emplace_back("#");
             char_stat.has_tim = true;
             return;
         }
-        if (has_flag(f->player_flags, flg)) {
+        if (f->player_flags.has(flg)) {
             char_stat.syms.emplace_back("+");
             char_stat.has_res = true;
             return;
@@ -206,13 +204,12 @@ static void process_inventory_characteristic(player_type *creature_ptr, tr_type 
 {
     int max_i = (mode & DP_WP) ? INVEN_BOW + 1 : INVEN_TOTAL;
     for (int i = INVEN_MAIN_HAND; i < max_i; i++) {
-        TrFlags flags;
         auto *o_ptr = &creature_ptr->inventory_list[i];
-        object_flags_known(creature_ptr, o_ptr, flags);
+        auto flags = object_flags_known(o_ptr);
 
         auto f_imm = flag_to_greater_flag.find(flag);
         if (f_imm != flag_to_greater_flag.end()) {
-            if (has_flag(flags, f_imm->second)) {
+            if (flags.has(f_imm->second)) {
                 char_stat.syms.emplace_back("*");
                 char_stat.has_imm = true;
                 continue;
@@ -222,13 +219,13 @@ static void process_inventory_characteristic(player_type *creature_ptr, tr_type 
         auto b_vul = false;
         auto f_vul = flag_to_lesser_flag.find(flag);
         if (f_vul != flag_to_lesser_flag.end()) {
-            if (has_flag(flags, f_vul->second)) {
+            if (flags.has(f_vul->second)) {
                 char_stat.has_vul = true;
                 b_vul = true;
             }
         }
 
-        if (has_flag(flags, flag)) {
+        if (flags.has(flag)) {
             char_stat.syms.emplace_back(b_vul ? "-" : "+");
             char_stat.has_res = true;
             continue;
@@ -237,15 +234,15 @@ static void process_inventory_characteristic(player_type *creature_ptr, tr_type 
         char_stat.syms.emplace_back(b_vul ? "v" : ".");
     }
 
-    if (has_flag(f->player_imm, flag) || has_flag(f->tim_player_imm, flag)) {
+    if (f->player_imm.has(flag) || f->tim_player_imm.has(flag)) {
         char_stat.syms.emplace_back("*");
         char_stat.has_imm = true;
-    } else if (has_flag(f->tim_player_flags, flag)) {
+    } else if (f->tim_player_flags.has(flag)) {
         char_stat.syms.emplace_back("#");
         char_stat.has_tim = true;
     } else {
-        auto b_vul = has_flag(f->player_vuln, flag);
-        if (has_flag(f->player_flags, flag)) {
+        auto b_vul = f->player_vuln.has(flag);
+        if (f->player_flags.has(flag)) {
             char_stat.syms.emplace_back(b_vul ? "-" : "+");
             char_stat.has_res = true;
         } else {
@@ -270,9 +267,9 @@ static void process_one_characteristic(player_type *creature_ptr, TERM_LEN row, 
 {
     char_stat char_stat;
 
-    if (has_flag(f->riding_flags, flag))
+    if (f->riding_flags.has(flag))
         char_stat.has_rid = true;
-    if (has_flag(f->riding_negative_flags, flag)) {
+    if (f->riding_negative_flags.has(flag)) {
         char_stat.has_rid = true;
         char_stat.has_vul = true;
     }

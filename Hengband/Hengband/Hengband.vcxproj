@@ -467,9 +467,6 @@
     <ClCompile Include="..\..\src\mspell\mspell-dispel.cpp" />
     <ClCompile Include="..\..\src\mutation\mutation-techniques.cpp" />
     <ClCompile Include="..\..\src\artifact\random-art-pval-investor.cpp" />
-    <ClCompile Include="..\..\src\object-hook\hook-bow.cpp" />
-    <ClCompile Include="..\..\src\object-hook\hook-checker.cpp" />
-    <ClCompile Include="..\..\src\object-hook\hook-enchant.cpp" />
     <ClCompile Include="..\..\src\object-hook\hook-expendable.cpp" />
     <ClCompile Include="..\..\src\object-hook\hook-magic.cpp" />
     <ClCompile Include="..\..\src\object-hook\hook-perception.cpp" />
@@ -910,6 +907,8 @@
     <ClInclude Include="..\..\src\action\open-close-execution.h" />
     <ClInclude Include="..\..\src\action\open-util.h" />
     <ClInclude Include="..\..\src\action\run-execution.h" />
+    <ClInclude Include="..\..\src\load\savedata-old-flag-types.h" />
+    <ClInclude Include="..\..\src\object-enchant\tr-flags.h" />
     <ClInclude Include="..\..\src\object-use\throw-execution.h" />
     <ClInclude Include="..\..\src\action\travel-execution.h" />
     <ClInclude Include="..\..\src\action\tunnel-execution.h" />
@@ -1183,9 +1182,6 @@
     <ClInclude Include="..\..\src\mutation\mutation-techniques.h" />
     <ClInclude Include="..\..\src\artifact\random-art-pval-investor.h" />
     <ClInclude Include="..\..\src\object-hook\hook-armor.h" />
-    <ClInclude Include="..\..\src\object-hook\hook-bow.h" />
-    <ClInclude Include="..\..\src\object-hook\hook-checker.h" />
-    <ClInclude Include="..\..\src\object-hook\hook-enchant.h" />
     <ClInclude Include="..\..\src\object-hook\hook-expendable.h" />
     <ClInclude Include="..\..\src\object-hook\hook-magic.h" />
     <ClInclude Include="..\..\src\object-hook\hook-perception.h" />
@@ -1287,6 +1283,7 @@
     <ClInclude Include="..\..\src\term\screen-processor.h" />
     <ClInclude Include="..\..\src\util\bit-flags-calculator.h" />
     <ClInclude Include="..\..\src\util\buffer-shaper.h" />
+    <ClInclude Include="..\..\src\util\enum-converter.h" />
     <ClInclude Include="..\..\src\util\flag-group.h" />
     <ClInclude Include="..\..\src\util\int-char-converter.h" />
     <ClInclude Include="..\..\src\util\point-2d.h" />

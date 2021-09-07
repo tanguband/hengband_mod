@@ -68,7 +68,7 @@ char *file_read__tmp;
  * try several base "path" values until a good one is found.
  * </pre>
  */
-void init_file_paths(concptr libpath, concptr varpath)
+void init_file_paths(const char *libpath, const char *varpath)
 {
 #ifdef PRIVATE_USER_PATH
     char base[1024];
@@ -113,7 +113,7 @@ void init_file_paths(concptr libpath, concptr varpath)
 #endif
     ANGBAND_DIR_XTRA = string_make(format("%sxtra", libpath));
 
-    time_t now = time(NULL);
+    time_t now = time(nullptr);
     struct tm *t = localtime(&now);
     char tmp[128];
     strftime(tmp, sizeof(tmp), "%Y-%m-%d-%H-%M-%S", t);

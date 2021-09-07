@@ -168,7 +168,7 @@ static void process_stats(player_type *creature_ptr, int row, int stat_col)
  * @param stat 能力値番号
  * @param flags 装備品に立っているフラグ
  */
-static void compensate_stat_by_weapon(char *c, TERM_COLOR *a, object_type *o_ptr, int stat, const TrFlags &flags)
+static void compensate_stat_by_weapon(char *c, TERM_COLOR *a, object_type *o_ptr, tr_type tr_flag, const TrFlags &flags)
 {
     *c = '*';
 
@@ -178,7 +178,7 @@ static void compensate_stat_by_weapon(char *c, TERM_COLOR *a, object_type *o_ptr
             *c = '0' + o_ptr->pval;
     }
 
-    if (has_flag(flags, stat + TR_SUST_STR)) {
+    if (flags.has(tr_flag)) {
         *a = TERM_GREEN;
     }
 
@@ -196,18 +196,18 @@ static void compensate_stat_by_weapon(char *c, TERM_COLOR *a, object_type *o_ptr
  * @param row 行数
  * @param col 列数
  */
-static void display_equipments_compensation(player_type *creature_ptr, TrFlags &flags, int row, int *col)
+static void display_equipments_compensation(player_type *creature_ptr, int row, int *col)
 {
     for (int i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
         object_type *o_ptr;
         o_ptr = &creature_ptr->inventory_list[i];
-        object_flags_known(creature_ptr, o_ptr, flags);
+        auto flags = object_flags_known(o_ptr);
         for (int stat = 0; stat < A_MAX; stat++) {
             TERM_COLOR a = TERM_SLATE;
             char c = '.';
-            if (has_flag(flags, stat)) {
-                compensate_stat_by_weapon(&c, &a, o_ptr, stat, flags);
-            } else if (has_flag(flags, stat + TR_SUST_STR)) {
+            if (flags.has(TR_STATUS_LIST[stat])) {
+                compensate_stat_by_weapon(&c, &a, o_ptr, TR_STATUS_LIST[stat], flags);
+            } else if (flags.has(TR_SUST_STATUS_LIST[stat])) {
                 a = TERM_GREEN;
                 c = 's';
             }
@@ -318,18 +318,20 @@ static void change_display_by_mutation(player_type *creature_ptr, int stat, char
 /*!
  * @brief 能力値を走査し、突然変異 (と、つよしスペシャル)で補正をかける必要があればかける
  * @param creature_ptr プレーヤーへの参照ポインタ
- * @param stat 能力値番号
  * @param col 列数
  * @param row 行数
  */
-static void display_mutation_compensation(player_type *creature_ptr, const TrFlags &flags, int row, int col)
+static void display_mutation_compensation(player_type *creature_ptr, int row, int col)
 {
+    TrFlags flags;
+    player_flags(creature_ptr, flags);
+
     for (int stat = 0; stat < A_MAX; stat++) {
         byte a = TERM_SLATE;
         char c = '.';
         change_display_by_mutation(creature_ptr, stat, &c, &a);
 
-        if (has_flag(flags, stat + TR_SUST_STR)) {
+        if (flags.has(TR_SUST_STATUS_LIST[stat])) {
             a = TERM_GREEN;
             c = 's';
         }
@@ -368,8 +370,6 @@ void display_player_stat_info(player_type *creature_ptr)
     c_put_str(TERM_WHITE, "abcdefghijkl@", row, col);
     c_put_str(TERM_L_GREEN, _("能力修正", "Modification"), row - 1, col);
 
-    TrFlags flags;
-    display_equipments_compensation(creature_ptr, flags, row, &col);
-    player_flags(creature_ptr, flags);
-    display_mutation_compensation(creature_ptr, flags, row, col);
+    display_equipments_compensation(creature_ptr, row, &col);
+    display_mutation_compensation(creature_ptr, row, col);
 }
