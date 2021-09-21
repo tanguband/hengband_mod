@@ -1,7 +1,9 @@
 ﻿#include "object/object-flags.h"
-#include "cmd-item/cmd-smith.h" //!< @todo 相互参照している.
 #include "mind/mind-weaponsmith.h"
 #include "object-enchant/object-ego.h"
+#include "object-enchant/object-smith.h"
+/* This one is only necessary for some macOS compilations. */
+#include "object-enchant/smith-types.h"
 #include "object-enchant/tr-types.h"
 #include "object/object-kind.h"
 #include "perception/object-perception.h"
@@ -45,39 +47,26 @@ TrFlags object_flags(const object_type *o_ptr)
     /* Random artifact ! */
     flgs.set(o_ptr->art_flags);
 
-    if (o_ptr->is_smith()) {
-        int add = o_ptr->xtra3 - 1;
-        if (add < TR_FLAG_MAX) {
-            flgs.set(static_cast<tr_type>(add));
-        } else if (add == ESSENCE_TMP_RES_ACID) {
-            flgs.set(TR_RES_ACID);
-            flgs.set(TR_ACTIVATE);
-        } else if (add == ESSENCE_TMP_RES_ELEC) {
-            flgs.set(TR_RES_ELEC);
-            flgs.set(TR_ACTIVATE);
-        } else if (add == ESSENCE_TMP_RES_FIRE) {
-            flgs.set(TR_RES_FIRE);
-            flgs.set(TR_ACTIVATE);
-        } else if (add == ESSENCE_TMP_RES_COLD) {
-            flgs.set(TR_RES_COLD);
-            flgs.set(TR_ACTIVATE);
-        } else if (add == ESSENCE_SH_FIRE) {
-            flgs.set(TR_RES_FIRE);
-            flgs.set(TR_SH_FIRE);
-        } else if (add == ESSENCE_SH_ELEC) {
-            flgs.set(TR_RES_ELEC);
-            flgs.set(TR_SH_ELEC);
-        } else if (add == ESSENCE_SH_COLD) {
-            flgs.set(TR_RES_COLD);
-            flgs.set(TR_SH_COLD);
-        } else if (add == ESSENCE_RESISTANCE) {
-            flgs.set(TR_RES_ACID);
-            flgs.set(TR_RES_ELEC);
-            flgs.set(TR_RES_FIRE);
-            flgs.set(TR_RES_COLD);
-        } else if (add == TR_EARTHQUAKE) {
-            flgs.set(TR_ACTIVATE);
-        }
+    if (auto effect = Smith::object_effect(o_ptr); effect.has_value()) {
+        /*
+         * value() requires macOS 10.13 or later; avoid it if compiling for
+         * an earlier version of macOS.
+         */
+        auto tr_flags = Smith::get_effect_tr_flags(
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+#if __MAC_OS_X_VERISON_MIN_REQUIRED < 1130
+            effect.value_or(SmithEffect::NONE)
+#else
+            effect.value()
+#endif
+#else
+            effect.value_or(SmithEffect::NONE)
+#endif
+        );
+        flgs.set(tr_flags);
+    }
+    if (Smith::object_activation(o_ptr).has_value()) {
+        flgs.set(TR_ACTIVATE);
     }
 
     return flgs;
@@ -127,34 +116,23 @@ TrFlags object_flags_known(const object_type *o_ptr)
         flgs.set(o_ptr->art_flags);
     }
 
-    if (!o_ptr->is_smith())
-        return flgs;
-
-    int add = o_ptr->xtra3 - 1;
-    if (add < TR_FLAG_MAX) {
-        flgs.set(static_cast<tr_type>(add));
-    } else if (add == ESSENCE_TMP_RES_ACID) {
-        flgs.set(TR_RES_ACID);
-    } else if (add == ESSENCE_TMP_RES_ELEC) {
-        flgs.set(TR_RES_ELEC);
-    } else if (add == ESSENCE_TMP_RES_FIRE) {
-        flgs.set(TR_RES_FIRE);
-    } else if (add == ESSENCE_TMP_RES_COLD) {
-        flgs.set(TR_RES_COLD);
-    } else if (add == ESSENCE_SH_FIRE) {
-        flgs.set(TR_RES_FIRE);
-        flgs.set(TR_SH_FIRE);
-    } else if (add == ESSENCE_SH_ELEC) {
-        flgs.set(TR_RES_ELEC);
-        flgs.set(TR_SH_ELEC);
-    } else if (add == ESSENCE_SH_COLD) {
-        flgs.set(TR_RES_COLD);
-        flgs.set(TR_SH_COLD);
-    } else if (add == ESSENCE_RESISTANCE) {
-        flgs.set(TR_RES_ACID);
-        flgs.set(TR_RES_ELEC);
-        flgs.set(TR_RES_FIRE);
-        flgs.set(TR_RES_COLD);
+    if (auto effect = Smith::object_effect(o_ptr); effect.has_value()) {
+        /*
+         * value() requires macOS 10.13 or later; avoid it if compiling for
+         * an earlier version of macOS.
+         */
+        auto tr_flags = Smith::get_effect_tr_flags(
+#ifdef __MAC_OS_X_VERSION_MIN_REQUIRED
+#if __MAC_OS_X_VERISON_MIN_REQUIRED < 1130
+            effect.value_or(SmithEffect::NONE)
+#else
+            effect.value()
+#endif
+#else
+            effect.value_or(SmithEffect::NONE)
+#endif
+        );
+        flgs.set(tr_flags);
     }
 
     return flgs;

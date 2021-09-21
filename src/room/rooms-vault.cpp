@@ -306,7 +306,7 @@ static void coord_trans(POSITION *x, POSITION *y, POSITION xoffset, POSITION yof
 
 /*!
  * @brief Vaultをフロアに配置する / Hack -- fill in "vault" rooms
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param yval 生成基準Y座標
  * @param xval 生成基準X座標
  * @param ymax VaultのYサイズ
@@ -938,7 +938,6 @@ static void build_mini_c_vault(player_type *player_ptr, POSITION x0, POSITION y0
     POSITION dy, dx;
     POSITION y1, x1, y2, x2, y, x, total;
     int m, n, num_vertices;
-    int *visited;
 
     msg_print_wizard(player_ptr, CHEAT_DUNGEON, _("小型チェッカーランダムVaultを生成しました。", "Mini Checker Board Vault."));
 
@@ -1006,10 +1005,10 @@ static void build_mini_c_vault(player_type *player_ptr, POSITION x0, POSITION y0
     num_vertices = m * n;
 
     /* initialize array of visited vertices */
-    C_MAKE(visited, num_vertices, int);
+    std::vector<int> visited(num_vertices);
 
     /* traverse the graph to create a spannng tree, pick a random root */
-    r_visit(player_ptr, y1, x1, y2, x2, randint0(num_vertices), 0, visited);
+    r_visit(player_ptr, y1, x1, y2, x2, randint0(num_vertices), 0, visited.data());
 
     /* Make it look like a checker board vault */
     for (x = x1; x <= x2; x++) {
@@ -1037,8 +1036,6 @@ static void build_mini_c_vault(player_type *player_ptr, POSITION x0, POSITION y0
 
     /* Fill with monsters and treasure, highest difficulty */
     fill_treasure(player_ptr, x1, x2, y1, y2, 10);
-
-    C_KILL(visited, num_vertices, int);
 }
 
 /* Build a castle */
@@ -1083,7 +1080,7 @@ static void build_castle_vault(player_type *player_ptr, POSITION x0, POSITION y0
 
 /*!
  * @brief タイプ10の部屋…ランダム生成vault / Type 10 -- Random vaults
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  */
 bool build_type10(player_type *player_ptr, dun_data_type *dd_ptr)
 {

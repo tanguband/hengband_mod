@@ -6,7 +6,6 @@
  */
 
 #include "load/load-v1-5-0.h"
-#include "cmd-item/cmd-smith.h"
 #include "dungeon/dungeon.h"
 #include "floor/floor-object.h"
 #include "game-option/birth-options.h"
@@ -71,7 +70,7 @@ void rd_item_old(object_type *o_ptr)
 
     /* Type/Subtype */
     rd_byte(&tmp8u);
-    o_ptr->tval = static_cast<tval_type>(tmp8u);
+    o_ptr->tval = i2enum<tval_type>(tmp8u);
     rd_byte(&tmp8u);
     o_ptr->sval = tmp8u;
 
@@ -131,9 +130,9 @@ void rd_item_old(object_type *o_ptr)
         o_ptr->curse_flags.clear();
         if (o_ptr->ident & 0x40) {
             o_ptr->curse_flags.set(TRC::CURSED);
-            if (o_ptr->art_flags.has(static_cast<tr_type>(94)))
+            if (o_ptr->art_flags.has(i2enum<tr_type>(94)))
                 o_ptr->curse_flags.set(TRC::HEAVY_CURSE);
-            if (o_ptr->art_flags.has(static_cast<tr_type>(95)))
+            if (o_ptr->art_flags.has(i2enum<tr_type>(95)))
                 o_ptr->curse_flags.set(TRC::PERMA_CURSE);
             if (o_ptr->is_fixed_artifact()) {
                 artifact_type *a_ptr = &a_info[o_ptr->name1];
@@ -149,15 +148,11 @@ void rd_item_old(object_type *o_ptr)
                     o_ptr->curse_flags.set(TRC::PERMA_CURSE);
             }
         }
-        o_ptr->art_flags.reset({ static_cast<tr_type>(93), static_cast<tr_type>(94), static_cast<tr_type>(95) });
+        o_ptr->art_flags.reset({ i2enum<tr_type>(93), i2enum<tr_type>(94), i2enum<tr_type>(95) });
     } else {
         uint32_t tmp32u;
         rd_u32b(&tmp32u);
-        std::bitset<32> rd_bits_cursed_flags(tmp32u);
-        for (size_t i = 0; i < std::min(o_ptr->curse_flags.size(), rd_bits_cursed_flags.size()); i++) {
-            auto f = static_cast<TRC>(i);
-            o_ptr->curse_flags[f] = rd_bits_cursed_flags[i];
-        }
+        migrate_bitflag_to_flaggroup(o_ptr->curse_flags, tmp32u);
     }
 
     rd_s16b(&o_ptr->held_m_idx);
@@ -341,7 +336,7 @@ void rd_item_old(object_type *o_ptr)
 
 /*!
  * @brief モンスターを読み込む / Read a monster
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param m_ptr モンスター保存先ポインタ
  */
 void rd_monster_old(player_type *player_ptr, monster_type *m_ptr)
@@ -436,18 +431,15 @@ void rd_monster_old(player_type *player_ptr, monster_type *m_ptr)
 
     uint32_t tmp32u;
     rd_u32b(&tmp32u);
-    std::bitset<32> rd_bits_smart(tmp32u);
-    for (size_t i = 0; i < std::min(m_ptr->smart.size(), rd_bits_smart.size()); i++) {
-        auto f = static_cast<SM>(i);
-        m_ptr->smart[f] = rd_bits_smart[i];
-    }
+    migrate_bitflag_to_flaggroup(m_ptr->smart, tmp32u);
 
     // 3.0.0Alpha10以前のSM_CLONED(ビット位置22)、SM_PET(23)、SM_FRIEDLY(28)をMFLAG2に移行する
     // ビット位置の定義はなくなるので、ビット位置の値をハードコードする。
+    std::bitset<32> rd_bits_smart(tmp32u);
     m_ptr->mflag2[MFLAG2::CLONED] = rd_bits_smart[22];
     m_ptr->mflag2[MFLAG2::PET] = rd_bits_smart[23];
     m_ptr->mflag2[MFLAG2::FRIENDLY] = rd_bits_smart[28];
-    m_ptr->smart.reset(static_cast<SM>(22)).reset(static_cast<SM>(23)).reset(static_cast<SM>(28));
+    m_ptr->smart.reset(i2enum<SM>(22)).reset(i2enum<SM>(23)).reset(i2enum<SM>(28));
 
     if (h_older_than(0, 4, 5)) {
         m_ptr->exp = 0;
@@ -464,11 +456,7 @@ void rd_monster_old(player_type *player_ptr, monster_type *m_ptr)
     } else {
         rd_byte(&tmp8u);
         constexpr auto base = enum2i(MFLAG2::KAGE);
-        std::bitset<7> rd_bits_mflag2(tmp8u);
-        for (size_t i = 0; i < std::min(m_ptr->mflag2.size(), rd_bits_mflag2.size()); ++i) {
-            auto f = static_cast<MFLAG2>(base + i);
-            m_ptr->mflag2[f] = rd_bits_mflag2[i];
-        }
+        migrate_bitflag_to_flaggroup(m_ptr->mflag2, tmp8u, base, 7);
     }
 
     if (h_older_than(1, 0, 12)) {
@@ -546,7 +534,7 @@ void set_old_lore(monster_race *r_ptr, BIT_FLAGS f4, const MONRACE_IDX r_idx)
 
 /*!
  * @brief ダンジョン情報を読み込む / Read the dungeon (old method)
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @details
  * The monsters/objects must be loaded in the same order
  * that they were stored, since the actual indexes matter.
@@ -742,7 +730,7 @@ errr rd_dungeon_old(player_type *player_ptr)
 
     uint16_t limit;
     rd_u16b(&limit);
-    if (limit > current_world_ptr->max_o_idx) {
+    if (limit > w_ptr->max_o_idx) {
         load_note(format(_("アイテムの配列が大きすぎる(%d)！", "Too many (%d) object entries!"), limit));
         return (151);
     }
@@ -763,7 +751,7 @@ errr rd_dungeon_old(player_type *player_ptr)
     }
 
     rd_u16b(&limit);
-    if (limit > current_world_ptr->max_m_idx) {
+    if (limit > w_ptr->max_m_idx) {
         load_note(format(_("モンスターの配列が大きすぎる(%d)！", "Too many (%d) monster entries!"), limit));
         return (161);
     }
@@ -786,9 +774,9 @@ errr rd_dungeon_old(player_type *player_ptr)
     }
 
     if (h_older_than(0, 3, 13) && !floor_ptr->dun_level && !floor_ptr->inside_arena)
-        current_world_ptr->character_dungeon = false;
+        w_ptr->character_dungeon = false;
     else
-        current_world_ptr->character_dungeon = true;
+        w_ptr->character_dungeon = true;
 
     return 0;
 }

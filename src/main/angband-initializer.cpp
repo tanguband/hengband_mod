@@ -337,8 +337,8 @@ static void put_title(void)
 
 /*!
  * @brief 全ゲームデータ読み込みのメインルーチン /
- * @param player_ptr プレーヤーへの参照ポインタ
- * @param no_term trueならゲーム画面無しの状態で初期化を行う。
+ * @param player_ptr プレイヤーへの参照ポインタ
+ * @param no_term TRUEならゲーム画面無しの状態で初期化を行う。
  *                コマンドラインからスポイラーの出力のみを行う時の使用を想定する。
  */
 void init_angband(player_type *player_ptr, bool no_term)
@@ -426,9 +426,9 @@ void init_angband(player_type *player_ptr, bool no_term)
     if (init_d_info())
         quit(_("ダンジョン初期化不能", "Cannot initialize dungeon"));
 
-    for (int i = 1; i < current_world_ptr->max_d_idx; i++)
-        if (d_info[i].final_guardian)
-            r_info[d_info[i].final_guardian].flags7 |= RF7_GUARDIAN;
+    for (const auto &d_ref : d_info)
+        if (d_ref.idx > 0 && d_ref.final_guardian)
+            r_info[d_ref.final_guardian].flags7 |= RF7_GUARDIAN;
 
     init_note(_("[データの初期化中... (魔法)]", "[Initializing arrays... (magic)]"));
     if (init_m_info())

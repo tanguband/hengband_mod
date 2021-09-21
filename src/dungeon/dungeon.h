@@ -38,8 +38,9 @@ typedef struct feat_prob {
 
 /* A structure for the != dungeon types */
 typedef struct dungeon_type {
+    DUNGEON_IDX idx{};
 
-	std::string name; /* Name */
+    std::string name; /* Name */
     std::string text; /* Description */
 
 	POSITION dy{};
@@ -90,4 +91,4 @@ extern std::vector<dungeon_type> d_info;
 
 struct player_type;
 DUNGEON_IDX choose_dungeon(concptr note, POSITION y, POSITION x);
-bool is_in_dungeon(player_type *creature_ptr);
+bool is_in_dungeon(player_type *player_ptr);
