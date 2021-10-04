@@ -13,7 +13,7 @@
 
 /*!
  * @brief 店置きのアイテムオブジェクトを読み込む / Add the item "o_ptr" to the inventory of the "Home"
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param store_ptr 店舗の参照ポインタ
  * @param o_ptr アイテムオブジェクト参照ポインタ
  * @details
@@ -39,7 +39,7 @@ static void home_carry_load(player_type *player_ptr, store_type *store_ptr, obje
     if (store_ptr->stock_num >= store_get_stock_max(STORE_HOME))
         return;
 
-    int32_t value = object_value(player_ptr, o_ptr);
+    int32_t value = object_value(o_ptr);
     int slot;
     for (slot = 0; slot < store_ptr->stock_num; slot++) {
         if (object_sort_comp(player_ptr, o_ptr, value, &store_ptr->stock[slot]))
@@ -57,7 +57,7 @@ static void home_carry_load(player_type *player_ptr, store_type *store_ptr, obje
 
 /*!
  * @brief 店舗情報を読み込む / Read a store
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param town_number 街ID
  * @param store_number 店舗ID
  * @return エラーID
@@ -99,9 +99,9 @@ static errr rd_store(player_type *player_ptr, int town_number, int store_number)
         q_ptr = &forge;
         q_ptr->wipe();
 
-        rd_item(player_ptr, q_ptr);
+        rd_item(q_ptr);
 
-        auto stock_max = store_get_stock_max(static_cast<STORE_TYPE_IDX>(store_number));
+        auto stock_max = store_get_stock_max(i2enum<STORE_TYPE_IDX>(store_number));
         if (store_ptr->stock_num >= stock_max)
             continue;
 
@@ -118,12 +118,12 @@ static errr rd_store(player_type *player_ptr, int town_number, int store_number)
 
 /*!
  * @brief 店舗情報を読み込む
- * @param creature_ptr プレイヤー情報への参照ポインタ(未使用)
+ * @param player_ptr プレイヤー情報への参照ポインタ(未使用)
  * @return 読み込み終わったら0、失敗したら22
  */
-errr load_store(player_type *creature_ptr)
+errr load_store(player_type *player_ptr)
 {
-    (void)creature_ptr;
+    (void)player_ptr;
 
     uint16_t tmp16u;
     rd_u16b(&tmp16u);
@@ -134,7 +134,7 @@ errr load_store(player_type *creature_ptr)
 
     for (int town_idx = 1; town_idx < town_count; town_idx++)
         for (int store_idx = 0; store_idx < store_count; store_idx++)
-            if (rd_store(creature_ptr, town_idx, store_idx))
+            if (rd_store(player_ptr, town_idx, store_idx))
                 return 22;
 
     return 0;

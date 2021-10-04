@@ -2,8 +2,8 @@
 
 #include "system/angband.h"
 
-typedef struct player_type player_type;
-bool wall_to_mud(player_type *caster_ptr, DIRECTION dir, HIT_POINT dam);
-bool wizard_lock(player_type *caster_ptr, DIRECTION dir);
-bool destroy_door(player_type *caster_ptr, DIRECTION dir);
-bool disarm_trap(player_type *caster_ptr, DIRECTION dir);
+struct player_type;
+bool wall_to_mud(player_type *player_ptr, DIRECTION dir, HIT_POINT dam);
+bool wizard_lock(player_type *player_ptr, DIRECTION dir);
+bool destroy_door(player_type *player_ptr, DIRECTION dir);
+bool disarm_trap(player_type *player_ptr, DIRECTION dir);

@@ -20,7 +20,7 @@
 void spoiler_outlist(concptr header, concptr *list, char separator)
 {
     char line[MAX_LINE_LEN + 20], buf[80];
-    if (*list == NULL)
+    if (*list == nullptr)
         return;
 
     strcpy(line, spoiler_indent);
@@ -82,7 +82,7 @@ static void print_header(void)
  * @param name1 生成するアーティファクトID
  * @return 生成が成功した場合TRUEを返す
  */
-static bool make_fake_artifact(player_type *player_ptr, object_type *o_ptr, ARTIFACT_IDX name1)
+static bool make_fake_artifact(object_type *o_ptr, ARTIFACT_IDX name1)
 {
     artifact_type *a_ptr = &a_info[name1];
     if (a_ptr->name.empty())
@@ -92,7 +92,7 @@ static bool make_fake_artifact(player_type *player_ptr, object_type *o_ptr, ARTI
     if (!i)
         return false;
 
-    o_ptr->prep(player_ptr, i);
+    o_ptr->prep(i);
     o_ptr->name1 = name1;
     o_ptr->pval = a_ptr->pval;
     o_ptr->ac = a_ptr->ac;
@@ -143,10 +143,6 @@ static void spoiler_print_art(obj_desc_list *art_ptr)
  */
 spoiler_output_status spoil_fixed_artifact(concptr fname)
 {
-    player_type dummy;
-    object_type forge;
-    object_type *q_ptr;
-    obj_desc_list artifact;
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, fname);
     spoiler_file = angband_fopen(buf, "w");
@@ -155,25 +151,26 @@ spoiler_output_status spoil_fixed_artifact(concptr fname)
     }
 
     print_header();
-    for (int i = 0; group_artifact[i].tval; i++) {
-        if (group_artifact[i].name) {
-            spoiler_blanklines(2);
-            spoiler_underline(group_artifact[i].name);
-            spoiler_blanklines(1);
-        }
+    for (const auto &[tval_list, name] : group_artifact_list) {
+        spoiler_blanklines(2);
+        spoiler_underline(name);
+        spoiler_blanklines(1);
 
-        for (ARTIFACT_IDX j = 1; j < max_a_idx; ++j) {
-            artifact_type *a_ptr = &a_info[j];
-            if (a_ptr->tval != group_artifact[i].tval)
-                continue;
+        for (auto tval : tval_list) {
+            for (const auto &a_ref : a_info) {
+                if (a_ref.tval != tval)
+                    continue;
 
-            q_ptr = &forge;
-            q_ptr->wipe();
-            if (!make_fake_artifact(&dummy, q_ptr, j))
-                continue;
+                object_type obj;
+                obj.wipe();
+                if (!make_fake_artifact(&obj, a_ref.idx))
+                    continue;
 
-            object_analyze(&dummy, q_ptr, &artifact);
-            spoiler_print_art(&artifact);
+                player_type dummy;
+                obj_desc_list artifact;
+                object_analyze(&dummy, &obj, &artifact);
+                spoiler_print_art(&artifact);
+            }
         }
     }
 

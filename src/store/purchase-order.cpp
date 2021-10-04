@@ -30,6 +30,7 @@
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "term/screen-processor.h"
+#include "util/enum-converter.h"
 #include "util/int-char-converter.h"
 #include "view/display-messages.h"
 #include "view/display-store.h"
@@ -39,7 +40,7 @@
 /*!
  * @brief プレイヤーが購入する時の値切り処理メインルーチン /
  * Haggling routine 				-RAK-
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param o_ptr オブジェクトの構造体参照ポインタ
  * @param price 最終価格を返す参照ポインタ
  * @return プレイヤーの価格に対して店主が不服ならばTRUEを返す /
@@ -141,7 +142,7 @@ static void shuffle_store(player_type *player_ptr)
     msg_print(_("店主は引退した。", "The shopkeeper retires."));
     store_shuffle(player_ptr, cur_store_num);
     prt("", 3, 0);
-    sprintf(buf, "%s (%s)", ot_ptr->owner_name, race_info[static_cast<int>(ot_ptr->owner_race)].title);
+    sprintf(buf, "%s (%s)", ot_ptr->owner_name, race_info[enum2i(ot_ptr->owner_race)].title);
     put_str(buf, 3, 10);
     sprintf(buf, "%s (%ld)", f_info[cur_store_feat].name.c_str(), (long)(ot_ptr->max_cost));
     prt(buf, 3, 50);
@@ -172,7 +173,7 @@ static void switch_store_stock(player_type *player_ptr, const int i, const COMMA
 /*!
  * @brief 店からの購入処理のメインルーチン /
  * Buy an item from a store 			-RAK-
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  */
 void store_purchase(player_type *player_ptr)
 {
@@ -223,7 +224,7 @@ void store_purchase(player_type *player_ptr)
             msg_format(_("一つにつき $%ldです。", "That costs %ld gold per item."), (long)(best));
         }
 
-        amt = get_quantity(NULL, o_ptr->number);
+        amt = get_quantity(nullptr, o_ptr->number);
         if (amt <= 0)
             return;
     }
@@ -252,10 +253,10 @@ void store_purchase(player_type *player_ptr)
     GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(player_ptr, o_name, j_ptr, 0);
     msg_format(_("%s(%c)を購入する。", "Buying %s (%c)."), o_name, I2A(item));
-    msg_print(NULL);
+    msg_print(nullptr);
 
     auto res = prompt_to_buy(player_ptr, j_ptr);
-    if (st_ptr->store_open >= current_world_ptr->game_turn)
+    if (st_ptr->store_open >= w_ptr->game_turn)
         return;
     if (!res)
         return;
@@ -282,7 +283,7 @@ void store_purchase(player_type *player_ptr)
     msg_format(_("%sを $%ldで購入しました。", "You bought %s for %ld gold."), o_name, (long)price);
 
     strcpy(record_o_name, o_name);
-    record_turn = current_world_ptr->game_turn;
+    record_turn = w_ptr->game_turn;
 
     if (record_buy)
         exe_write_diary(player_ptr, DIARY_BUY, 0, o_name);

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "player/player-class-types.h"
+#include "player-info/class-types.h"
 #include "system/angband.h"
 #include "util/flag-group.h"
 
@@ -59,17 +59,13 @@ struct world_type {
 
     bool creating_savefile{}; /* New savefile is currently created */
 
-    bool wizard{}; /* This world under wizard mode */
-
     OBJECT_IDX max_o_idx{}; /*!< Maximum number of objects in the level */
     MONSTER_IDX max_m_idx{}; /*!< Maximum number of monsters in the level */
-
-    DUNGEON_IDX max_d_idx{};
 };
 
-extern world_type *current_world_ptr;
+extern world_type *w_ptr;
 
-typedef struct player_type player_type;
+struct player_type;
 bool is_daytime(void);
 void extract_day_hour_min(player_type *player_ptr, int *day, int *hour, int *min);
 void update_playtime(void);

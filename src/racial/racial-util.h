@@ -41,7 +41,7 @@ struct rpi_type {
 /*!
  * レイシャル/クラスパワー管理構造体
  */
-typedef struct player_type player_type;
+struct player_type;
 struct rc_type {
     std::vector<rpi_type> power_desc{}; //!< パワー定義配列
     COMMAND_CODE command_code{}; //!< 使用しようとしているパワー番号
@@ -59,10 +59,10 @@ struct rc_type {
 
     /*!
      * @brief コンストラクタ
-     * @param creature_ptr プレイヤー情報への参照ポインタ
+     * @param player_ptr プレイヤー情報への参照ポインタ
      * @return 管理構造体
      */
-    rc_type(player_type *creature_prt);
+    rc_type(player_type *player_ptr);
 
     /*!
      * @brief レイシャル/クラスパワー定義を追加
