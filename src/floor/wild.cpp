@@ -50,7 +50,7 @@
 
 #define MAX_FEAT_IN_TERRAIN 18
 
-wilderness_type **wilderness;
+std::vector<std::vector<wilderness_type>> wilderness;
 bool generate_encounter;
 
 typedef struct border_type {
@@ -542,8 +542,8 @@ void wilderness_gen(player_type *player_ptr)
     generate_encounter = false;
     set_floor_and_wall(0);
     for (int i = 0; i < max_q_idx; i++)
-        if (quest[i].status == QUEST_STATUS_REWARDED)
-            quest[i].status = QUEST_STATUS_FINISHED;
+        if (quest[i].status == QuestStatusType::REWARDED)
+            quest[i].status = QuestStatusType::FINISHED;
 }
 
 static int16_t conv_terrain2feat[MAX_WILDERNESS];
@@ -759,10 +759,7 @@ typedef wilderness_type *wilderness_type_ptr;
  */
 errr init_wilderness(void)
 {
-    C_MAKE(wilderness, w_ptr->max_wild_y, wilderness_type_ptr);
-    C_MAKE(wilderness[0], w_ptr->max_wild_x * w_ptr->max_wild_y, wilderness_type);
-    for (int i = 1; i < w_ptr->max_wild_y; i++)
-        wilderness[i] = wilderness[0] + i * w_ptr->max_wild_x;
+    wilderness.assign(w_ptr->max_wild_y, std::vector<wilderness_type>(w_ptr->max_wild_x));
 
     generate_encounter = false;
     return 0;

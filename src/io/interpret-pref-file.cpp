@@ -7,6 +7,7 @@
 #include "io/interpret-pref-file.h"
 #include "birth/character-builder.h"
 #include "cmd-io/macro-util.h"
+#include "game-option/game-play-options.h"
 #include "game-option/option-flags.h"
 #include "game-option/option-types-table.h"
 #include "grid/feature.h"
@@ -43,7 +44,7 @@ static errr interpret_r_token(char *buf)
     int i = (int)strtol(zz[0], nullptr, 0);
     TERM_COLOR n1 = (TERM_COLOR)strtol(zz[1], nullptr, 0);
     SYMBOL_CODE n2 = (SYMBOL_CODE)strtol(zz[2], nullptr, 0);
-    if (i >= max_r_idx)
+    if (i >= static_cast<int>(r_info.size()))
         return 1;
 
     r_ptr = &r_info[i];
@@ -70,7 +71,7 @@ static errr interpret_k_token(char *buf)
     int i = (int)strtol(zz[0], nullptr, 0);
     TERM_COLOR n1 = (TERM_COLOR)strtol(zz[1], nullptr, 0);
     SYMBOL_CODE n2 = (SYMBOL_CODE)strtol(zz[2], nullptr, 0);
-    if (i >= max_k_idx)
+    if (i >= static_cast<int>(k_info.size()))
         return 1;
 
     k_ptr = &k_info[i];
@@ -155,7 +156,7 @@ static errr interpret_f_token(char *buf)
         return 1;
 
     int i = (int)strtol(zz[0], nullptr, 0);
-    if (i >= max_f_idx)
+    if (i >= static_cast<int>(f_info.size()))
         return 1;
 
     return decide_feature_type(i, num, zz);
@@ -233,7 +234,7 @@ static errr interpret_p_token(char *buf)
 {
     char tmp[1024];
     text_to_ascii(tmp, buf + 2);
-    return macro_add(tmp, macro__buf);
+    return macro_add(tmp, macro__buf.data());
 }
 
 /*!
@@ -258,7 +259,7 @@ static errr interpret_c_token(char *buf)
 
     int i = (byte)(tmp[0]);
     string_free(keymap_act[mode][i]);
-    keymap_act[mode][i] = string_make(macro__buf);
+    keymap_act[mode][i] = string_make(macro__buf.data());
     return 0;
 }
 
@@ -302,7 +303,7 @@ static errr interpret_xy_token(player_type *player_ptr, char *buf)
         int os = option_info[i].o_set;
         int ob = option_info[i].o_bit;
 
-        if ((player_ptr->playing || w_ptr->character_xtra) && (OPT_PAGE_BIRTH == option_info[i].o_page) && !w_ptr->wizard) {
+        if ((player_ptr->playing || w_ptr->character_xtra) && (OPT_PAGE_BIRTH == option_info[i].o_page) && !allow_debug_options) {
             msg_format(_("初期オプションは変更できません! '%s'", "Birth options can not changed! '%s'"), buf);
             msg_print(nullptr);
             return 0;
@@ -494,7 +495,7 @@ errr interpret_pref_file(player_type *player_ptr, char *buf)
         return interpret_e_token(buf);
     case 'A': {
         /* Process "A:<str>" -- save an "action" for later */
-        text_to_ascii(macro__buf, buf + 2);
+        text_to_ascii(macro__buf.data(), buf + 2);
         return 0;
     }
     case 'P':

@@ -36,8 +36,10 @@
 #include "monster/smart-learn-types.h"
 #include "object-hook/hook-weapon.h"
 #include "pet/pet-util.h"
+#include "player-base/player-class.h"
 #include "player-info/class-info.h"
 #include "player-info/equipment-info.h"
+#include "player-info/samurai-data-type.h"
 #include "player-status/player-energy.h"
 #include "player-status/player-hand-types.h"
 #include "player/attack-defense-types.h"
@@ -203,8 +205,7 @@ bool do_cmd_riding(player_type *player_ptr, bool force)
     x = player_ptr->x + ddx[dir];
     g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
 
-    if (player_ptr->special_defense & KATA_MUSOU)
-        set_action(player_ptr, ACTION_NONE);
+   PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
 
     if (player_ptr->riding) {
         /* Skip non-empty grids */
@@ -276,7 +277,7 @@ bool do_cmd_riding(player_type *player_ptr, bool force)
             msg_format(_("%sを起こした。", "You have woken %s up."), m_name);
         }
 
-        if (player_ptr->action == ACTION_KAMAE)
+        if (player_ptr->action == ACTION_MONK_STANCE)
             set_action(player_ptr, ACTION_NONE);
 
         player_ptr->riding = g_ptr->m_idx;
@@ -398,12 +399,12 @@ void do_cmd_pet(player_type *player_ptr)
 #ifdef JP
     sprintf(target_buf, "ペットのターゲットを指定 (現在：%s)",
         (player_ptr->pet_t_m_idx
-                ? (player_ptr->image ? "何か奇妙な物" : r_info[player_ptr->current_floor_ptr->m_list[player_ptr->pet_t_m_idx].ap_r_idx].name.c_str())
+                ? (player_ptr->hallucinated ? "何か奇妙な物" : r_info[player_ptr->current_floor_ptr->m_list[player_ptr->pet_t_m_idx].ap_r_idx].name.c_str())
                 : "指定なし"));
 #else
     sprintf(target_buf, "specify a target of pet (now:%s)",
         (player_ptr->pet_t_m_idx
-                ? (player_ptr->image ? "something strange" : r_info[player_ptr->current_floor_ptr->m_list[player_ptr->pet_t_m_idx].ap_r_idx].name.c_str())
+                ? (player_ptr->hallucinated ? "something strange" : r_info[player_ptr->current_floor_ptr->m_list[player_ptr->pet_t_m_idx].ap_r_idx].name.c_str())
                 : "nothing"));
 #endif
     power_desc[num] = target_buf;

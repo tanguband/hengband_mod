@@ -37,10 +37,6 @@
 #include <dirent.h>
 #endif
 
-char *file_read__buf;
-char *file_read__swp;
-char *file_read__tmp;
-
 /*!
  * Find the default paths to all of our important sub-directories.
  * @param libpath パス保管先の文字列
@@ -343,9 +339,6 @@ static void put_title(void)
  */
 void init_angband(player_type *player_ptr, bool no_term)
 {
-    C_MAKE(file_read__buf, FILE_READ_BUFF_SIZE, char);
-    C_MAKE(file_read__swp, FILE_READ_BUFF_SIZE, char);
-    C_MAKE(file_read__tmp, FILE_READ_BUFF_SIZE, char);
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_FILE, _("news_j.txt", "news.txt"));
     int fd = fd_open(buf, O_RDONLY);
@@ -451,20 +444,14 @@ void init_angband(player_type *player_ptr, bool no_term)
         quit(_("建物を初期化できません", "Cannot initialize buildings"));
 
     init_note(_("[配列を初期化しています... (クエスト)]", "[Initializing arrays... (quests)]"));
-    if (init_quests())
-        quit(_("クエストを初期化できません", "Cannot initialize quests"));
-
+    init_quests();
     if (init_v_info())
         quit(_("vault 初期化不能", "Cannot initialize vaults"));
 
     init_note(_("[データの初期化中... (その他)]", "[Initializing arrays... (other)]"));
-    if (init_other(player_ptr))
-        quit(_("その他のデータ初期化不能", "Cannot initialize other stuff"));
-
+    init_other(player_ptr);
     init_note(_("[データの初期化中... (アロケーション)]", "[Initializing arrays... (alloc)]"));
-    if (init_alloc())
-        quit(_("アロケーション・スタッフ初期化不能", "Cannot initialize alloc stuff"));
-
+    init_alloc();
     init_note(_("[ユーザー設定ファイルを初期化しています...]", "[Initializing user pref files...]"));
     strcpy(buf, "pref.prf");
     process_pref_file(player_ptr, buf);
