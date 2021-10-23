@@ -6,5 +6,10 @@
 
 #include "system/angband.h"
 
-typedef struct player_type player_type;
-bool get_learned_power(player_type *caster_ptr, SPELL_IDX *sn);
+#include <optional>
+
+enum class RF_ABILITY;
+struct player_type;
+struct monster_power;
+int calculate_blue_magic_failure_probability(player_type *player_ptr, const monster_power &mp, int need_mana);
+std::optional<RF_ABILITY> get_learned_power(player_type *player_ptr);

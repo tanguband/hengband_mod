@@ -21,7 +21,7 @@
 /*!
  * @brief 武器系オブジェクトに生成ランクごとの強化を与えるサブルーチン
  * Apply magic to an item known to be a "weapon"
- * @param owner_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param o_ptr 強化を与えたいオブジェクトの構造体参照ポインタ
  * @param level 生成基準階
  * @param power 生成ランク
@@ -29,7 +29,7 @@
  * Hack -- note special base damage dice boosting\n
  * Hack -- note special processing for weapon/digger\n
  */
-void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level, int power)
+void apply_magic_weapon(player_type *player_ptr, object_type *o_ptr, DEPTH level, int power)
 {
     HIT_PROB tohit1 = randint1(5) + (HIT_PROB)m_bonus(5, level);
     HIT_POINT todam1 = randint1(5) + (HIT_POINT)m_bonus(5, level);
@@ -37,7 +37,7 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
     HIT_PROB tohit2 = (HIT_PROB)m_bonus(10, level);
     HIT_POINT todam2 = (HIT_POINT)m_bonus(10, level);
 
-    if ((o_ptr->tval == TV_BOLT) || (o_ptr->tval == TV_ARROW) || (o_ptr->tval == TV_SHOT)) {
+    if ((o_ptr->tval == ItemKindType::BOLT) || (o_ptr->tval == ItemKindType::ARROW) || (o_ptr->tval == ItemKindType::SHOT)) {
         tohit2 = (tohit2 + 1) / 2;
         todam2 = (todam2 + 1) / 2;
     }
@@ -61,15 +61,15 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
             o_ptr->curse_flags.set(TRC::CURSED);
     }
 
-    if ((o_ptr->tval == TV_SWORD) && (o_ptr->sval == SV_DIAMOND_EDGE))
+    if ((o_ptr->tval == ItemKindType::SWORD) && (o_ptr->sval == SV_DIAMOND_EDGE))
         return;
 
     switch (o_ptr->tval) {
-    case TV_DIGGING: {
+    case ItemKindType::DIGGING: {
         if (power > 1) {
             /* power > 2はデバッグ専用. */
             if (one_in_(30) || (power > 2))
-                become_random_artifact(owner_ptr, o_ptr, false);
+                become_random_artifact(player_ptr, o_ptr, false);
             else
                 o_ptr->name2 = EGO_DIGGING;
         } else if (power < -1) {
@@ -80,20 +80,20 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
 
         break;
     }
-    case TV_HAFTED:
-    case TV_POLEARM:
-    case TV_SWORD: {
+    case ItemKindType::HAFTED:
+    case ItemKindType::POLEARM:
+    case ItemKindType::SWORD: {
         if (power > 1) {
             /* power > 2はデバッグ専用. */
             if (one_in_(40) || (power > 2)) {
-                become_random_artifact(owner_ptr, o_ptr, false);
+                become_random_artifact(player_ptr, o_ptr, false);
                 break;
             }
             while (true) {
                 o_ptr->name2 = get_random_ego(INVEN_MAIN_HAND, true);
-                if (o_ptr->name2 == EGO_SHARPNESS && o_ptr->tval != TV_SWORD)
+                if (o_ptr->name2 == EGO_SHARPNESS && o_ptr->tval != ItemKindType::SWORD)
                     continue;
-                if (o_ptr->name2 == EGO_EARTHQUAKES && o_ptr->tval != TV_HAFTED)
+                if (o_ptr->name2 == EGO_EARTHQUAKES && o_ptr->tval != ItemKindType::HAFTED)
                     continue;
                 break;
             }
@@ -104,7 +104,7 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
                 break;
             case EGO_EARTHQUAKES:
                 if (one_in_(3) && (level > 60))
-                    add_flag(o_ptr->art_flags, TR_BLOWS);
+                    o_ptr->art_flags.set(TR_BLOWS);
                 else
                     o_ptr->pval = (PARAMETER_VALUE)m_bonus(3, level);
                 break;
@@ -124,12 +124,12 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
                 int n = 0;
                 while (true) {
                     o_ptr->name2 = get_random_ego(INVEN_MAIN_HAND, false);
-                    if (o_ptr->name2 == EGO_WEIRD && o_ptr->tval != TV_SWORD) {
+                    if (o_ptr->name2 == EGO_WEIRD && o_ptr->tval != ItemKindType::SWORD) {
                         continue;
                     }
 
                     ego_item_type *e_ptr = &e_info[o_ptr->name2];
-                    if (o_ptr->tval == TV_SWORD && o_ptr->sval == SV_HAYABUSA && e_ptr->max_pval < 0) {
+                    if (o_ptr->tval == ItemKindType::SWORD && o_ptr->sval == SV_HAYABUSA && e_ptr->max_pval < 0) {
                         if (++n > 1000) {
                             msg_print(_("エラー:隼の剣に割り当てるエゴ無し", "Error: Cannot find for Hayabusa."));
                             return;
@@ -143,11 +143,11 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
 
         break;
     }
-    case TV_BOW: {
+    case ItemKindType::BOW: {
         if (power > 1) {
             /* power > 2はデバッグ専用. */
             if (one_in_(20) || (power > 2)) {
-                become_random_artifact(owner_ptr, o_ptr, false);
+                become_random_artifact(player_ptr, o_ptr, false);
                 break;
             }
 
@@ -156,13 +156,13 @@ void apply_magic_weapon(player_type *owner_ptr, object_type *o_ptr, DEPTH level,
 
         break;
     }
-    case TV_BOLT:
-    case TV_ARROW:
-    case TV_SHOT: {
+    case ItemKindType::BOLT:
+    case ItemKindType::ARROW:
+    case ItemKindType::SHOT: {
         if (power > 1) {
             /* power > 2はデバッグ専用. */
             if (power > 2) {
-                become_random_artifact(owner_ptr, o_ptr, false);
+                become_random_artifact(player_ptr, o_ptr, false);
                 break;
             }
 

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include <bitset>
+#include <optional>
 
 /**
  * @brief フラグ集合を扱う、FlagGroupクラス
@@ -15,6 +16,8 @@ private:
     static constexpr auto FLAG_TYPE_MAX = static_cast<size_t>(MAX);
 
 public:
+    using flag_type = FlagType;
+
     /**
      * @brief フラグ集合に含まれるフラグの種類数を返す
      *
@@ -192,6 +195,10 @@ public:
      */
     [[nodiscard]] bool has(FlagType f) const
     {
+        if (f == MAX) {
+            // どのフラグにも該当しないFlagTypeの型としてMAXを指定する事があるため、MAXが指定された時はfalseを返すようにする
+            return false;
+        }
         return bs_.test(static_cast<size_t>(f));
     }
 
@@ -365,6 +372,22 @@ public:
     }
 
     /**
+     * @brief フラグ集合のONになっているフラグのうち最初のフラグを返す
+     *
+     * @return フラグ集合のONになっているフラグのうち最初のフラグ。但し一つもONになっているフラグがなければ std::nullopt
+     */
+    [[nodiscard]] std::optional<FlagType> first() const noexcept
+    {
+        for (size_t i = 0; i < bs_.size(); i++) {
+            if (bs_.test(i)) {
+                return static_cast<FlagType>(i);
+            }
+        }
+
+        return std::nullopt;
+    }
+
+    /**
      * @brief フラグ集合の状態を0と1で表した文字列を返す
      *
      * フラグ集合の上位番号から順に、フラグがONなら1、OFFなら0で表した文字列を返す。
@@ -453,14 +476,12 @@ public:
     template <typename Func>
     friend void rd_FlagGroup(FlagGroup<FlagType, MAX> &fg, Func rd_byte_func)
     {
-        uint8_t tmp_l, tmp_h;
-        rd_byte_func(&tmp_l);
-        rd_byte_func(&tmp_h);
+        auto tmp_l = rd_byte_func();
+        auto tmp_h = rd_byte_func();
         const auto fg_size = static_cast<uint16_t>((tmp_h << 8) | tmp_l);
 
         for (int i = 0; i < fg_size; i++) {
-            uint8_t flag_byte;
-            rd_byte_func(&flag_byte);
+            auto flag_byte = rd_byte_func();
             std::bitset<8> flag_bits(flag_byte);
             for (int j = 0; j < 8; j++) {
                 const size_t pos = i * 8 + j;

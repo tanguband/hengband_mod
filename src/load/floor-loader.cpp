@@ -8,15 +8,16 @@
 #include "io/files-util.h"
 #include "io/uid-checker.h"
 #include "load/angband-version-comparer.h"
-#include "load/item-loader.h"
+#include "load/item/item-loader-factory.h"
 #include "load/load-util.h"
-#include "load/load-v1-5-0.h"
-#include "load/monster-loader.h"
 #include "load/old-feature-types.h"
+#include "load/monster/monster-loader-factory.h"
+#include "load/old/item-loader-savefile10.h"
+#include "load/old/load-v1-5-0.h"
+#include "load/old/monster-loader-savefile10.h"
 #include "monster-race/monster-race.h"
 #include "monster/monster-info.h"
 #include "monster/monster-list.h"
-#include "object-hook/hook-checker.h"
 #include "save/floor-writer.h"
 #include "system/angband-version.h"
 #include "system/floor-type-definition.h"
@@ -30,7 +31,7 @@
 
 /*!
  * @brief 保存されたフロアを読み込む / Read the saved floor
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param sf_ptr 最後に保存されたフロアへの参照ポインタ
  * @return info読み込みエラーコード
  * @details
@@ -45,103 +46,74 @@
  */
 errr rd_saved_floor(player_type *player_ptr, saved_floor_type *sf_ptr)
 {
-    grid_template_type *templates;
     floor_type *floor_ptr = player_ptr->current_floor_ptr;
     clear_cave(player_ptr);
     player_ptr->x = player_ptr->y = 0;
 
     if (!sf_ptr) {
-        int16_t tmp16s;
-        rd_s16b(&tmp16s);
-        floor_ptr->dun_level = (DEPTH)tmp16s;
+        floor_ptr->dun_level = rd_s16b();
         floor_ptr->base_level = floor_ptr->dun_level;
     } else {
-        int16_t tmp16s;
-        rd_s16b(&tmp16s);
-        if (tmp16s != sf_ptr->floor_id)
+        if (rd_s16b() != sf_ptr->floor_id)
             return 171;
 
-        byte tmp8u;
-        rd_byte(&tmp8u);
-        if (tmp8u != sf_ptr->savefile_id)
+        if (rd_byte() != sf_ptr->savefile_id)
             return 171;
 
-        rd_s16b(&tmp16s);
-        if (tmp16s != sf_ptr->dun_level)
+        if (rd_s16b() != sf_ptr->dun_level)
             return 171;
         floor_ptr->dun_level = sf_ptr->dun_level;
 
-        int32_t tmp32s;
-        rd_s32b(&tmp32s);
-        if (tmp32s != sf_ptr->last_visit)
+        if (rd_s32b() != sf_ptr->last_visit)
             return 171;
 
-        uint32_t tmp32u;
-        rd_u32b(&tmp32u);
-        if (tmp32u != sf_ptr->visit_mark)
+        if (rd_u32b() != sf_ptr->visit_mark)
             return 171;
 
-        rd_s16b(&tmp16s);
-        if (tmp16s != sf_ptr->upper_floor_id)
+        if (rd_s16b() != sf_ptr->upper_floor_id)
             return 171;
 
-        rd_s16b(&tmp16s);
-        if (tmp16s != sf_ptr->lower_floor_id)
+        if (rd_s16b() != sf_ptr->lower_floor_id)
             return 171;
     }
 
-    int16_t tmp16s;
-    rd_s16b(&tmp16s);
-    floor_ptr->base_level = (DEPTH)tmp16s;
-    rd_s16b(&tmp16s);
-    floor_ptr->num_repro = (MONSTER_NUMBER)tmp16s;
+    floor_ptr->base_level = rd_s16b();
+    floor_ptr->num_repro = rd_s16b();
 
-    uint16_t tmp16u;
-    rd_u16b(&tmp16u);
-    player_ptr->y = (POSITION)tmp16u;
+    player_ptr->y = rd_u16b();
 
-    rd_u16b(&tmp16u);
-    player_ptr->x = (POSITION)tmp16u;
+    player_ptr->x = rd_u16b();
 
-    rd_s16b(&tmp16s);
-    floor_ptr->height = (POSITION)tmp16s;
-    rd_s16b(&tmp16s);
-    floor_ptr->width = (POSITION)tmp16s;
+    floor_ptr->height = rd_s16b();
+    floor_ptr->width = rd_s16b();
 
-    rd_byte(&player_ptr->feeling);
+    player_ptr->feeling = rd_byte();
 
-    uint16_t limit;
-    rd_u16b(&limit);
-    C_MAKE(templates, limit, grid_template_type);
+    auto limit = rd_u16b();
+    std::vector<grid_template_type> templates(limit);
 
-    for (int i = 0; i < limit; i++) {
-        grid_template_type *ct_ptr = &templates[i];
-        rd_u16b(&tmp16u);
-        ct_ptr->info = (BIT_FLAGS)tmp16u;
+    for (auto &ct_ref : templates) {
+        ct_ref.info = rd_u16b();
         if (h_older_than(1, 7, 0, 2)) {
-            byte tmp8u;
-            rd_byte(&tmp8u);
-            ct_ptr->feat = (int16_t)tmp8u;
-            rd_byte(&tmp8u);
-            ct_ptr->mimic = (int16_t)tmp8u;
+            ct_ref.feat = rd_byte();
+            ct_ref.mimic = rd_byte();
         } else {
-            rd_s16b(&ct_ptr->feat);
-            rd_s16b(&ct_ptr->mimic);
+            ct_ref.feat = rd_s16b();
+            ct_ref.mimic = rd_s16b();
         }
 
-        rd_s16b(&ct_ptr->special);
+        ct_ref.special = rd_s16b();
     }
 
     POSITION ymax = floor_ptr->height;
     POSITION xmax = floor_ptr->width;
     for (POSITION x = 0, y = 0; y < ymax;) {
-        byte count;
-        rd_byte(&count);
+        auto count = rd_byte();
 
         uint16_t id = 0;
         byte tmp8u;
         do {
-            rd_byte(&tmp8u);
+            tmp8u = rd_byte();
             id += tmp8u;
         } while (tmp8u == MAX_UCHAR);
 
@@ -181,39 +153,37 @@ errr rd_saved_floor(player_type *player_ptr, saved_floor_type *sf_ptr)
         }
     }
 
-    C_KILL(templates, limit, grid_template_type);
-    rd_u16b(&limit);
-    if (limit > current_world_ptr->max_o_idx)
+    limit = rd_u16b();
+    if (limit > w_ptr->max_o_idx)
         return 151;
+
+    auto item_loader = ItemLoaderFactory::create_loader();
     for (int i = 1; i < limit; i++) {
-        OBJECT_IDX o_idx;
-        object_type *o_ptr;
-        o_idx = o_pop(floor_ptr);
-        if (i != o_idx)
+        auto o_idx = o_pop(floor_ptr);
+        if (i != o_idx) {
             return 152;
+        }
 
-        o_ptr = &floor_ptr->o_list[o_idx];
-        rd_item(player_ptr, o_ptr);
-
+        auto &item = floor_ptr->o_list[o_idx];
+        item_loader->rd_item(&item);
         auto &list = get_o_idx_list_contains(floor_ptr, o_idx);
-        list.add(floor_ptr, o_idx, o_ptr->stack_idx);
+        list.add(floor_ptr, o_idx, item.stack_idx);
     }
 
-    rd_u16b(&limit);
-    if (limit > current_world_ptr->max_m_idx)
+    limit = rd_u16b();
+    if (limit > w_ptr->max_m_idx)
         return 161;
 
-    for (int i = 1; i < limit; i++) {
-        grid_type *g_ptr;
-        MONSTER_IDX m_idx;
-        monster_type *m_ptr;
-        m_idx = m_pop(floor_ptr);
-        if (i != m_idx)
+    auto monster_loader = MonsterLoaderFactory::create_loader(player_ptr);
+    for (auto i = 1; i < limit; i++) {
+        auto m_idx = m_pop(floor_ptr);
+        if (i != m_idx) {
             return 162;
+        }
 
-        m_ptr = &floor_ptr->m_list[m_idx];
-        rd_monster(player_ptr, m_ptr);
-        g_ptr = &floor_ptr->grid_array[m_ptr->fy][m_ptr->fx];
+        auto *m_ptr = &floor_ptr->m_list[m_idx];
+        monster_loader->rd_monster(m_ptr);
+        auto *g_ptr = &floor_ptr->grid_array[m_ptr->fy][m_ptr->fx];
         g_ptr->m_idx = m_idx;
         real_r_ptr(m_ptr)->cur_num++;
     }
@@ -223,53 +193,43 @@ errr rd_saved_floor(player_type *player_ptr, saved_floor_type *sf_ptr)
 
 /*!
  * @brief 保存フロア読み込みのサブ関数 / Actually load and verify a floor save data
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param sf_ptr 保存フロア読み込み先
  * @return 成功したらtrue
  */
 static bool load_floor_aux(player_type *player_ptr, saved_floor_type *sf_ptr)
 {
-    uint32_t n_x_check, n_v_check;
-    uint32_t o_x_check, o_v_check;
-
     load_xor_byte = 0;
-    byte tmp8u;
-    rd_byte(&tmp8u);
+    strip_bytes(1);
 
     v_check = 0L;
     x_check = 0L;
 
-    current_world_ptr->h_ver_extra = H_VER_EXTRA;
-    current_world_ptr->h_ver_patch = H_VER_PATCH;
-    current_world_ptr->h_ver_minor = H_VER_MINOR;
-    current_world_ptr->h_ver_major = H_VER_MAJOR;
+    w_ptr->h_ver_extra = H_VER_EXTRA;
+    w_ptr->h_ver_patch = H_VER_PATCH;
+    w_ptr->h_ver_minor = H_VER_MINOR;
+    w_ptr->h_ver_major = H_VER_MAJOR;
     loading_savefile_version = SAVEFILE_VERSION;
 
-    uint32_t tmp32u;
-    rd_u32b(&tmp32u);
-    if (saved_floor_file_sign != tmp32u)
+    if (saved_floor_file_sign != rd_u32b())
         return false;
 
     if (rd_saved_floor(player_ptr, sf_ptr))
         return false;
 
-    n_v_check = v_check;
-    rd_u32b(&o_v_check);
-
-    if (o_v_check != n_v_check)
+    auto n_v_check = v_check;
+    if (rd_u32b() != n_v_check)
         return false;
 
-    n_x_check = x_check;
-    rd_u32b(&o_x_check);
-
-    if (o_x_check != n_x_check)
+    auto n_x_check = x_check;
+    if (rd_u32b() != n_x_check)
         return false;
     return true;
 }
 
 /*!
  * @brief 一時保存フロア情報を読み込む / Attempt to load the temporarily saved-floor data
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param sf_ptr 保存フロア読み込み先
  * @param mode オプション
  * @return 成功したらtrue
@@ -291,7 +251,7 @@ bool load_floor(player_type *player_ptr, saved_floor_type *sf_ptr, BIT_FLAGS mod
     kanji_code = 1;
 #endif
 
-    FILE *old_fff = NULL;
+    FILE *old_fff = nullptr;
     byte old_xor_byte = 0;
     uint32_t old_v_check = 0;
     uint32_t old_x_check = 0;
@@ -305,10 +265,10 @@ bool load_floor(player_type *player_ptr, saved_floor_type *sf_ptr, BIT_FLAGS mod
         old_xor_byte = load_xor_byte;
         old_v_check = v_check;
         old_x_check = x_check;
-        old_h_ver_major = current_world_ptr->h_ver_major;
-        old_h_ver_minor = current_world_ptr->h_ver_minor;
-        old_h_ver_patch = current_world_ptr->h_ver_patch;
-        old_h_ver_extra = current_world_ptr->h_ver_extra;
+        old_h_ver_major = w_ptr->h_ver_major;
+        old_h_ver_minor = w_ptr->h_ver_minor;
+        old_h_ver_patch = w_ptr->h_ver_patch;
+        old_h_ver_extra = w_ptr->h_ver_extra;
         old_loading_savefile_version = loading_savefile_version;
     }
 
@@ -341,10 +301,10 @@ bool load_floor(player_type *player_ptr, saved_floor_type *sf_ptr, BIT_FLAGS mod
         load_xor_byte = old_xor_byte;
         v_check = old_v_check;
         x_check = old_x_check;
-        current_world_ptr->h_ver_major = old_h_ver_major;
-        current_world_ptr->h_ver_minor = old_h_ver_minor;
-        current_world_ptr->h_ver_patch = old_h_ver_patch;
-        current_world_ptr->h_ver_extra = old_h_ver_extra;
+        w_ptr->h_ver_major = old_h_ver_major;
+        w_ptr->h_ver_minor = old_h_ver_minor;
+        w_ptr->h_ver_patch = old_h_ver_patch;
+        w_ptr->h_ver_extra = old_h_ver_extra;
         loading_savefile_version = old_loading_savefile_version;
     }
 

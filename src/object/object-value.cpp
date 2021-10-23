@@ -4,8 +4,6 @@
 #include "object-enchant/object-ego.h"
 #include "object-enchant/special-object-flags.h"
 #include "object-enchant/tr-types.h"
-#include "object-hook/hook-checker.h"
-#include "object-hook/hook-enchant.h"
 #include "object/object-broken.h"
 #include "object/object-flags.h"
 #include "object/object-kind.h"
@@ -23,29 +21,29 @@
  * @param o_ptr 未鑑定価格を確認したいオブジェクトの構造体参照ポインタ
  * @return オブジェクトの未鑑定価格
  */
-static PRICE object_value_base(object_type *o_ptr)
+static PRICE object_value_base(const object_type *o_ptr)
 {
-    if (object_is_aware(o_ptr))
+    if (o_ptr->is_aware())
         return (k_info[o_ptr->k_idx].cost);
 
     switch (o_ptr->tval) {
-    case TV_FOOD:
+    case ItemKindType::FOOD:
         return (5L);
-    case TV_POTION:
+    case ItemKindType::POTION:
         return (20L);
-    case TV_SCROLL:
+    case ItemKindType::SCROLL:
         return (20L);
-    case TV_STAFF:
+    case ItemKindType::STAFF:
         return (70L);
-    case TV_WAND:
+    case ItemKindType::WAND:
         return (50L);
-    case TV_ROD:
+    case ItemKindType::ROD:
         return (90L);
-    case TV_RING:
+    case ItemKindType::RING:
         return (45L);
-    case TV_AMULET:
+    case ItemKindType::AMULET:
         return (45L);
-    case TV_FIGURINE: {
+    case ItemKindType::FIGURINE: {
         DEPTH level = r_info[o_ptr->pval].level;
         if (level < 20)
             return level * 50L;
@@ -58,7 +56,7 @@ static PRICE object_value_base(object_type *o_ptr)
         else
             return 14000 + (level - 50) * 2000L;
     }
-    case TV_CAPTURE:
+    case ItemKindType::CAPTURE:
         if (!o_ptr->pval)
             return 1000L;
         else
@@ -85,21 +83,21 @@ static PRICE object_value_base(object_type *o_ptr)
  * Note that discounted items stay discounted forever, even if\n
  * the discount is "forgotten" by the player via memory loss.\n
  */
-PRICE object_value(player_type *player_ptr, object_type *o_ptr)
+PRICE object_value(const object_type *o_ptr)
 {
     PRICE value;
 
-    if (object_is_known(o_ptr)) {
-        if (object_is_broken(o_ptr))
+    if (o_ptr->is_known()) {
+        if (o_ptr->is_broken())
             return (0L);
-        if (object_is_cursed(o_ptr))
+        if (o_ptr->is_cursed())
             return (0L);
 
-        value = object_value_real(player_ptr, o_ptr);
+        value = object_value_real(o_ptr);
     } else {
-        if ((o_ptr->ident & (IDENT_SENSE)) && object_is_broken(o_ptr))
+        if ((o_ptr->ident & (IDENT_SENSE)) && o_ptr->is_broken())
             return (0L);
-        if ((o_ptr->ident & (IDENT_SENSE)) && object_is_cursed(o_ptr))
+        if ((o_ptr->ident & (IDENT_SENSE)) && o_ptr->is_cursed())
             return (0L);
 
         value = object_value_base(o_ptr);
@@ -137,93 +135,87 @@ PRICE object_value(player_type *player_ptr, object_type *o_ptr)
  *\n
  * Every wearable item with a "pval" bonus is worth extra (see below).\n
  */
-PRICE object_value_real(player_type *player_ptr, object_type *o_ptr)
+PRICE object_value_real(const object_type *o_ptr)
 {
-    TrFlags flgs;
     object_kind *k_ptr = &k_info[o_ptr->k_idx];
 
     if (!k_info[o_ptr->k_idx].cost)
         return (0L);
 
     PRICE value = k_info[o_ptr->k_idx].cost;
-    object_flags(player_ptr, o_ptr, flgs);
-    if (object_is_fixed_artifact(o_ptr)) {
+    auto flgs = object_flags(o_ptr);
+    if (o_ptr->is_fixed_artifact()) {
         artifact_type *a_ptr = &a_info[o_ptr->name1];
         if (!a_ptr->cost)
             return (0L);
 
         value = a_ptr->cost;
-        value += flag_cost(player_ptr, o_ptr, o_ptr->pval);
+        value += flag_cost(o_ptr, o_ptr->pval);
         return (value);
-    } else if (object_is_ego(o_ptr)) {
+    } else if (o_ptr->is_ego()) {
         ego_item_type *e_ptr = &e_info[o_ptr->name2];
         if (!e_ptr->cost)
             return (0L);
 
         value += e_ptr->cost;
-        value += flag_cost(player_ptr, o_ptr, o_ptr->pval);
+        value += flag_cost(o_ptr, o_ptr->pval);
     } else {
-        bool flag = false;
-        for (int i = 0; i < TR_FLAG_SIZE; i++)
-            if (o_ptr->art_flags[i])
-                flag = true;
-
-        if (flag)
-            value += flag_cost(player_ptr, o_ptr, o_ptr->pval);
+        if (o_ptr->art_flags.any())
+            value += flag_cost(o_ptr, o_ptr->pval);
     }
 
     /* Analyze pval bonus for normal object */
     switch (o_ptr->tval) {
-    case TV_SHOT:
-    case TV_ARROW:
-    case TV_BOLT:
-    case TV_BOW:
-    case TV_DIGGING:
-    case TV_HAFTED:
-    case TV_POLEARM:
-    case TV_SWORD:
-    case TV_BOOTS:
-    case TV_GLOVES:
-    case TV_HELM:
-    case TV_CROWN:
-    case TV_SHIELD:
-    case TV_CLOAK:
-    case TV_SOFT_ARMOR:
-    case TV_HARD_ARMOR:
-    case TV_DRAG_ARMOR:
-    case TV_LITE:
-    case TV_AMULET:
-    case TV_RING:
+    case ItemKindType::SHOT:
+    case ItemKindType::ARROW:
+    case ItemKindType::BOLT:
+    case ItemKindType::BOW:
+    case ItemKindType::DIGGING:
+    case ItemKindType::HAFTED:
+    case ItemKindType::POLEARM:
+    case ItemKindType::SWORD:
+    case ItemKindType::BOOTS:
+    case ItemKindType::GLOVES:
+    case ItemKindType::HELM:
+    case ItemKindType::CROWN:
+    case ItemKindType::SHIELD:
+    case ItemKindType::CLOAK:
+    case ItemKindType::SOFT_ARMOR:
+    case ItemKindType::HARD_ARMOR:
+    case ItemKindType::DRAG_ARMOR:
+    case ItemKindType::LITE:
+    case ItemKindType::AMULET:
+    case ItemKindType::RING:
         if (!o_ptr->pval)
             break;
         if (o_ptr->pval < 0)
             return (0L);
 
-        if (has_flag(flgs, TR_STR))
+        if (flgs.has(TR_STR))
             value += (o_ptr->pval * 200L);
-        if (has_flag(flgs, TR_INT))
+        if (flgs.has(TR_INT))
             value += (o_ptr->pval * 200L);
-        if (has_flag(flgs, TR_WIS))
+        if (flgs.has(TR_WIS))
             value += (o_ptr->pval * 200L);
-        if (has_flag(flgs, TR_DEX))
+        if (flgs.has(TR_DEX))
             value += (o_ptr->pval * 200L);
-        if (has_flag(flgs, TR_CON))
+        if (flgs.has(TR_CON))
             value += (o_ptr->pval * 200L);
-        if (has_flag(flgs, TR_CHR))
+        if (flgs.has(TR_CHR))
             value += (o_ptr->pval * 200L);
-        if (has_flag(flgs, TR_MAGIC_MASTERY))
+        if (flgs.has(TR_MAGIC_MASTERY))
             value += (o_ptr->pval * 100);
-        if (has_flag(flgs, TR_STEALTH))
+        if (flgs.has(TR_STEALTH))
             value += (o_ptr->pval * 100L);
-        if (has_flag(flgs, TR_SEARCH))
+        if (flgs.has(TR_SEARCH))
             value += (o_ptr->pval * 100L);
-        if (has_flag(flgs, TR_INFRA))
+        if (flgs.has(TR_INFRA))
             value += (o_ptr->pval * 50L);
-        if (has_flag(flgs, TR_TUNNEL))
+        if (flgs.has(TR_TUNNEL))
             value += (o_ptr->pval * 50L);
-        if (has_flag(flgs, TR_BLOWS))
+        if (flgs.has(TR_BLOWS))
             value += (o_ptr->pval * 5000L);
-        if (has_flag(flgs, TR_SPEED))
+        if (flgs.has(TR_SPEED))
             value += (o_ptr->pval * 10000L);
         break;
 
@@ -232,48 +224,48 @@ PRICE object_value_real(player_type *player_ptr, object_type *o_ptr)
     }
 
     switch (o_ptr->tval) {
-    case TV_WAND: {
+    case ItemKindType::WAND: {
         /* Pay extra for charges, depending on standard number of
          * charges.  Handle new-style wands correctly. -LM-
          */
         value += (value * o_ptr->pval / o_ptr->number / (k_ptr->pval * 2));
         break;
     }
-    case TV_STAFF: {
+    case ItemKindType::STAFF: {
         /* Pay extra for charges, depending on standard number of
          * charges.  -LM-
          */
         value += (value * o_ptr->pval / (k_ptr->pval * 2));
         break;
     }
-    case TV_RING:
-    case TV_AMULET: {
+    case ItemKindType::RING:
+    case ItemKindType::AMULET: {
         if (o_ptr->to_h + o_ptr->to_d + o_ptr->to_a < 0)
             return (0L);
 
         value += ((o_ptr->to_h + o_ptr->to_d + o_ptr->to_a) * 200L);
         break;
     }
-    case TV_BOOTS:
-    case TV_GLOVES:
-    case TV_CLOAK:
-    case TV_CROWN:
-    case TV_HELM:
-    case TV_SHIELD:
-    case TV_SOFT_ARMOR:
-    case TV_HARD_ARMOR:
-    case TV_DRAG_ARMOR: {
+    case ItemKindType::BOOTS:
+    case ItemKindType::GLOVES:
+    case ItemKindType::CLOAK:
+    case ItemKindType::CROWN:
+    case ItemKindType::HELM:
+    case ItemKindType::SHIELD:
+    case ItemKindType::SOFT_ARMOR:
+    case ItemKindType::HARD_ARMOR:
+    case ItemKindType::DRAG_ARMOR: {
         if (o_ptr->to_a < 0)
             return (0L);
 
         value += (((o_ptr->to_h - k_ptr->to_h) + (o_ptr->to_d - k_ptr->to_d)) * 200L + (o_ptr->to_a) * 100L);
         break;
     }
-    case TV_BOW:
-    case TV_DIGGING:
-    case TV_HAFTED:
-    case TV_SWORD:
-    case TV_POLEARM: {
+    case ItemKindType::BOW:
+    case ItemKindType::DIGGING:
+    case ItemKindType::HAFTED:
+    case ItemKindType::SWORD:
+    case ItemKindType::POLEARM: {
         if (o_ptr->to_h + o_ptr->to_d < 0)
             return (0L);
 
@@ -282,9 +274,9 @@ PRICE object_value_real(player_type *player_ptr, object_type *o_ptr)
         value += (o_ptr->ds - k_ptr->ds) * o_ptr->dd * 250L;
         break;
     }
-    case TV_SHOT:
-    case TV_ARROW:
-    case TV_BOLT: {
+    case ItemKindType::SHOT:
+    case ItemKindType::ARROW:
+    case ItemKindType::BOLT: {
         if (o_ptr->to_h + o_ptr->to_d < 0)
             return (0L);
 
@@ -293,7 +285,7 @@ PRICE object_value_real(player_type *player_ptr, object_type *o_ptr)
         value += (o_ptr->ds - k_ptr->ds) * o_ptr->dd * 5L;
         break;
     }
-    case TV_FIGURINE: {
+    case ItemKindType::FIGURINE: {
         DEPTH level = r_info[o_ptr->pval].level;
         if (level < 20)
             value = level * 50L;
@@ -307,14 +299,14 @@ PRICE object_value_real(player_type *player_ptr, object_type *o_ptr)
             value = 14000 + (level - 50) * 2000L;
         break;
     }
-    case TV_CAPTURE: {
+    case ItemKindType::CAPTURE: {
         if (!o_ptr->pval)
             value = 1000L;
         else
             value = ((r_info[o_ptr->pval].level) * 50L + 1000);
         break;
     }
-    case TV_CHEST: {
+    case ItemKindType::CHEST: {
         if (!o_ptr->pval)
             value = 0L;
         break;

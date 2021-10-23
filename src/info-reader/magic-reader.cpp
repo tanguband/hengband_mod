@@ -3,19 +3,19 @@
 #include "info-reader/parse-error-types.h"
 #include "main/angband-headers.h"
 #include "player-ability/player-ability-types.h"
-#include "player/player-class.h"
+#include "player-info/class-info.h"
 #include "util/string-processor.h"
 
 namespace {
 /*!
  * @brief 魔法タイプ名とtvalの対応表
  */
-const std::unordered_map<std::string_view, tval_type> name_to_tval = {
-    { "SORCERY", TV_SORCERY_BOOK },
-    { "LIFE", TV_LIFE_BOOK },
-    { "MUSIC", TV_MUSIC_BOOK },
-    { "HISSATSU", TV_HISSATSU_BOOK },
-    { "NONE", TV_NONE },
+const std::unordered_map<std::string_view, ItemKindType> name_to_tval = {
+    { "SORCERY", ItemKindType::SORCERY_BOOK },
+    { "LIFE", ItemKindType::LIFE_BOOK },
+    { "MUSIC", ItemKindType::MUSIC_BOOK },
+    { "HISSATSU", ItemKindType::HISSATSU_BOOK },
+    { "NONE", ItemKindType::NONE },
 };
 
 /*!
@@ -40,7 +40,7 @@ const std::unordered_map<std::string_view, int> name_to_stat = {
  */
 errr parse_m_info(std::string_view buf, angband_header *head)
 {
-    static player_magic *m_ptr = NULL;
+    static player_magic *m_ptr = nullptr;
     static int realm, magic_idx = 0, readable = 0;
     const auto &tokens = str_split(buf, ':', false, 7);
 

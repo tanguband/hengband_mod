@@ -22,7 +22,7 @@
  *      class-choices
  * </pre>
  */
-const player_race race_info[MAX_RACES] =
+const player_race_info race_info[MAX_RACES] =
 {
 	{
 		N("人間", "Human"), "p",
@@ -147,8 +147,8 @@ const player_race race_info[MAX_RACES] =
         {
 			{ TR_SUST_STR },
 			{ TR_REGEN, 15 },
-			{ TR_SLOW_DIGEST, 15, CLASS_WARRIOR },
-			{ TR_SLOW_DIGEST, 15, CLASS_BERSERKER },
+			{ TR_SLOW_DIGEST, 15, PlayerClassType::WARRIOR },
+			{ TR_SLOW_DIGEST, 15, PlayerClassType::BERSERKER },
 		},
     },
 	{
@@ -490,7 +490,7 @@ const player_race race_info[MAX_RACES] =
 			{ TR_IM_DARK },
 			{ TR_RES_NETHER },
 			{ TR_HOLD_EXP },
-			{ TR_LITE_1, 1, CLASS_NINJA, true },
+			{ TR_LITE_1, 1, PlayerClassType::NINJA, true },
 		},
     },
 	{

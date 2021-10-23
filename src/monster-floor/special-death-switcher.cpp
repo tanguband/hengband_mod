@@ -28,7 +28,6 @@
 #include "monster/monster-info.h"
 #include "object-enchant/apply-magic.h"
 #include "object-enchant/item-apply-magic.h"
-#include "object-hook/hook-checker.h"
 #include "object/object-kind-hook.h"
 #include "spell/spell-types.h"
 #include "spell/summon-types.h"
@@ -46,7 +45,7 @@
 
 /*!
  * @brief 死亡時召喚処理 (今のところ自分自身のみ)
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param md_ptr モンスター撃破構造体への参照ポインタ
  * @param type 召喚タイプ
  * @param probability 召喚確率 (計算式：1 - 1/probability)
@@ -104,7 +103,7 @@ static void on_dead_bloodletter(player_type *player_ptr, monster_death_type *md_
 
     object_type forge;
     object_type *q_ptr = &forge;
-    q_ptr->prep(player_ptr, lookup_kind(TV_SWORD, SV_BLADE_OF_CHAOS));
+    q_ptr->prep(lookup_kind(ItemKindType::SWORD, SV_BLADE_OF_CHAOS));
     apply_magic_to_object(player_ptr, q_ptr, player_ptr->current_floor_ptr->object_level, AM_NO_FIXED_ART | md_ptr->mo_mode);
     (void)drop_near(player_ptr, q_ptr, -1, md_ptr->md_y, md_ptr->md_x);
 }
@@ -123,13 +122,13 @@ static void on_dead_raal(player_type *player_ptr, monster_death_type *md_ptr)
     else
         get_obj_num_hook = kind_is_book;
 
-    make_object(player_ptr, q_ptr, md_ptr->mo_mode);
+    (void)make_object(player_ptr, q_ptr, md_ptr->mo_mode);
     (void)drop_near(player_ptr, q_ptr, -1, md_ptr->md_y, md_ptr->md_x);
 }
 
 /*!
  * @brief 6/7の確率で、20マス以内に暁の戦士自身を召喚する
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param md_ptr モンスター撃破構造体への参照ポインタ
  */
 static void on_dead_dawn(player_type *player_ptr, monster_death_type *md_ptr)
@@ -150,11 +149,11 @@ static void on_dead_unmaker(player_type *player_ptr, monster_death_type *md_ptr)
 
 static void on_dead_sacred_treasures(player_type *player_ptr, monster_death_type *md_ptr)
 {
-    if ((player_ptr->pseikaku != PERSONALITY_LAZY) || !md_ptr->drop_chosen_item)
+    if ((player_ptr->ppersonality != PERSONALITY_LAZY) || !md_ptr->drop_chosen_item)
         return;
 
     ARTIFACT_IDX a_idx = 0;
-    artifact_type *a_ptr = NULL;
+    artifact_type *a_ptr = nullptr;
     do {
         switch (randint0(3)) {
         case 0:
@@ -173,7 +172,7 @@ static void on_dead_sacred_treasures(player_type *player_ptr, monster_death_type
 
     if (create_named_art(player_ptr, a_idx, md_ptr->md_y, md_ptr->md_x)) {
         a_ptr->cur_num = 1;
-        if (current_world_ptr->character_dungeon)
+        if (w_ptr->character_dungeon)
             a_ptr->floor_id = player_ptr->floor_id;
 
         return;
@@ -190,12 +189,12 @@ static void on_dead_serpent(player_type *player_ptr, monster_death_type *md_ptr)
 
     object_type forge;
     object_type *q_ptr = &forge;
-    q_ptr->prep(player_ptr, lookup_kind(TV_HAFTED, SV_GROND));
+    q_ptr->prep(lookup_kind(ItemKindType::HAFTED, SV_GROND));
     q_ptr->name1 = ART_GROND;
     apply_magic_to_object(player_ptr, q_ptr, -1, AM_GOOD | AM_GREAT);
     (void)drop_near(player_ptr, q_ptr, -1, md_ptr->md_y, md_ptr->md_x);
     q_ptr = &forge;
-    q_ptr->prep(player_ptr, lookup_kind(TV_CROWN, SV_CHAOS));
+    q_ptr->prep(lookup_kind(ItemKindType::CROWN, SV_CHAOS));
     q_ptr->name1 = ART_CHAOS;
     apply_magic_to_object(player_ptr, q_ptr, -1, AM_GOOD | AM_GREAT);
     (void)drop_near(player_ptr, q_ptr, -1, md_ptr->md_y, md_ptr->md_x);
@@ -208,7 +207,7 @@ static void on_dead_death_sword(player_type *player_ptr, monster_death_type *md_
 
     object_type forge;
     object_type *q_ptr = &forge;
-    q_ptr->prep(player_ptr, lookup_kind(TV_SWORD, randint1(2)));
+    q_ptr->prep(lookup_kind(ItemKindType::SWORD, randint1(2)));
     (void)drop_near(player_ptr, q_ptr, -1, md_ptr->md_y, md_ptr->md_x);
 }
 
@@ -223,7 +222,7 @@ static void on_dead_can_angel(player_type *player_ptr, monster_death_type *md_pt
 
     object_type forge;
     object_type *q_ptr = &forge;
-    q_ptr->prep(player_ptr, lookup_kind(TV_CHEST, SV_CHEST_KANDUME));
+    q_ptr->prep(lookup_kind(ItemKindType::CHEST, SV_CHEST_KANDUME));
     apply_magic_to_object(player_ptr, q_ptr, player_ptr->current_floor_ptr->object_level, AM_NO_FIXED_ART);
     (void)drop_near(player_ptr, q_ptr, -1, md_ptr->md_y, md_ptr->md_x);
 }
@@ -264,7 +263,7 @@ static void on_dead_aqua_illusion(player_type *player_ptr, monster_death_type *m
 
 /*!
  * @brief 7/8の確率で、5マス以内にトーテムモアイ自身を召喚する
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param md_ptr モンスター撃破構造体への参照ポインタ
  */
 static void on_dead_totem_moai(player_type *player_ptr, monster_death_type *md_ptr)
@@ -333,7 +332,7 @@ static void on_dead_big_raven(player_type *player_ptr, monster_death_type *md_pt
 
 /*
  * @brief 装備品の生成を試みる
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param q_ptr 生成中アイテムへの参照ポインタ
  * @param drop_mode ドロップ品の質
  * @param is_object_hook_null アイテム種別が何でもありならtrue、指定されていればfalse
@@ -350,23 +349,23 @@ static bool make_equipment(player_type *player_ptr, object_type *q_ptr, const BI
 
     auto tval = q_ptr->tval;
     switch (tval) {
-    case TV_BOW:
-    case TV_DIGGING:
-    case TV_HAFTED:
-    case TV_POLEARM:
-    case TV_SWORD:
-    case TV_BOOTS:
-    case TV_GLOVES:
-    case TV_HELM:
-    case TV_CROWN:
-    case TV_SHIELD:
-    case TV_CLOAK:
-    case TV_SOFT_ARMOR:
-    case TV_HARD_ARMOR:
-    case TV_DRAG_ARMOR:
-    case TV_LITE:
-    case TV_AMULET:
-    case TV_RING:
+    case ItemKindType::BOW:
+    case ItemKindType::DIGGING:
+    case ItemKindType::HAFTED:
+    case ItemKindType::POLEARM:
+    case ItemKindType::SWORD:
+    case ItemKindType::BOOTS:
+    case ItemKindType::GLOVES:
+    case ItemKindType::HELM:
+    case ItemKindType::CROWN:
+    case ItemKindType::SHIELD:
+    case ItemKindType::CLOAK:
+    case ItemKindType::SOFT_ARMOR:
+    case ItemKindType::HARD_ARMOR:
+    case ItemKindType::DRAG_ARMOR:
+    case ItemKindType::LITE:
+    case ItemKindType::AMULET:
+    case ItemKindType::RING:
         return true;
     default:
         return false;
@@ -375,9 +374,9 @@ static bool make_equipment(player_type *player_ptr, object_type *q_ptr, const BI
 
 /*
  * @brief 死亡時ドロップとしてランダムアーティファクトのみを生成する
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param md_ptr モンスター撃破構造体への参照ポインタ
- * @param object_hook_pf アイテム種別指定、特になければNULLで良い
+ * @param object_hook_pf アイテム種別指定、特になければnullptrで良い
  * @return なし
  * @details
  * 最初のアイテム生成でいきなり☆が生成された場合を除き、中途半端な☆ (例：呪われている)は生成しない.
@@ -387,7 +386,7 @@ static void on_dead_random_artifact(player_type *player_ptr, monster_death_type 
 {
     object_type forge;
     object_type *q_ptr = &forge;
-    auto is_object_hook_null = object_hook_pf == NULL;
+    auto is_object_hook_null = object_hook_pf == nullptr;
     auto drop_mode = md_ptr->mo_mode | AM_NO_FIXED_ART;
     while (true) {
         // make_object() の中でアイテム種別をキャンセルしている
@@ -406,7 +405,7 @@ static void on_dead_random_artifact(player_type *player_ptr, monster_death_type 
         }
 
         (void)become_random_artifact(player_ptr, q_ptr, false);
-        auto is_good_random_art = !object_is_cursed(q_ptr);
+        auto is_good_random_art = !q_ptr->is_cursed();
         is_good_random_art &= q_ptr->to_h > 0;
         is_good_random_art &= q_ptr->to_d > 0;
         is_good_random_art &= q_ptr->to_a > 0;
@@ -461,7 +460,7 @@ static void on_dead_chest_mimic(player_type *player_ptr, monster_death_type *md_
         break;
     case MON_CHEST_MIMIC_11:
         mimic_inside = MON_CHEST_MIMIC_04;
-        num_summons = next_bool() ? 3 : 2;
+        num_summons = one_in_(2) ? 3 : 2;
         break;
     default:
         mimic_inside = (monster_race_type)-1;

@@ -6,7 +6,7 @@
 #include "load/dummy-loader.h"
 #include "load/floor-loader.h"
 #include "load/load-util.h"
-#include "load/load-v1-5-0.h"
+#include "load/old/load-v1-5-0.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
 #include "save/floor-writer.h"
@@ -17,7 +17,7 @@
 
 /*!
  * @brief 保存されたフロアを読み込む / Read the dungeon
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @return エラーコード
  * @details
  * The monsters/objects must be loaded in the same order
@@ -37,38 +37,31 @@ static errr rd_dungeon(player_type *player_ptr)
         return err;
     }
 
-    rd_s16b(&max_floor_id);
-    byte tmp8u;
-    rd_byte(&tmp8u);
-    player_ptr->dungeon_idx = (DUNGEON_IDX)tmp8u; // @todo セーブデータの方を16ビットにするかdungeon_idxの定義を8ビットにした方が良い.
-    byte num;
-    rd_byte(&num);
+    max_floor_id = rd_s16b();
+    player_ptr->dungeon_idx = rd_byte(); // @todo セーブデータの方を16ビットにするかdungeon_idxの定義を8ビットにした方が良い.
+    auto num = rd_byte();
     if (num == 0) {
-        err = rd_saved_floor(player_ptr, NULL);
+        err = rd_saved_floor(player_ptr, nullptr);
     } else {
         for (int i = 0; i < num; i++) {
             saved_floor_type *sf_ptr = &saved_floors[i];
 
-            rd_s16b(&sf_ptr->floor_id);
-            rd_byte(&tmp8u);
-            sf_ptr->savefile_id = (int16_t)tmp8u;
+            sf_ptr->floor_id = rd_s16b();
+            sf_ptr->savefile_id = rd_byte();
 
-            int16_t tmp16s;
-            rd_s16b(&tmp16s);
-            sf_ptr->dun_level = (DEPTH)tmp16s;
+            sf_ptr->dun_level = rd_s16b();
 
-            rd_s32b(&sf_ptr->last_visit);
-            rd_u32b(&sf_ptr->visit_mark);
-            rd_s16b(&sf_ptr->upper_floor_id);
-            rd_s16b(&sf_ptr->lower_floor_id);
+            sf_ptr->last_visit = rd_s32b();
+            sf_ptr->visit_mark = rd_u32b();
+            sf_ptr->upper_floor_id = rd_s16b();
+            sf_ptr->lower_floor_id = rd_s16b();
         }
 
         for (int i = 0; i < num; i++) {
             saved_floor_type *sf_ptr = &saved_floors[i];
             if (!sf_ptr->floor_id)
                 continue;
-            rd_byte(&tmp8u);
-            if (tmp8u)
+            if (rd_byte() != 0)
                 continue;
 
             err = rd_saved_floor(player_ptr, sf_ptr);
@@ -126,13 +119,13 @@ static errr rd_dungeon(player_type *player_ptr)
         break;
     }
 
-    current_world_ptr->character_dungeon = true;
+    w_ptr->character_dungeon = true;
     return err;
 }
 
-errr restore_dungeon(player_type *creature_ptr)
+errr restore_dungeon(player_type *player_ptr)
 {
-    if (creature_ptr->is_dead) {
+    if (player_ptr->is_dead) {
         for (int i = MIN_RANDOM_QUEST; i < MAX_RANDOM_QUEST + 1; i++)
             r_info[quest[i].r_idx].flags1 &= ~RF1_QUESTOR;
 
@@ -140,14 +133,13 @@ errr restore_dungeon(player_type *creature_ptr)
     }
 
     load_note(_("ダンジョン復元中...", "Restoring Dungeon..."));
-    if (rd_dungeon(creature_ptr)) {
+    if (rd_dungeon(player_ptr)) {
         load_note(_("ダンジョンデータ読み込み失敗", "Error reading dungeon data"));
         return 34;
     }
 
     rd_ghost();
-    int32_t tmp32s;
-    rd_s32b(&tmp32s);
+    auto tmp32s = rd_s32b();
     strip_bytes(tmp32s);
     return 0;
 }

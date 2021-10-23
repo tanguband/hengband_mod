@@ -1,8 +1,6 @@
 ﻿#include "util/angband-files.h"
-#include "util/string-processor.h"
-#ifdef JP
 #include "locale/japanese.h"
-#endif
+#include "util/string-processor.h"
 
 #ifdef SET_UID
 
@@ -19,7 +17,7 @@ int usleep(ulong usecs)
 
     int nfds = 0;
 
-    fd_set *no_fds = NULL;
+    fd_set *no_fds = nullptr;
     if (usecs > 4000000L)
         core(_("不当な usleep() 呼び出し", "Illegal usleep() call"));
 
@@ -141,7 +139,7 @@ errr path_parse(char *buf, int max, concptr file)
  */
 static errr path_temp(char *buf, int max)
 {
-    concptr s = tmpnam(NULL);
+    concptr s = tmpnam(nullptr);
     if (!s)
         return -1;
 
@@ -195,7 +193,7 @@ FILE *angband_fopen(concptr file, concptr mode)
 {
     char buf[1024];
     if (path_parse(buf, 1024, file))
-        return (NULL);
+        return nullptr;
 
     return (fopen(buf, mode));
 }
@@ -218,7 +216,7 @@ FILE *angband_fopen_temp(char *buf, int max)
     strncpy(buf, "/tmp/anXXXXXX", max);
     int fd = mkstemp(buf);
     if (fd < 0)
-        return (NULL);
+        return nullptr;
 
     return (fdopen(fd, "w"));
 }
@@ -226,7 +224,7 @@ FILE *angband_fopen_temp(char *buf, int max)
 FILE *angband_fopen_temp(char *buf, int max)
 {
     if (path_temp(buf, max))
-        return (NULL);
+        return nullptr;
     return (angband_fopen(buf, "w"));
 }
 #endif /* HAVE_MKSTEMP */
@@ -248,11 +246,12 @@ errr angband_fgets(FILE *fff, char *buf, ulong n)
     // Reserve for null termination
     --n;
 
-    if (fgets(file_read__tmp, FILE_READ_BUFF_SIZE, fff)) {
+    std::vector<char> file_read__tmp(FILE_READ_BUFF_SIZE);
+    if (fgets(file_read__tmp.data(), file_read__tmp.size(), fff)) {
 #ifdef JP
-        guess_convert_to_system_encoding(file_read__tmp, FILE_READ_BUFF_SIZE);
+        guess_convert_to_system_encoding(file_read__tmp.data(), FILE_READ_BUFF_SIZE);
 #endif
-        for (s = file_read__tmp; *s; s++) {
+        for (s = file_read__tmp.data(); *s; s++) {
 #ifdef MACH_O_COCOA
             /*
              * Be nice to the Macintosh, where a file can have Mac or Unix

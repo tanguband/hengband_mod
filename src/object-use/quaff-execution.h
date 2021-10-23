@@ -2,5 +2,18 @@
 
 #include "system/angband.h"
 
-typedef struct player_type player_type;
-void exe_quaff_potion(player_type *creature_ptr, INVENTORY_IDX item);
+struct player_type;
+class ObjectQuaffEntity {
+public:
+    ObjectQuaffEntity(player_type *player_ptr);
+    virtual ~ObjectQuaffEntity() = default;
+
+    void execute(INVENTORY_IDX item);
+
+private:
+    player_type *player_ptr;
+
+    bool check_can_quaff();
+    bool booze();
+    bool detonation();
+};

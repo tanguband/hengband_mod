@@ -1,4 +1,4 @@
 ﻿#pragma once
 
-typedef struct player_type player_type;
-void do_cmd_refill(player_type *user_ptr);
+struct player_type;
+void do_cmd_refill(player_type *player_ptr);

@@ -5,6 +5,7 @@
 #include "inventory/inventory-slot-types.h"
 #include "inventory/inventory-util.h"
 #include "io/input-key-requester.h"
+#include "locale/japanese.h"
 #include "object/item-tester-hooker.h"
 #include "object/item-use-flags.h"
 #include "object/object-info.h"
@@ -23,7 +24,7 @@
  * @details
  * Hack -- do not display "trailing" empty slots
  */
-COMMAND_CODE show_inventory(player_type *owner_ptr, int target_item, BIT_FLAGS mode, tval_type tval)
+COMMAND_CODE show_inventory(player_type *player_ptr, int target_item, BIT_FLAGS mode, const ItemTester &item_tester)
 {
     COMMAND_CODE i;
     int k, l, z = 0;
@@ -41,22 +42,22 @@ COMMAND_CODE show_inventory(player_type *owner_ptr, int target_item, BIT_FLAGS m
     term_get_size(&wid, &hgt);
     int len = wid - col - 1;
     for (i = 0; i < INVEN_PACK; i++) {
-        o_ptr = &owner_ptr->inventory_list[i];
+        o_ptr = &player_ptr->inventory_list[i];
         if (!o_ptr->k_idx)
             continue;
 
         z = i + 1;
     }
 
-    prepare_label_string(owner_ptr, inven_label, USE_INVEN, tval);
+    prepare_label_string(player_ptr, inven_label, USE_INVEN, item_tester);
     for (k = 0, i = 0; i < z; i++) {
-        o_ptr = &owner_ptr->inventory_list[i];
-        if (!item_tester_okay(owner_ptr, o_ptr, tval) && !(mode & USE_FULL))
+        o_ptr = &player_ptr->inventory_list[i];
+        if (!item_tester.okay(o_ptr) && !(mode & USE_FULL))
             continue;
 
-        describe_flavor(owner_ptr, o_name, o_ptr, 0);
+        describe_flavor(player_ptr, o_name, o_ptr, 0);
         out_index[k] = i;
-        out_color[k] = tval_to_attr[o_ptr->tval % 128];
+        out_color[k] = tval_to_attr[enum2i(o_ptr->tval) % 128];
         if (o_ptr->timeout)
             out_color[k] = TERM_L_DARK;
 
@@ -82,7 +83,7 @@ COMMAND_CODE show_inventory(player_type *owner_ptr, int target_item, BIT_FLAGS m
     int j;
     for (j = 0; j < k; j++) {
         i = out_index[j];
-        o_ptr = &owner_ptr->inventory_list[i];
+        o_ptr = &player_ptr->inventory_list[i];
         prt("", j + 1, col ? col - 2 : col);
         if (use_menu && target_item) {
             if (j == (target_item - 1)) {
@@ -110,7 +111,7 @@ COMMAND_CODE show_inventory(player_type *owner_ptr, int target_item, BIT_FLAGS m
         c_put_str(out_color[j], out_desc[j], j + 1, cur_col);
         if (show_weights) {
             int wgt = o_ptr->weight * o_ptr->number;
-            (void)sprintf(tmp_val, _("%3d.%1d kg", "%3d.%1d lb"), _(lbtokg1(wgt), wgt / 10), _(lbtokg2(wgt), wgt % 10));
+            (void)sprintf(tmp_val, _("%3d.%1d kg", "%3d.%1d lb"), _(lb_to_kg_integer(wgt), wgt / 10), _(lb_to_kg_fraction(wgt), wgt % 10));
             prt(tmp_val, j + 1, wid - 9);
         }
     }
@@ -126,7 +127,7 @@ COMMAND_CODE show_inventory(player_type *owner_ptr, int target_item, BIT_FLAGS m
  * @brief 所持アイテム一覧を表示する /
  * Choice window "shadow" of the "show_inven()" function
  */
-void display_inventory(player_type *owner_ptr, tval_type tval)
+void display_inventory(player_type *player_ptr, const ItemTester &item_tester)
 {
     int i, n, z = 0;
     TERM_COLOR attr = TERM_WHITE;
@@ -134,13 +135,13 @@ void display_inventory(player_type *owner_ptr, tval_type tval)
     GAME_TEXT o_name[MAX_NLEN];
     TERM_LEN wid, hgt;
 
-    if (!owner_ptr || !owner_ptr->inventory_list)
+    if (!player_ptr || !player_ptr->inventory_list)
         return;
 
     term_get_size(&wid, &hgt);
 
     for (i = 0; i < INVEN_PACK; i++) {
-        auto o_ptr = &owner_ptr->inventory_list[i];
+        auto o_ptr = &player_ptr->inventory_list[i];
         if (!o_ptr->k_idx)
             continue;
         z = i + 1;
@@ -150,8 +151,8 @@ void display_inventory(player_type *owner_ptr, tval_type tval)
         if (i >= hgt)
             break;
 
-        auto o_ptr = &owner_ptr->inventory_list[i];
-        auto do_disp = item_tester_okay(owner_ptr, o_ptr, tval);
+        auto o_ptr = &player_ptr->inventory_list[i];
+        auto do_disp = item_tester.okay(o_ptr);
         strcpy(tmp_val, "   ");
         if (do_disp) {
             tmp_val[0] = index_to_label(i);
@@ -161,9 +162,9 @@ void display_inventory(player_type *owner_ptr, tval_type tval)
         int cur_col = 3;
         term_erase(cur_col, i, 255);
         term_putstr(0, i, cur_col, TERM_WHITE, tmp_val);
-        describe_flavor(owner_ptr, o_name, o_ptr, 0);
+        describe_flavor(player_ptr, o_name, o_ptr, 0);
         n = strlen(o_name);
-        attr = tval_to_attr[o_ptr->tval % 128];
+        attr = tval_to_attr[enum2i(o_ptr->tval) % 128];
         if (o_ptr->timeout) {
             attr = TERM_L_DARK;
         }
@@ -182,7 +183,7 @@ void display_inventory(player_type *owner_ptr, tval_type tval)
 
         if (show_weights) {
             int wgt = o_ptr->weight * o_ptr->number;
-            sprintf(tmp_val, _("%3d.%1d kg", "%3d.%1d lb"), _(lbtokg1(wgt), wgt / 10), _(lbtokg2(wgt), wgt % 10));
+            sprintf(tmp_val, _("%3d.%1d kg", "%3d.%1d lb"), _(lb_to_kg_integer(wgt), wgt / 10), _(lb_to_kg_fraction(wgt), wgt % 10));
             prt(tmp_val, i, wid - 9);
         }
     }

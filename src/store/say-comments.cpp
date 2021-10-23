@@ -13,11 +13,11 @@
  * @brief 取引成功時の店主のメッセージ処理 /
  * ブラックマーケットのときは別のメッセージを出す
  * Successful haggle.
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  */
 void store_owner_says_comment(player_type *player_ptr)
 {
-    if (cur_store_num == STORE_BLACK)
+    if (cur_store_num == StoreSaleType::BLACK)
         msg_print(comment_1_B[randint0(MAX_COMMENT_1)]);
     else
         msg_print(comment_1[randint0(MAX_COMMENT_1)]);

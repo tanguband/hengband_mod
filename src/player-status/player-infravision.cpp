@@ -1,9 +1,16 @@
 ﻿#include "player-status/player-infravision.h"
 #include "mutation/mutation-flag-types.h"
-#include "player/mimic-info-table.h"
-#include "player/player-race-types.h"
+#include "player-info/mimic-info-table.h"
+#include "player-info/race-types.h"
 #include "player/race-info-table.h"
 #include "system/player-type-definition.h"
+#include "util/enum-converter.h"
+
+PlayerInfravision::PlayerInfravision(player_type *player_ptr)
+    : PlayerStatusBase(player_ptr)
+{
+}
+
 /*
  * @brief 赤外線視力 - 初期値、下限、上限
  */
@@ -24,12 +31,12 @@ void PlayerInfravision::set_locals()
  */
 int16_t PlayerInfravision::race_value()
 {
-    const player_race *tmp_rp_ptr;
+    const player_race_info *tmp_rp_ptr;
 
-    if (this->owner_ptr->mimic_form)
-        tmp_rp_ptr = &mimic_info[this->owner_ptr->mimic_form];
+    if (this->player_ptr->mimic_form)
+        tmp_rp_ptr = &mimic_info[this->player_ptr->mimic_form];
     else
-        tmp_rp_ptr = &race_info[static_cast<int>(this->owner_ptr->prace)];
+        tmp_rp_ptr = &race_info[enum2i(this->player_ptr->prace)];
 
     return tmp_rp_ptr->infra;
 }
@@ -43,7 +50,7 @@ int16_t PlayerInfravision::race_value()
 int16_t PlayerInfravision::mutation_value()
 {
     int16_t result = 0;
-    if (this->owner_ptr->muta.has(MUTA::INFRAVIS)) {
+    if (this->player_ptr->muta.has(MUTA::INFRAVIS)) {
         result += 3;
     }
 
@@ -59,7 +66,7 @@ int16_t PlayerInfravision::mutation_value()
 int16_t PlayerInfravision::time_effect_value()
 {
     int16_t result = 0;
-    if (this->owner_ptr->tim_infra) {
+    if (this->player_ptr->tim_infra) {
         result += 3;
     }
 

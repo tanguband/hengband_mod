@@ -1,58 +1,70 @@
 ﻿#include "wizard/spoiler-table.h"
 
 /* The basic items categorized by type */
-grouper group_item[MAX_GROUPER_ITEM] = { { TV_SHOT, _("射撃物", "Ammo") }, { TV_ARROW, NULL }, { TV_BOLT, NULL }, { TV_BOW, _("弓", "Bows") },
-    { TV_DIGGING, _("武器", "Weapons") }, { TV_POLEARM, NULL }, { TV_HAFTED, NULL }, { TV_SWORD, NULL }, { TV_SOFT_ARMOR, _("防具 (体)", "Armour (Body)") },
-    { TV_HARD_ARMOR, NULL }, { TV_DRAG_ARMOR, NULL }, { TV_BOOTS, _("防具 (その他)", "Armour (Misc)") }, { TV_GLOVES, NULL }, { TV_HELM, NULL },
-    { TV_CROWN, NULL }, { TV_SHIELD, NULL }, { TV_CLOAK, NULL },
+const std::vector<grouper> group_item_list = {
+    { { ItemKindType::SHOT, ItemKindType::ARROW, ItemKindType::BOLT }, _("射撃物", "Ammo") },
+    { { ItemKindType::BOW }, _("弓", "Bows") },
+    { { ItemKindType::DIGGING, ItemKindType::POLEARM, ItemKindType::HAFTED, ItemKindType::SWORD }, _("武器", "Weapons") },
+    { { ItemKindType::SOFT_ARMOR, ItemKindType::HARD_ARMOR, ItemKindType::DRAG_ARMOR }, _("防具 (体)", "Armour (Body)") },
+    { { ItemKindType::BOOTS, ItemKindType::GLOVES, ItemKindType::HELM, ItemKindType::CROWN, ItemKindType::SHIELD, ItemKindType::CLOAK }, _("防具 (その他)", "Armour (Misc)") },
 
-    { TV_LITE, _("光源", "Light Sources") }, { TV_AMULET, _("アミュレット", "Amulets") }, { TV_RING, _("指輪", "Rings") }, { TV_STAFF, _("杖", "Staffs") },
-    { TV_WAND, _("魔法棒", "Wands") }, { TV_ROD, _("ロッド", "Rods") }, { TV_SCROLL, _("巻物", "Scrolls") }, { TV_POTION, _("薬", "Potions") },
-    { TV_FOOD, _("食料", "Food") },
+    { { ItemKindType::LITE }, _("光源", "Light Sources") },
+    { { ItemKindType::AMULET }, _("アミュレット", "Amulets") },
+    { { ItemKindType::RING }, _("指輪", "Rings") },
+    { { ItemKindType::STAFF }, _("杖", "Staffs") },
+    { { ItemKindType::WAND }, _("魔法棒", "Wands") },
+    { { ItemKindType::ROD }, _("ロッド", "Rods") },
+    { { ItemKindType::SCROLL }, _("巻物", "Scrolls") },
+    { { ItemKindType::POTION }, _("薬", "Potions") },
+    { { ItemKindType::FOOD }, _("食料", "Food") },
 
-    { TV_LIFE_BOOK, _("魔法書 (生命)", "Books (Life)") }, { TV_SORCERY_BOOK, _("魔法書 (仙術)", "Books (Sorcery)") },
-    { TV_NATURE_BOOK, _("魔法書 (自然)", "Books (Nature)") }, { TV_CHAOS_BOOK, _("魔法書 (カオス)", "Books (Chaos)") },
-    { TV_DEATH_BOOK, _("魔法書 (暗黒)", "Books (Death)") }, { TV_TRUMP_BOOK, _("魔法書 (トランプ)", "Books (Trump)") },
-    { TV_ARCANE_BOOK, _("魔法書 (秘術)", "Books (Arcane)") }, { TV_CRAFT_BOOK, _("魔法書 (匠)", "Books (Craft)") },
-    { TV_DEMON_BOOK, _("魔法書 (悪魔)", "Books (Daemon)") }, { TV_CRUSADE_BOOK, _("魔法書 (破邪)", "Books (Crusade)") },
-    { TV_MUSIC_BOOK, _("歌集", "Song Books") }, { TV_HISSATSU_BOOK, _("武芸の書", "Books (Kendo)") }, { TV_HEX_BOOK, _("魔法書 (呪術)", "Books (Hex)") },
+    { { ItemKindType::LIFE_BOOK }, _("魔法書 (生命)", "Books (Life)") },
+    { { ItemKindType::SORCERY_BOOK }, _("魔法書 (仙術)", "Books (Sorcery)") },
+    { { ItemKindType::NATURE_BOOK }, _("魔法書 (自然)", "Books (Nature)") },
+    { { ItemKindType::CHAOS_BOOK }, _("魔法書 (カオス)", "Books (Chaos)") },
+    { { ItemKindType::DEATH_BOOK }, _("魔法書 (暗黒)", "Books (Death)") },
+    { { ItemKindType::TRUMP_BOOK }, _("魔法書 (トランプ)", "Books (Trump)") },
+    { { ItemKindType::ARCANE_BOOK }, _("魔法書 (秘術)", "Books (Arcane)") },
+    { { ItemKindType::CRAFT_BOOK }, _("魔法書 (匠)", "Books (Craft)") },
+    { { ItemKindType::DEMON_BOOK }, _("魔法書 (悪魔)", "Books (Daemon)") },
+    { { ItemKindType::CRUSADE_BOOK }, _("魔法書 (破邪)", "Books (Crusade)") },
+    { { ItemKindType::MUSIC_BOOK }, _("歌集", "Song Books") },
+    { { ItemKindType::HISSATSU_BOOK }, _("武芸の書", "Books (Kendo)") },
+    { { ItemKindType::HEX_BOOK }, _("魔法書 (呪術)", "Books (Hex)") },
 
-    { TV_WHISTLE, _("笛", "Whistle") }, { TV_CAPTURE, _("キャプチャー・ボール", "Capture Ball") }, { TV_CARD, _("エクスプレスカード", "Express Card") },
+    { { ItemKindType::WHISTLE }, _("笛", "Whistle") },
+    { { ItemKindType::CAPTURE }, _("キャプチャー・ボール", "Capture Ball") },
+    { { ItemKindType::CARD }, _("エクスプレスカード", "Express Card") },
 
-    { TV_CHEST, _("箱", "Chests") },
+    { { ItemKindType::CHEST }, _("箱", "Chests") },
 
-    { TV_FIGURINE, _("人形", "Magical Figurines") }, { TV_STATUE, _("像", "Statues") }, { TV_CORPSE, _("死体", "Corpses") },
+    { { ItemKindType::FIGURINE }, _("人形", "Magical Figurines") },
+    { { ItemKindType::STATUE }, _("像", "Statues") },
+    { { ItemKindType::CORPSE }, _("死体", "Corpses") },
 
-    { TV_SKELETON, _("その他", "Misc") }, { TV_BOTTLE, NULL }, { TV_JUNK, NULL }, { TV_SPIKE, NULL }, { TV_FLASK, NULL }, { TV_PARCHMENT, NULL },
-
-    { TV_NONE, "" } };
+    { { ItemKindType::SKELETON, ItemKindType::BOTTLE, ItemKindType::JUNK, ItemKindType::SPIKE, ItemKindType::FLASK, ItemKindType::PARCHMENT }, _("その他", "Misc") },
+};
 
 /* The artifacts categorized by type */
-grouper group_artifact[MAX_GROUPER_ARTIFACT] = {
-    { TV_SWORD, _("刀剣", "Edged Weapons") },
-    { TV_POLEARM, _("槍/斧", "Polearms") },
-    { TV_HAFTED, _("鈍器", "Hafted Weapons") },
-    { TV_DIGGING, _("シャベル/つるはし", "Shovels/Picks") },
-    { TV_BOW, _("飛び道具", "Bows") },
-    { TV_ARROW, _("矢", "Ammo") },
-    { TV_BOLT, NULL },
+const std::vector<grouper> group_artifact_list = {
+    { { ItemKindType::SWORD }, _("刀剣", "Edged Weapons") },
+    { { ItemKindType::POLEARM }, _("槍/斧", "Polearms") },
+    { { ItemKindType::HAFTED }, _("鈍器", "Hafted Weapons") },
+    { { ItemKindType::DIGGING }, _("シャベル/つるはし", "Shovels/Picks") },
+    { { ItemKindType::BOW }, _("飛び道具", "Bows") },
+    { { ItemKindType::ARROW, ItemKindType::BOLT }, _("矢", "Ammo") },
 
-    { TV_SOFT_ARMOR, _("鎧", "Body Armor") },
-    { TV_HARD_ARMOR, NULL },
-    { TV_DRAG_ARMOR, NULL },
+    { { ItemKindType::SOFT_ARMOR, ItemKindType::HARD_ARMOR, ItemKindType::DRAG_ARMOR }, _("鎧", "Body Armor") },
 
-    { TV_CLOAK, _("クローク", "Cloaks") },
-    { TV_SHIELD, _("盾", "Shields") },
-    { TV_CARD, NULL },
-    { TV_HELM, _("兜/冠", "Helms/Crowns") },
-    { TV_CROWN, NULL },
-    { TV_GLOVES, _("籠手", "Gloves") },
-    { TV_BOOTS, _("靴", "Boots") },
+    { { ItemKindType::CLOAK }, _("クローク", "Cloaks") },
+    { { ItemKindType::SHIELD, ItemKindType::CARD }, _("盾", "Shields") },
+    { { ItemKindType::HELM, ItemKindType::CROWN }, _("兜/冠", "Helms/Crowns") },
+    { { ItemKindType::GLOVES }, _("籠手", "Gloves") },
+    { { ItemKindType::BOOTS }, _("靴", "Boots") },
 
-    { TV_LITE, _("光源", "Light Sources") },
-    { TV_AMULET, _("アミュレット", "Amulets") },
-    { TV_RING, _("指輪", "Rings") },
-    { TV_NONE, NULL },
+    { { ItemKindType::LITE }, _("光源", "Light Sources") },
+    { { ItemKindType::AMULET }, _("アミュレット", "Amulets") },
+    { { ItemKindType::RING }, _("指輪", "Rings") },
 };
 
 flag_desc stat_flags_desc[MAX_STAT_FLAGS_DESCRIPTION] = { { TR_STR, _("腕力", "STR") }, { TR_INT, _("知能", "INT") }, { TR_WIS, _("賢さ", "WIS") },

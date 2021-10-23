@@ -95,8 +95,10 @@ static char inkey_from_menu(player_type *player_ptr)
                     break;
                 case MENU_WILD:
                     if (!floor_ptr->dun_level && !floor_ptr->inside_arena && !floor_ptr->inside_quest) {
-                        if ((byte)player_ptr->wild_mode == special_menu_info[hoge].jouken_naiyou)
+                        auto can_do_in_wilderness = enum2i(special_menu_info[hoge].jouken_naiyou) > 0;
+                        if (player_ptr->wild_mode == can_do_in_wilderness) {
                             menu_name = special_menu_info[hoge].name;
+                        }
                     }
                     break;
                 default:
@@ -322,7 +324,7 @@ void request_command(player_type *player_ptr, int shopping)
 #ifdef JP
     for (int i = 0; i < 256; i++) {
         concptr s;
-        if ((s = keymap_act[mode][i]) != NULL) {
+        if ((s = keymap_act[mode][i]) != nullptr) {
             if (*s == command_cmd && *(s + 1) == 0) {
                 caretcmd = i;
                 break;

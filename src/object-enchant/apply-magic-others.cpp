@@ -32,27 +32,27 @@
 /*!
  * @brief その他雑多のオブジェクトに生成ランクごとの強化を与えるサブルーチン
  * Apply magic to an item known to be "boring"
- * @param owner_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param o_ptr 強化を与えたいオブジェクトの構造体参照ポインタ
  * @param power 生成ランク
  * @details
  * Hack -- note the special code for various items
  */
-void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
+void apply_magic_others(player_type *player_ptr, object_type *o_ptr, int power)
 {
     object_kind *k_ptr = &k_info[o_ptr->k_idx];
 
-    floor_type *floor_ptr = owner_ptr->current_floor_ptr;
+    floor_type *floor_ptr = player_ptr->current_floor_ptr;
     switch (o_ptr->tval) {
-    case TV_WHISTLE: {
+    case ItemKindType::WHISTLE: {
         break;
     }
-    case TV_FLASK: {
+    case ItemKindType::FLASK: {
         o_ptr->xtra4 = o_ptr->pval;
         o_ptr->pval = 0;
         break;
     }
-    case TV_LITE: {
+    case ItemKindType::LITE: {
         if (o_ptr->sval == SV_LITE_TORCH) {
             if (o_ptr->pval > 0)
                 o_ptr->xtra4 = randint1(o_ptr->pval);
@@ -67,7 +67,7 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
 
         /* power > 2はデバッグ専用. */
         if (power > 2) {
-            become_random_artifact(owner_ptr, o_ptr, false);
+            become_random_artifact(player_ptr, o_ptr, false);
         } else if ((power == 2) || ((power == 1) && one_in_(3))) {
             while (!o_ptr->name2) {
                 while (true) {
@@ -92,11 +92,11 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
                 o_ptr->xtra4 = 0;
 
                 if (o_ptr->sval == SV_LITE_TORCH) {
-                    add_flag(o_ptr->art_flags, TR_LITE_M1);
+                    o_ptr->art_flags.set(TR_LITE_M1);
                 } else if (o_ptr->sval == SV_LITE_LANTERN) {
-                    add_flag(o_ptr->art_flags, TR_LITE_M2);
+                    o_ptr->art_flags.set(TR_LITE_M2);
                 } else if (o_ptr->sval == SV_LITE_FEANOR) {
-                    add_flag(o_ptr->art_flags, TR_LITE_M3);
+                    o_ptr->art_flags.set(TR_LITE_M3);
                 }
                 break;
             }
@@ -104,32 +104,32 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
 
         break;
     }
-    case TV_WAND:
-    case TV_STAFF: {
+    case ItemKindType::WAND:
+    case ItemKindType::STAFF: {
         /* The wand or staff gets a number of initial charges equal
          * to between 1/2 (+1) and the full object kind's pval. -LM-
          */
         o_ptr->pval = k_ptr->pval / 2 + randint1((k_ptr->pval + 1) / 2);
         break;
     }
-    case TV_ROD: {
+    case ItemKindType::ROD: {
         o_ptr->pval = k_ptr->pval;
         break;
     }
-    case TV_CAPTURE: {
+    case ItemKindType::CAPTURE: {
         o_ptr->pval = 0;
-        object_aware(owner_ptr, o_ptr);
+        object_aware(player_ptr, o_ptr);
         object_known(o_ptr);
         break;
     }
-    case TV_FIGURINE: {
+    case ItemKindType::FIGURINE: {
         PARAMETER_VALUE i = 1;
         int check;
         monster_race *r_ptr;
         while (true) {
-            i = randint1(max_r_idx - 1);
+            i = randint1(r_info.size() - 1);
 
-            if (!item_monster_okay(owner_ptr, i))
+            if (!item_monster_okay(player_ptr, i))
                 continue;
             if (i == MON_TSUCHINOKO)
                 continue;
@@ -152,7 +152,7 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
 
         break;
     }
-    case TV_CORPSE: {
+    case ItemKindType::CORPSE: {
         PARAMETER_VALUE i = 1;
         int check;
         uint32_t match = 0;
@@ -163,9 +163,9 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
             match = RF9_DROP_CORPSE;
         }
 
-        get_mon_num_prep(owner_ptr, item_monster_okay, NULL);
+        get_mon_num_prep(player_ptr, item_monster_okay, nullptr);
         while (true) {
-            i = get_mon_num(owner_ptr, 0, floor_ptr->dun_level, 0);
+            i = get_mon_num(player_ptr, 0, floor_ptr->dun_level, 0);
             r_ptr = &r_info[i];
             check = (floor_ptr->dun_level < r_ptr->level) ? (r_ptr->level - floor_ptr->dun_level) : 0;
             if (!r_ptr->rarity)
@@ -179,15 +179,15 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
         }
 
         o_ptr->pval = i;
-        object_aware(owner_ptr, o_ptr);
+        object_aware(player_ptr, o_ptr);
         object_known(o_ptr);
         break;
     }
-    case TV_STATUE: {
+    case ItemKindType::STATUE: {
         PARAMETER_VALUE i = 1;
         monster_race *r_ptr;
         while (true) {
-            i = randint1(max_r_idx - 1);
+            i = randint1(r_info.size() - 1);
             r_ptr = &r_info[i];
             if (!r_ptr->rarity)
                 continue;
@@ -200,11 +200,11 @@ void apply_magic_others(player_type *owner_ptr, object_type *o_ptr, int power)
             msg_format(_("%sの像", "Statue of %s"), r_ptr->name.c_str());
         }
 
-        object_aware(owner_ptr, o_ptr);
+        object_aware(player_ptr, o_ptr);
         object_known(o_ptr);
         break;
     }
-    case TV_CHEST: {
+    case ItemKindType::CHEST: {
         DEPTH obj_level = k_info[o_ptr->k_idx].level;
         if (obj_level <= 0)
             break;

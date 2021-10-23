@@ -4,30 +4,24 @@
  * @author deskull
  * @details Ego-Item indexes (see "lib/edit/e_info.txt")
  */
-#include <vector>
-
 #include "object-enchant/object-ego.h"
+#include "artifact/random-art-effects.h"
 #include "object-enchant/object-boost.h"
 #include "object-enchant/object-curse.h"
 #include "object-enchant/special-object-flags.h"
 #include "object-enchant/trc-types.h"
-#include "object-hook/hook-checker.h"
 #include "object-hook/hook-weapon.h"
 #include "sv-definition/sv-protector-types.h"
 #include "sv-definition/sv-weapon-types.h"
 #include "system/object-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "util/probability-table.h"
+#include <vector>
 
 /*
  * The ego-item arrays
  */
 std::vector<ego_item_type> e_info;
-
-/*
- * Maximum number of ego-items in e_info.txt
- */
-EGO_IDX max_e_idx;
 
 /*!
  * @brief アイテムのエゴをレア度の重みに合わせてランダムに選択する
@@ -39,15 +33,14 @@ EGO_IDX max_e_idx;
 byte get_random_ego(byte slot, bool good)
 {
     ProbabilityTable<EGO_IDX> prob_table;
-    for (EGO_IDX i = 1; i < max_e_idx; i++) {
-        ego_item_type *e_ptr = &e_info[i];
-        if (e_ptr->slot != slot || e_ptr->rarity <= 0)
+    for (const auto &e_ref : e_info) {
+        if (e_ref.idx == 0 || e_ref.slot != slot || e_ref.rarity <= 0)
             continue;
 
-        bool worthless = e_ptr->rating == 0 || e_ptr->gen_flags.has_any_of({ TRG::CURSED, TRG::HEAVY_CURSE, TRG::PERMA_CURSE });
+        bool worthless = e_ref.rating == 0 || e_ref.gen_flags.has_any_of({ TRG::CURSED, TRG::HEAVY_CURSE, TRG::PERMA_CURSE });
 
         if (good != worthless) {
-            prob_table.entry_item(i, (255 / e_ptr->rarity));
+            prob_table.entry_item(e_ref.idx, (255 / e_ref.rarity));
         }
     }
 
@@ -64,7 +57,7 @@ byte get_random_ego(byte slot, bool good)
  * @param o_ptr オブジェクト情報への参照ポインタ
  * @param gen_flags 生成フラグ(参照渡し)
  */
-static void ego_invest_curse(player_type *player_ptr, object_type *o_ptr, EnumClassFlagGroup<TRG> &gen_flags)
+static void ego_invest_curse(object_type *o_ptr, EnumClassFlagGroup<TRG> &gen_flags)
 {
     if (gen_flags.has(TRG::CURSED))
         o_ptr->curse_flags.set(TRC::CURSED);
@@ -73,11 +66,11 @@ static void ego_invest_curse(player_type *player_ptr, object_type *o_ptr, EnumCl
     if (gen_flags.has(TRG::PERMA_CURSE))
         o_ptr->curse_flags.set(TRC::PERMA_CURSE);
     if (gen_flags.has(TRG::RANDOM_CURSE0))
-        o_ptr->curse_flags.set(get_curse(player_ptr, 0, o_ptr));
+        o_ptr->curse_flags.set(get_curse(0, o_ptr));
     if (gen_flags.has(TRG::RANDOM_CURSE1))
-        o_ptr->curse_flags.set(get_curse(player_ptr, 1, o_ptr));
+        o_ptr->curse_flags.set(get_curse(1, o_ptr));
     if (gen_flags.has(TRG::RANDOM_CURSE2))
-        o_ptr->curse_flags.set(get_curse(player_ptr, 2, o_ptr));
+        o_ptr->curse_flags.set(get_curse(2, o_ptr));
 }
 
 /*!
@@ -153,9 +146,9 @@ static void ego_interpret_extra_abilities(object_type *o_ptr, ego_item_type *e_p
         auto n = xtra.tr_flags.size();
         if (n > 0) {
             auto f = xtra.tr_flags[randint0(n)];
-            auto except = (f == TR_VORPAL && o_ptr->tval != TV_SWORD);
+            auto except = (f == TR_VORPAL && o_ptr->tval != ItemKindType::SWORD);
             if (!except)
-                add_flag(o_ptr->art_flags, f);
+                o_ptr->art_flags.set(f);
         }
 
         for (auto f : xtra.trg_flags)
@@ -188,9 +181,9 @@ static int randint1_signed(const int n)
  */
 static bool ego_has_flag(object_type *o_ptr, ego_item_type *e_ptr, tr_type flag)
 {
-    if (has_flag(o_ptr->art_flags, flag))
+    if (o_ptr->art_flags.has(flag))
         return true;
-    if (has_flag(e_ptr->flags, flag))
+    if (e_ptr->flags.has(flag))
         return true;
     return false;
 }
@@ -202,9 +195,9 @@ static bool ego_has_flag(object_type *o_ptr, ego_item_type *e_ptr, tr_type flag)
  * @param e_ptr エゴアイテム情報への参照ポインタ
  * @param lev 生成階
  */
-void ego_invest_extra_attack(player_type *player_ptr, object_type *o_ptr, ego_item_type *e_ptr, DEPTH lev)
+void ego_invest_extra_attack(object_type *o_ptr, ego_item_type *e_ptr, DEPTH lev)
 {
-    if (!object_is_weapon(player_ptr, o_ptr)) {
+    if (!o_ptr->is_weapon()) {
         o_ptr->pval = e_ptr->max_pval >= 0 ? 1 : randint1_signed(e_ptr->max_pval);
         return;
     }
@@ -213,7 +206,7 @@ void ego_invest_extra_attack(player_type *player_ptr, object_type *o_ptr, ego_it
         o_ptr->pval = randint1(e_ptr->max_pval * lev / 100 + 1);
         if (o_ptr->pval > 3)
             o_ptr->pval = 3;
-        if ((o_ptr->tval == TV_SWORD) && (o_ptr->sval == SV_HAYABUSA))
+        if ((o_ptr->tval == ItemKindType::SWORD) && (o_ptr->sval == SV_HAYABUSA))
             o_ptr->pval += randint1(2);
         return;
     }
@@ -239,7 +232,7 @@ void ego_invest_extra_attack(player_type *player_ptr, object_type *o_ptr, ego_it
  * @param o_ptr オブジェクト情報への参照ポインタ
  * @param lev 生成階
  */
-void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
+void apply_ego(object_type *o_ptr, DEPTH lev)
 {
     auto e_ptr = &e_info[o_ptr->name2];
     auto gen_flags = e_ptr->gen_flags;
@@ -249,18 +242,18 @@ void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
     if (!e_ptr->cost)
         o_ptr->ident |= (IDENT_BROKEN);
 
-    ego_invest_curse(player_ptr, o_ptr, gen_flags);
+    ego_invest_curse(o_ptr, gen_flags);
     ego_invest_extra_abilities(o_ptr, gen_flags);
 
-    if (e_ptr->act_idx)
-        o_ptr->xtra2 = (XTRA8)e_ptr->act_idx;
+    if (e_ptr->act_idx > RandomArtActType::NONE)
+        o_ptr->activation_id = e_ptr->act_idx;
 
     o_ptr->to_h += (HIT_PROB)e_ptr->base_to_h;
     o_ptr->to_d += (HIT_POINT)e_ptr->base_to_d;
     o_ptr->to_a += (ARMOUR_CLASS)e_ptr->base_to_a;
 
     auto is_powerful = e_ptr->gen_flags.has(TRG::POWERFUL);
-    auto is_cursed = (object_is_cursed(o_ptr) || object_is_broken(o_ptr)) && !is_powerful;
+    auto is_cursed = (o_ptr->is_cursed() || o_ptr->is_broken()) && !is_powerful;
     if (is_cursed) {
         if (e_ptr->max_to_h)
             o_ptr->to_h -= randint1(e_ptr->max_to_h);
@@ -289,7 +282,7 @@ void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
                 o_ptr->to_h += 5;
                 o_ptr->to_d -= 5;
             }
-            o_ptr->to_h = MAX(o_ptr->to_h, 15);
+            o_ptr->to_h = std::max<short>(o_ptr->to_h, 15);
         }
 
         if (gen_flags.has(TRG::MOD_VELOCITY)) {
@@ -297,11 +290,11 @@ void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
                 o_ptr->to_d += 5;
                 o_ptr->to_h -= 5;
             }
-            o_ptr->to_d = MAX(o_ptr->to_d, 15);
+            o_ptr->to_d = std::max(o_ptr->to_d, 15);
         }
 
         if ((o_ptr->name2 == EGO_PROTECTION) || (o_ptr->name2 == EGO_S_PROTECTION) || (o_ptr->name2 == EGO_H_PROTECTION)) {
-            o_ptr->to_a = MAX(o_ptr->to_a, 15);
+            o_ptr->to_a = std::max<short>(o_ptr->to_a, 15);
         }
 
         if (e_ptr->max_pval) {
@@ -311,7 +304,7 @@ void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
                     o_ptr->pval += randint1(2);
             } else {
                 if (ego_has_flag(o_ptr, e_ptr, TR_BLOWS))
-                    ego_invest_extra_attack(player_ptr, o_ptr, e_ptr, lev);
+                    ego_invest_extra_attack(o_ptr, e_ptr, lev);
                 else {
                     if (e_ptr->max_pval > 0)
                         o_ptr->pval += randint1(e_ptr->max_pval);
@@ -325,7 +318,7 @@ void apply_ego(player_type *player_ptr, object_type *o_ptr, DEPTH lev)
             o_ptr->pval = randint1(o_ptr->pval);
         }
 
-        if ((o_ptr->tval == TV_SWORD) && (o_ptr->sval == SV_HAYABUSA) && (o_ptr->pval > 2) && (o_ptr->name2 != EGO_ATTACKS))
+        if ((o_ptr->tval == ItemKindType::SWORD) && (o_ptr->sval == SV_HAYABUSA) && (o_ptr->pval > 2) && (o_ptr->name2 != EGO_ATTACKS))
             o_ptr->pval = 2;
     }
 }

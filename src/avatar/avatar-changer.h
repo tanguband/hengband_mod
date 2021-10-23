@@ -6,13 +6,12 @@ struct monster_type;
 struct player_type;
 class AvatarChanger {
 public:
-    AvatarChanger(player_type *target_ptr, monster_type *m_ptr);
-    AvatarChanger() = delete;
+    AvatarChanger(player_type *player_ptr, monster_type *m_ptr);
     virtual ~AvatarChanger() = default;
     void change_virtue();
 
 private:
-    player_type *target_ptr;
+    player_type *player_ptr;
     monster_type *m_ptr;
     void change_virtue_non_beginner();
     void change_virtue_unique();

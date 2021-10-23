@@ -1,4 +1,5 @@
 ﻿#include "view/display-lore-attacks.h"
+#include "locale/japanese.h"
 #include "lore/combat-types-setter.h"
 #include "lore/lore-calculator.h"
 #include "lore/lore-util.h"
@@ -6,9 +7,6 @@
 #include "monster-race/race-flags1.h"
 #include "system/monster-race-definition.h"
 #include "term/term-color-types.h"
-#ifdef JP
-#include "locale/japanese.h"
-#endif
 
 #ifdef JP
 /*!
@@ -36,7 +34,7 @@ static void display_monster_blow_jp(lore_type *lore_ptr, int attack_numbers, int
     }
 
     /* XXしてYYし/XXしてYYする/XXし/XXする */
-    if (lore_ptr->q != NULL)
+    if (lore_ptr->q != nullptr)
         jverb(lore_ptr->p, lore_ptr->jverb_buf, JVERB_TO);
     else if (attack_numbers != lore_ptr->count - 1)
         jverb(lore_ptr->p, lore_ptr->jverb_buf, JVERB_AND);
@@ -76,13 +74,13 @@ static void display_monster_blow_en(lore_type *lore_ptr, int attack_numbers, int
         hooked_roff(", and ");
     }
 
-    if (lore_ptr->p == NULL) {
+    if (lore_ptr->p == nullptr) {
         lore_ptr->p = "do something weird";
         lore_ptr->pc = TERM_VIOLET;
     }
 
     hook_c_roff(lore_ptr->pc, lore_ptr->p);
-    if (lore_ptr->q != NULL) {
+    if (lore_ptr->q != nullptr) {
         hooked_roff(" to ");
         hook_c_roff(lore_ptr->qc, lore_ptr->q);
         if (d1 && d2 && (lore_ptr->know_everything || know_damage(lore_ptr->r_idx, m))) {
@@ -124,8 +122,7 @@ void display_monster_blows(lore_type *lore_ptr)
 
     int attack_numbers = 0;
     for (int m = 0; m < max_attack_numbers; m++) {
-        if (!lore_ptr->r_ptr->blow[m].method || (lore_ptr->r_ptr->blow[m].method == RBM_SHOOT)
-            || (((lore_ptr->r_ptr->r_blows[m] == 0) && !lore_ptr->know_everything)))
+        if (!lore_ptr->r_ptr->blow[m].method || (lore_ptr->r_ptr->blow[m].method == RBM_SHOOT) || (((lore_ptr->r_ptr->r_blows[m] == 0) && !lore_ptr->know_everything)))
             continue;
 
         set_monster_blow_method(lore_ptr, m);

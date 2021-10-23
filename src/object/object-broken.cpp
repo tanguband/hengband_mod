@@ -16,6 +16,31 @@
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
+ObjectBreaker::ObjectBreaker(tr_type ignore_flg)
+    : ignore_flg(ignore_flg)
+{
+}
+
+BreakerAcid::BreakerAcid()
+    : ObjectBreaker(TR_IGNORE_ACID)
+{
+}
+
+BreakerElec::BreakerElec()
+    : ObjectBreaker(TR_IGNORE_ELEC)
+{
+}
+
+BreakerFire::BreakerFire()
+    : ObjectBreaker(TR_IGNORE_FIRE)
+{
+}
+
+BreakerCold::BreakerCold()
+    : ObjectBreaker(TR_IGNORE_COLD)
+{
+}
+
 /*!
  * @brief アイテムが酸で破損するかどうかを判定する
  * @param o_ptr アイテムの情報参照ポインタ
@@ -25,44 +50,44 @@
  * Does a given class of objects (usually) hate acid?
  * Note that acid can either melt or corrode something.
  */
-bool hates_acid(object_type *o_ptr)
+bool BreakerAcid::hates(object_type *o_ptr) const
 {
     /* Analyze the type */
     switch (o_ptr->tval) {
         /* Wearable items */
-    case TV_ARROW:
-    case TV_BOLT:
-    case TV_BOW:
-    case TV_SWORD:
-    case TV_HAFTED:
-    case TV_POLEARM:
-    case TV_HELM:
-    case TV_CROWN:
-    case TV_SHIELD:
-    case TV_BOOTS:
-    case TV_GLOVES:
-    case TV_CLOAK:
-    case TV_SOFT_ARMOR:
-    case TV_HARD_ARMOR:
-    case TV_DRAG_ARMOR: {
+    case ItemKindType::ARROW:
+    case ItemKindType::BOLT:
+    case ItemKindType::BOW:
+    case ItemKindType::SWORD:
+    case ItemKindType::HAFTED:
+    case ItemKindType::POLEARM:
+    case ItemKindType::HELM:
+    case ItemKindType::CROWN:
+    case ItemKindType::SHIELD:
+    case ItemKindType::BOOTS:
+    case ItemKindType::GLOVES:
+    case ItemKindType::CLOAK:
+    case ItemKindType::SOFT_ARMOR:
+    case ItemKindType::HARD_ARMOR:
+    case ItemKindType::DRAG_ARMOR: {
         return true;
     }
 
     /* Staffs/Scrolls are wood/paper */
-    case TV_STAFF:
-    case TV_SCROLL: {
+    case ItemKindType::STAFF:
+    case ItemKindType::SCROLL: {
         return true;
     }
 
     /* Ouch */
-    case TV_CHEST: {
+    case ItemKindType::CHEST: {
         return true;
     }
 
     /* Junk is useless */
-    case TV_SKELETON:
-    case TV_BOTTLE:
-    case TV_JUNK: {
+    case ItemKindType::SKELETON:
+    case ItemKindType::BOTTLE:
+    case ItemKindType::JUNK: {
         return true;
     }
 
@@ -79,11 +104,11 @@ bool hates_acid(object_type *o_ptr)
  * @param o_ptr アイテムの情報参照ポインタ
  * @return 破損するならばTRUEを返す
  */
-bool hates_elec(object_type *o_ptr)
+bool BreakerElec::hates(object_type *o_ptr) const
 {
     switch (o_ptr->tval) {
-    case TV_RING:
-    case TV_WAND: {
+    case ItemKindType::RING:
+    case ItemKindType::WAND: {
         return true;
     }
 
@@ -103,48 +128,48 @@ bool hates_elec(object_type *o_ptr)
  * Hafted/Polearm weapons have wooden shafts.
  * Arrows/Bows are mostly wooden.
  */
-bool hates_fire(object_type *o_ptr)
+bool BreakerFire::hates(object_type *o_ptr) const
 {
     /* Analyze the type */
     switch (o_ptr->tval) {
         /* Wearable */
-    case TV_LITE:
-    case TV_ARROW:
-    case TV_BOW:
-    case TV_HAFTED:
-    case TV_POLEARM:
-    case TV_BOOTS:
-    case TV_GLOVES:
-    case TV_CLOAK:
-    case TV_SOFT_ARMOR: {
+    case ItemKindType::LITE:
+    case ItemKindType::ARROW:
+    case ItemKindType::BOW:
+    case ItemKindType::HAFTED:
+    case ItemKindType::POLEARM:
+    case ItemKindType::BOOTS:
+    case ItemKindType::GLOVES:
+    case ItemKindType::CLOAK:
+    case ItemKindType::SOFT_ARMOR: {
         return true;
     }
 
     /* Books */
-    case TV_LIFE_BOOK:
-    case TV_SORCERY_BOOK:
-    case TV_NATURE_BOOK:
-    case TV_CHAOS_BOOK:
-    case TV_DEATH_BOOK:
-    case TV_TRUMP_BOOK:
-    case TV_ARCANE_BOOK:
-    case TV_CRAFT_BOOK:
-    case TV_DEMON_BOOK:
-    case TV_CRUSADE_BOOK:
-    case TV_MUSIC_BOOK:
-    case TV_HISSATSU_BOOK:
-    case TV_HEX_BOOK: {
+    case ItemKindType::LIFE_BOOK:
+    case ItemKindType::SORCERY_BOOK:
+    case ItemKindType::NATURE_BOOK:
+    case ItemKindType::CHAOS_BOOK:
+    case ItemKindType::DEATH_BOOK:
+    case ItemKindType::TRUMP_BOOK:
+    case ItemKindType::ARCANE_BOOK:
+    case ItemKindType::CRAFT_BOOK:
+    case ItemKindType::DEMON_BOOK:
+    case ItemKindType::CRUSADE_BOOK:
+    case ItemKindType::MUSIC_BOOK:
+    case ItemKindType::HISSATSU_BOOK:
+    case ItemKindType::HEX_BOOK: {
         return true;
     }
 
     /* Chests */
-    case TV_CHEST: {
+    case ItemKindType::CHEST: {
         return true;
     }
 
     /* Staffs/Scrolls burn */
-    case TV_STAFF:
-    case TV_SCROLL: {
+    case ItemKindType::STAFF:
+    case ItemKindType::SCROLL: {
         return true;
     }
 
@@ -161,12 +186,12 @@ bool hates_fire(object_type *o_ptr)
  * @param o_ptr アイテムの情報参照ポインタ
  * @return 破損するならばTRUEを返す
  */
-bool hates_cold(object_type *o_ptr)
+bool BreakerCold::hates(object_type *o_ptr) const
 {
     switch (o_ptr->tval) {
-    case TV_POTION:
-    case TV_FLASK:
-    case TV_BOTTLE: {
+    case ItemKindType::POTION:
+    case ItemKindType::FLASK:
+    case ItemKindType::BOTTLE: {
         return true;
     }
 
@@ -178,73 +203,18 @@ bool hates_cold(object_type *o_ptr)
 }
 
 /*!
- * @brief アイテムが酸で破損するかどうかを判定する(メインルーチン) /
- * Melt something
+ * @brief アイテムが属性で破損するかどうかを判定する(メインルーチン) /
+ * Destroy things
  * @param o_ptr アイテムの情報参照ポインタ
  * @return 破損するならばTRUEを返す
  * @todo 統合を検討
  */
-int set_acid_destroy(player_type *owner_ptr, object_type *o_ptr)
+bool ObjectBreaker::can_destroy(object_type *o_ptr) const
 {
-    TrFlags flgs;
-    if (!hates_acid(o_ptr))
+    if (!this->hates(o_ptr))
         return false;
-    object_flags(owner_ptr, o_ptr, flgs);
-    if (has_flag(flgs, TR_IGNORE_ACID))
-        return false;
-    return true;
-}
-
-/*!
- * @brief アイテムが電撃で破損するかどうかを判定する(メインルーチン) /
- * Electrical damage
- * @param o_ptr アイテムの情報参照ポインタ
- * @return 破損するならばTRUEを返す
- * @todo 統合を検討
- */
-int set_elec_destroy(player_type *owner_ptr, object_type *o_ptr)
-{
-    TrFlags flgs;
-    if (!hates_elec(o_ptr))
-        return false;
-    object_flags(owner_ptr, o_ptr, flgs);
-    if (has_flag(flgs, TR_IGNORE_ELEC))
-        return false;
-    return true;
-}
-
-/*!
- * @brief アイテムが火炎で破損するかどうかを判定する(メインルーチン) /
- * Burn something
- * @param o_ptr アイテムの情報参照ポインタ
- * @return 破損するならばTRUEを返す
- * @todo 統合を検討
- */
-int set_fire_destroy(player_type *owner_ptr, object_type *o_ptr)
-{
-    TrFlags flgs;
-    if (!hates_fire(o_ptr))
-        return false;
-    object_flags(owner_ptr, o_ptr, flgs);
-    if (has_flag(flgs, TR_IGNORE_FIRE))
-        return false;
-    return true;
-}
-
-/*!
- * @brief アイテムが冷気で破損するかどうかを判定する(メインルーチン) /
- * Freeze things
- * @param o_ptr アイテムの情報参照ポインタ
- * @return 破損するならばTRUEを返す
- * @todo 統合を検討
- */
-int set_cold_destroy(player_type *owner_ptr, object_type *o_ptr)
-{
-    TrFlags flgs;
-    if (!hates_cold(o_ptr))
-        return false;
-    object_flags(owner_ptr, o_ptr, flgs);
-    if (has_flag(flgs, TR_IGNORE_COLD))
+    auto flgs = object_flags(o_ptr);
+    if (flgs.has(this->ignore_flg))
         return false;
     return true;
 }
@@ -276,7 +246,7 @@ int set_cold_destroy(player_type *owner_ptr, object_type *o_ptr)
  *    o_ptr --- pointer to the potion object.
  * </pre>
  */
-bool potion_smash_effect(player_type *owner_ptr, MONSTER_IDX who, POSITION y, POSITION x, KIND_OBJECT_IDX k_idx)
+bool potion_smash_effect(player_type *player_ptr, MONSTER_IDX who, POSITION y, POSITION x, KIND_OBJECT_IDX k_idx)
 {
     int radius = 2;
     int dt = 0;
@@ -411,7 +381,7 @@ bool potion_smash_effect(player_type *owner_ptr, MONSTER_IDX who, POSITION y, PO
         break;
     }
 
-    (void)project(owner_ptr, who, radius, y, x, dam, dt, (PROJECT_JUMP | PROJECT_ITEM | PROJECT_KILL));
+    (void)project(player_ptr, who, radius, y, x, dam, dt, (PROJECT_JUMP | PROJECT_ITEM | PROJECT_KILL));
     return angry;
 }
 
@@ -423,7 +393,7 @@ bool potion_smash_effect(player_type *owner_ptr, MONSTER_IDX who, POSITION y, PO
  * @details
  * Note that artifacts never break, see the "drop_near()" function.
  */
-PERCENTAGE breakage_chance(player_type *owner_ptr, object_type *o_ptr, bool has_archer_bonus, SPELL_IDX snipe_type)
+PERCENTAGE breakage_chance(player_type *player_ptr, object_type *o_ptr, bool has_archer_bonus, SPELL_IDX snipe_type)
 {
     /* Examine the snipe type */
     if (snipe_type) {
@@ -444,32 +414,32 @@ PERCENTAGE breakage_chance(player_type *owner_ptr, object_type *o_ptr, bool has_
     }
 
     /* Examine the item type */
-    PERCENTAGE archer_bonus = (has_archer_bonus ? (PERCENTAGE)(owner_ptr->lev - 1) / 7 + 4 : 0);
+    PERCENTAGE archer_bonus = (has_archer_bonus ? (PERCENTAGE)(player_ptr->lev - 1) / 7 + 4 : 0);
     switch (o_ptr->tval) {
         /* Always break */
-    case TV_FLASK:
-    case TV_POTION:
-    case TV_BOTTLE:
-    case TV_FOOD:
-    case TV_JUNK:
+    case ItemKindType::FLASK:
+    case ItemKindType::POTION:
+    case ItemKindType::BOTTLE:
+    case ItemKindType::FOOD:
+    case ItemKindType::JUNK:
         return 100;
 
         /* Often break */
-    case TV_LITE:
-    case TV_SCROLL:
-    case TV_SKELETON:
+    case ItemKindType::LITE:
+    case ItemKindType::SCROLL:
+    case ItemKindType::SKELETON:
         return 50;
 
         /* Sometimes break */
-    case TV_WAND:
-    case TV_SPIKE:
+    case ItemKindType::WAND:
+    case ItemKindType::SPIKE:
         return 25;
-    case TV_ARROW:
+    case ItemKindType::ARROW:
         return 20 - archer_bonus * 2;
 
         /* Rarely break */
-    case TV_SHOT:
-    case TV_BOLT:
+    case ItemKindType::SHOT:
+    case ItemKindType::BOLT:
         return 10 - archer_bonus;
     default:
         return 10;

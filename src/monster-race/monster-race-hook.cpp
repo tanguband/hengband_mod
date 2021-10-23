@@ -31,30 +31,30 @@ EnumClassFlagGroup<RF_ABILITY> vault_aux_dragon_mask4;
 
 /*!
  * @brief pit/nestの基準となる単種モンスターを決める /
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  */
 void vault_prep_clone(player_type *player_ptr)
 {
-    get_mon_num_prep(player_ptr, vault_aux_simple, NULL);
+    get_mon_num_prep(player_ptr, vault_aux_simple, nullptr);
     vault_aux_race = get_mon_num(player_ptr, 0, player_ptr->current_floor_ptr->dun_level + 10, 0);
-    get_mon_num_prep(player_ptr, NULL, NULL);
+    get_mon_num_prep(player_ptr, nullptr, nullptr);
 }
 
 /*!
  * @brief pit/nestの基準となるモンスターシンボルを決める /
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  */
 void vault_prep_symbol(player_type *player_ptr)
 {
-    get_mon_num_prep(player_ptr, vault_aux_simple, NULL);
+    get_mon_num_prep(player_ptr, vault_aux_simple, nullptr);
     MONRACE_IDX r_idx = get_mon_num(player_ptr, 0, player_ptr->current_floor_ptr->dun_level + 10, 0);
-    get_mon_num_prep(player_ptr, NULL, NULL);
+    get_mon_num_prep(player_ptr, nullptr, nullptr);
     vault_aux_char = r_info[r_idx].d_char;
 }
 
 /*!
  * @brief pit/nestの基準となるドラゴンの種類を決める /
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  */
 void vault_prep_dragon(player_type *player_ptr)
 {
@@ -277,7 +277,7 @@ bool mon_hook_shallow_water(player_type *player_ptr, MONRACE_IDX r_idx)
     if (!mon_hook_dungeon(player_ptr, r_idx))
         return false;
 
-    return none_bits(r_ptr->flags2, RF2_AURA_FIRE);
+    return r_ptr->aura_flags.has_not(MonsterAuraType::FIRE);
 }
 
 /*!
@@ -291,7 +291,7 @@ bool mon_hook_lava(player_type *player_ptr, MONRACE_IDX r_idx)
     if (!mon_hook_dungeon(player_ptr, r_idx))
         return false;
 
-    return (any_bits(r_ptr->flagsr, RFR_EFF_IM_FIRE_MASK) || any_bits(r_ptr->flags7, RF7_CAN_FLY)) && none_bits(r_ptr->flags3, RF3_AURA_COLD);
+    return (any_bits(r_ptr->flagsr, RFR_EFF_IM_FIRE_MASK) || any_bits(r_ptr->flags7, RF7_CAN_FLY)) && r_ptr->aura_flags.has_not(MonsterAuraType::COLD);
 }
 
 /*!

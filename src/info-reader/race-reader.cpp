@@ -40,6 +40,10 @@ static bool grab_one_basic_flag(monster_race *r_ptr, std::string_view what)
     if (info_grab_one_flag(r_ptr->flagsr, r_info_flagsr, what))
         return true;
 
+    if (EnumClassFlagGroup<MonsterAuraType>::grab_one_flag(r_ptr->aura_flags, r_info_aura_flags, what)) {
+        return true;
+    }
+
     msg_format(_("未知のモンスター・フラグ '%s'。", "Unknown monster flag '%s'."), what.data());
     return false;
 }
@@ -53,8 +57,9 @@ static bool grab_one_basic_flag(monster_race *r_ptr, std::string_view what)
  */
 static bool grab_one_spell_flag(monster_race *r_ptr, std::string_view what)
 {
-    if (EnumClassFlagGroup<RF_ABILITY>::grab_one_flag(r_ptr->ability_flags, r_info_ability_flags, what))
+    if (EnumClassFlagGroup<RF_ABILITY>::grab_one_flag(r_ptr->ability_flags, r_info_ability_flags, what)) {
         return true;
+    }
 
     msg_format(_("未知のモンスター・フラグ '%s'。", "Unknown monster flag '%s'."), what.data());
     return false;
@@ -67,9 +72,9 @@ static bool grab_one_spell_flag(monster_race *r_ptr, std::string_view what)
  * @param head ヘッダ構造体
  * @return エラーコード
  */
-errr parse_r_info(std::string_view buf, angband_header *head)
+errr parse_r_info(std::string_view buf, angband_header *)
 {
-    static monster_race *r_ptr = NULL;
+    static monster_race *r_ptr = nullptr;
     const auto &tokens = str_split(buf, ':', true, 10);
 
     if (tokens[0] == "N") {
@@ -80,11 +85,13 @@ errr parse_r_info(std::string_view buf, angband_header *head)
         auto i = std::stoi(tokens[1]);
         if (i < error_idx)
             return PARSE_ERROR_NON_SEQUENTIAL_RECORDS;
-        if (i >= head->info_num)
-            return PARSE_ERROR_OUT_OF_BOUNDS;
+        if (i >= static_cast<int>(r_info.size())) {
+            r_info.resize(i + 1);
+        }
 
         error_idx = i;
         r_ptr = &r_info[i];
+        r_ptr->idx = static_cast<MONRACE_IDX>(i);
 #ifdef JP
         r_ptr->name = tokens[2];
 #endif
@@ -111,7 +118,7 @@ errr parse_r_info(std::string_view buf, angband_header *head)
 #else
         if (tokens[1][0] != '$')
             return PARSE_ERROR_NONE;
-        r_ptr->text.append(buf.substr(3));
+        append_english_text(r_ptr->text, buf.substr(3));
 #endif
     } else if (tokens[0] == "G") {
         // G:color:symbol
@@ -214,11 +221,13 @@ errr parse_r_info(std::string_view buf, angband_header *head)
 
         const auto &flags = str_split(tokens[1], '|', true, 10);
         for (const auto &f : flags) {
-            if (f.size() == 0)
+            if (f.size() == 0) {
                 continue;
+            }
 
-            if (!grab_one_basic_flag(r_ptr, f))
+            if (!grab_one_basic_flag(r_ptr, f)) {
                 return PARSE_ERROR_INVALID_FLAG;
+            }
         }
     } else if (tokens[0] == "S") {
         // S:flags

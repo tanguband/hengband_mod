@@ -84,9 +84,9 @@ static bool grab_one_spell_monster_flag(dungeon_type *d_ptr, std::string_view wh
  * @param head ヘッダ構造体
  * @return エラーコード
  */
-errr parse_d_info(std::string_view buf, angband_header *head)
+errr parse_d_info(std::string_view buf, angband_header *)
 {
-    static dungeon_type *d_ptr = NULL;
+    static dungeon_type *d_ptr = nullptr;
     const auto &tokens = str_split(buf, ':', false);
 
     if (tokens[0] == "N") {
@@ -97,11 +97,13 @@ errr parse_d_info(std::string_view buf, angband_header *head)
         auto i = std::stoi(tokens[1]);
         if (i < error_idx)
             return PARSE_ERROR_NON_SEQUENTIAL_RECORDS;
-        if (i >= head->info_num)
-            return PARSE_ERROR_OUT_OF_BOUNDS;
+        if (i >= static_cast<int>(d_info.size())) {
+            d_info.resize(i + 1);
+        }
 
         error_idx = i;
         d_ptr = &d_info[i];
+        d_ptr->idx = static_cast<DUNGEON_IDX>(i);
 #ifdef JP
         d_ptr->name = tokens[2];
 #endif
@@ -126,7 +128,7 @@ errr parse_d_info(std::string_view buf, angband_header *head)
 #else
         if (tokens[1][0] != '$')
             return PARSE_ERROR_NONE;
-        d_ptr->text.append(buf.substr(3));
+        append_english_text(d_ptr->text, buf.substr(3));
 #endif
     } else if (tokens[0] == "W") {
         // W:min_level:max_level:(1):mode:(2):(3):(4):(5):prob_pit:prob_nest

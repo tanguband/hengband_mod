@@ -86,10 +86,10 @@ static void generate_artifact(player_type *player_ptr, qtwg_type *qtwg_ptr, cons
         return;
     }
 
-    KIND_OBJECT_IDX k_idx = lookup_kind(TV_SCROLL, SV_SCROLL_ACQUIREMENT);
+    KIND_OBJECT_IDX k_idx = lookup_kind(ItemKindType::SCROLL, SV_SCROLL_ACQUIREMENT);
     object_type forge;
     object_type *q_ptr = &forge;
-    q_ptr->prep(player_ptr, k_idx);
+    q_ptr->prep(k_idx);
     drop_here(player_ptr->current_floor_ptr, q_ptr, *qtwg_ptr->y, *qtwg_ptr->x);
 }
 
@@ -240,8 +240,8 @@ static void parse_qtw_D(player_type *player_ptr, qtwg_type *qtwg_ptr, char *s)
         } else if (object_index) {
             object_type tmp_object;
             object_type *o_ptr = &tmp_object;
-            o_ptr->prep(player_ptr, object_index);
-            if (o_ptr->tval == TV_GOLD) {
+            o_ptr->prep(object_index);
+            if (o_ptr->tval == ItemKindType::GOLD) {
                 coin_type = object_index - OBJ_GOLD_LIST;
                 make_gold(player_ptr, o_ptr);
                 coin_type = 0;
@@ -269,7 +269,7 @@ static bool parse_qtw_QQ(quest_type *q_ptr, char **zz, int num)
     if (num < 9)
         return true;
 
-    q_ptr->type = static_cast<int16_t>(atoi(zz[2]));
+    q_ptr->type = i2enum<QuestKindType>(atoi(zz[2]));
     q_ptr->num_mon = (MONSTER_NUMBER)atoi(zz[3]);
     q_ptr->cur_num = (MONSTER_NUMBER)atoi(zz[4]);
     q_ptr->max_num = (MONSTER_NUMBER)atoi(zz[5]);
@@ -318,7 +318,7 @@ static bool parse_qtw_QR(quest_type *q_ptr, char **zz, int num)
         q_ptr->k_idx = (KIND_OBJECT_IDX)reward_idx;
         a_info[reward_idx].gen_flags.set(TRG::QUESTITEM);
     } else {
-        q_ptr->type = QUEST_TYPE_KILL_ALL;
+        q_ptr->type = QuestKindType::KILL_ALL;
     }
 
     return true;
@@ -428,30 +428,16 @@ static bool parse_qtw_M(qtwg_type *qtwg_ptr, char **zz)
         max_towns = static_cast<int16_t>(atoi(zz[1]));
     } else if (zz[0][0] == 'Q') {
         max_q_idx = (QUEST_IDX)atoi(zz[1]);
-    } else if (zz[0][0] == 'R') {
-        max_r_idx = (MONRACE_IDX)atoi(zz[1]);
-    } else if (zz[0][0] == 'K') {
-        max_k_idx = (KIND_OBJECT_IDX)atoi(zz[1]);
-    } else if (zz[0][0] == 'V') {
-        max_v_idx = static_cast<int16_t>(atoi(zz[1]));
-    } else if (zz[0][0] == 'F') {
-        max_f_idx = (FEAT_IDX)atoi(zz[1]);
-    } else if (zz[0][0] == 'A') {
-        max_a_idx = (ARTIFACT_IDX)atoi(zz[1]);
-    } else if (zz[0][0] == 'E') {
-        max_e_idx = (EGO_IDX)atoi(zz[1]);
-    } else if (zz[0][0] == 'D') {
-        current_world_ptr->max_d_idx = (DUNGEON_IDX)atoi(zz[1]);
     } else if (zz[0][0] == 'O') {
-        current_world_ptr->max_o_idx = (OBJECT_IDX)atoi(zz[1]);
+        w_ptr->max_o_idx = (OBJECT_IDX)atoi(zz[1]);
     } else if (zz[0][0] == 'M') {
-        current_world_ptr->max_m_idx = (MONSTER_IDX)atoi(zz[1]);
+        w_ptr->max_m_idx = (MONSTER_IDX)atoi(zz[1]);
     } else if (zz[0][0] == 'W') {
         if (zz[0][1] == 'X')
-            current_world_ptr->max_wild_x = (POSITION)atoi(zz[1]);
+            w_ptr->max_wild_x = (POSITION)atoi(zz[1]);
 
         if (zz[0][1] == 'Y')
-            current_world_ptr->max_wild_y = (POSITION)atoi(zz[1]);
+            w_ptr->max_wild_y = (POSITION)atoi(zz[1]);
     }
 
     return true;
@@ -460,7 +446,7 @@ static bool parse_qtw_M(qtwg_type *qtwg_ptr, char **zz)
 /*!
  * @brief 固定マップ (クエスト＆街＆広域マップ)をフロアに生成する
  * Parse a sub-file of the "extra info"
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param buf 文字列
  * @param ymin 詳細不明
  * @param xmin 詳細不明
@@ -503,7 +489,7 @@ parse_error_type generate_fixed_map_floor(player_type *player_ptr, qtwg_type *qt
         return PARSE_ERROR_NONE;
     }
 
-    parse_error_type parse_result_Q = static_cast<parse_error_type>(parse_qtw_Q(qtwg_ptr, zz));
+    parse_error_type parse_result_Q = i2enum<parse_error_type>(parse_qtw_Q(qtwg_ptr, zz));
     if (parse_result_Q != PARSE_CONTINUE)
         return parse_result_Q;
 

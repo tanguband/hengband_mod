@@ -44,8 +44,8 @@ bool in_disintegration_range(floor_type *floor_ptr, POSITION y1, POSITION x1, PO
 {
 	POSITION delta_y = y2 - y1;
 	POSITION delta_x = x2 - x1;
-	POSITION absolute_y = ABS(delta_y);
-	POSITION absolute_x = ABS(delta_x);
+	POSITION absolute_y = std::abs(delta_y);
+	POSITION absolute_x = std::abs(delta_x);
 	if ((absolute_x < 2) && (absolute_y < 2)) return true;
 
 	POSITION scanner_y;
@@ -210,7 +210,7 @@ bool in_disintegration_range(floor_type *floor_ptr, POSITION y1, POSITION x1, PO
 /*
  * breath shape
  */
-void breath_shape(player_type *caster_ptr, uint16_t *path_g, int dist, int *pgrids, POSITION *gx, POSITION *gy, POSITION *gm, POSITION *pgm_rad, POSITION rad, POSITION y1, POSITION x1, POSITION y2, POSITION x2, EFFECT_ID typ)
+void breath_shape(player_type *player_ptr, uint16_t *path_g, int dist, int *pgrids, POSITION *gx, POSITION *gy, POSITION *gm, POSITION *pgm_rad, POSITION rad, POSITION y1, POSITION x1, POSITION y2, POSITION x2, EFFECT_ID typ)
 {
 	POSITION by = y1;
 	POSITION bx = x1;
@@ -221,7 +221,7 @@ void breath_shape(player_type *caster_ptr, uint16_t *path_g, int dist, int *pgri
 	int path_n = 0;
 	int mdis = distance(y1, x1, y2, x2) + rad;
 
-	floor_type *floor_ptr = caster_ptr->current_floor_ptr;
+	floor_type *floor_ptr = player_ptr->current_floor_ptr;
 	while (bdis <= mdis)
 	{
 		if ((0 < dist) && (path_n < dist))
@@ -254,7 +254,7 @@ void breath_shape(player_type *caster_ptr, uint16_t *path_g, int dist, int *pgri
 					case GF_LITE:
 					case GF_LITE_WEAK:
 						/* Lights are stopped by opaque terrains */
-						if (!los(caster_ptr, by, bx, y, x)) continue;
+						if (!los(player_ptr, by, bx, y, x)) continue;
 						break;
 					case GF_DISINTEGRATE:
 						/* Disintegration are stopped only by perma-walls */
@@ -262,7 +262,7 @@ void breath_shape(player_type *caster_ptr, uint16_t *path_g, int dist, int *pgri
 						break;
 					default:
 						/* Ball explosions are stopped by walls */
-						if (!projectable(caster_ptr, by, bx, y, x)) continue;
+						if (!projectable(player_ptr, by, bx, y, x)) continue;
 						break;
 					}
 

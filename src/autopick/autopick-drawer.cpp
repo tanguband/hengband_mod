@@ -25,7 +25,6 @@ static void process_dirty_expression(player_type *player_ptr, text_body_type *tb
     byte state = 0;
     for (int y = 0; tb->lines_list[y]; y++) {
         concptr s = tb->lines_list[y];
-        char *ss, *s_keep;
         tb->states[y] = state;
 
         if (*s++ != '?')
@@ -36,9 +35,10 @@ static void process_dirty_expression(player_type *player_ptr, text_body_type *tb
         if (streq(s, "$AUTOREGISTER"))
             state |= LSTAT_AUTOREGISTER;
 
-        int s_len = strlen(s);
-        ss = (char *)string_make(s);
-        s_keep = ss;
+        auto s_keep = string_make(s);
+        //! @note string_make の戻り値は const char* だが process_pref_file_expr で書き換える
+        // 可能性があるのでconstを外す必要がある。バッファ領域内のみの操作なので安全なはず。
+        auto ss = const_cast<char *>(s_keep);
 
         char f;
         concptr v = process_pref_file_expr(player_ptr, &ss, &f);
@@ -47,7 +47,7 @@ static void process_dirty_expression(player_type *player_ptr, text_body_type *tb
         else
             state &= ~LSTAT_BYPASS;
 
-        C_KILL(s_keep, s_len + 1, char);
+        string_free(s_keep);
         tb->states[y] = state | LSTAT_EXPRESSION;
     }
 
@@ -120,8 +120,8 @@ void draw_text_editor(player_type *player_ptr, text_body_type *tb)
     if (tb->mark) {
         tb->dirty_flags |= DIRTY_ALL;
 
-        by1 = MIN(tb->my, tb->cy);
-        by2 = MAX(tb->my, tb->cy);
+        by1 = std::min(tb->my, tb->cy);
+        by2 = std::max(tb->my, tb->cy);
     }
 
     int i;
@@ -170,8 +170,8 @@ void draw_text_editor(player_type *player_ptr, text_body_type *tb)
         } else {
             int x0 = leftcol + tb->left;
             int len = strlen(tb->lines_list[tb->cy]);
-            int bx1 = MIN(tb->mx, tb->cx);
-            int bx2 = MAX(tb->mx, tb->cx);
+            int bx1 = std::min(tb->mx, tb->cx);
+            int bx2 = std::max(tb->mx, tb->cx);
 
             if (bx2 > len)
                 bx2 = len;
@@ -195,7 +195,7 @@ void draw_text_editor(player_type *player_ptr, text_body_type *tb)
         return;
 
     autopick_type an_entry, *entry = &an_entry;
-    concptr str1 = NULL, str2 = NULL;
+    concptr str1 = nullptr, str2 = nullptr;
     for (int j = 0; j < DESCRIPT_HGT; j++) {
         term_erase(0, tb->hgt + 2 + j, tb->wid);
     }
@@ -270,8 +270,6 @@ void draw_text_editor(player_type *player_ptr, text_body_type *tb)
                 t += strlen(t) + 1;
             }
         }
-
-        autopick_free_entry(entry);
     }
 
     if (str1)

@@ -25,7 +25,7 @@ OBJECT_IDX chest_check(floor_type *floor_ptr, POSITION y, POSITION x, bool trapp
     for (const auto this_o_idx : g_ptr->o_idx_list) {
         object_type *o_ptr;
         o_ptr = &floor_ptr->o_list[this_o_idx];
-        if ((o_ptr->tval == TV_CHEST)
+        if ((o_ptr->tval == ItemKindType::CHEST)
             && (((!trapped) && (o_ptr->pval)) || /* non empty */
                 ((trapped) && (o_ptr->pval > 0)))) /* trapped only */
             return this_o_idx;
@@ -44,22 +44,22 @@ OBJECT_IDX chest_check(floor_type *floor_ptr, POSITION y, POSITION x, bool trapp
  * @details
  * If requested, count only trapped chests.
  */
-int count_chests(player_type *creature_ptr, POSITION *y, POSITION *x, bool trapped)
+int count_chests(player_type *player_ptr, POSITION *y, POSITION *x, bool trapped)
 {
     int count = 0;
     for (DIRECTION d = 0; d < 9; d++) {
-        POSITION yy = creature_ptr->y + ddy_ddd[d];
-        POSITION xx = creature_ptr->x + ddx_ddd[d];
-        OBJECT_IDX o_idx = chest_check(creature_ptr->current_floor_ptr, yy, xx, false);
+        POSITION yy = player_ptr->y + ddy_ddd[d];
+        POSITION xx = player_ptr->x + ddx_ddd[d];
+        OBJECT_IDX o_idx = chest_check(player_ptr->current_floor_ptr, yy, xx, false);
         if (!o_idx)
             continue;
 
         object_type *o_ptr;
-        o_ptr = &creature_ptr->current_floor_ptr->o_list[o_idx];
+        o_ptr = &player_ptr->current_floor_ptr->o_list[o_idx];
         if (o_ptr->pval == 0)
             continue;
 
-        if (trapped && (!object_is_known(o_ptr) || !chest_traps[o_ptr->pval]))
+        if (trapped && (!o_ptr->is_known() || chest_traps[o_ptr->pval].none()))
             continue;
 
         ++count;

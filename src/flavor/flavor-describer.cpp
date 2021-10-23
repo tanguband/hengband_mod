@@ -5,7 +5,6 @@
  */
 
 #include "flavor/flavor-describer.h"
-#include "cmd-item/cmd-smith.h"
 #include "combat/shoot.h"
 #include "flavor/flag-inscriptions-table.h"
 #include "flavor/flavor-util.h"
@@ -17,11 +16,11 @@
 #include "mind/mind-sniper.h"
 #include "mind/mind-weaponsmith.h"
 #include "object-enchant/object-ego.h"
+#include "object-enchant/object-smith.h"
+#include "object-enchant/smith-types.h"
 #include "object-enchant/special-object-flags.h"
 #include "object-enchant/tr-types.h"
 #include "object-enchant/trg-types.h"
-#include "object-hook/hook-checker.h"
-#include "object-hook/hook-enchant.h"
 #include "object-hook/hook-quest.h"
 #include "object/object-flags.h"
 #include "object/object-kind.h"
@@ -40,46 +39,57 @@
 
 static void describe_chest_trap(flavor_type *flavor_ptr)
 {
-    switch (chest_traps[flavor_ptr->o_ptr->pval]) {
-    case 0:
+    auto trap_kinds = chest_traps[flavor_ptr->o_ptr->pval];
+    if (trap_kinds.count() >= 2) {
+        flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(マルチ・トラップ)", " (Multiple Traps)"));
+        return;
+    }
+
+    auto trap_kind = trap_kinds.first();
+    if (!trap_kind.has_value()) {
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(施錠)", " (Locked)"));
-        break;
-    case CHEST_LOSE_STR:
+        return;
+    }
+
+    switch (trap_kind.value()) {
+    case ChestTrapType::LOSE_STR:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(毒針)", " (Poison Needle)"));
         break;
-    case CHEST_LOSE_CON:
+    case ChestTrapType::LOSE_CON:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(毒針)", " (Poison Needle)"));
         break;
-    case CHEST_POISON:
+    case ChestTrapType::POISON:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(ガス・トラップ)", " (Gas Trap)"));
         break;
-    case CHEST_PARALYZE:
+    case ChestTrapType::PARALYZE:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(ガス・トラップ)", " (Gas Trap)"));
         break;
-    case CHEST_EXPLODE:
+    case ChestTrapType::EXPLODE:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(爆発装置)", " (Explosion Device)"));
         break;
-    case CHEST_SUMMON:
-    case CHEST_BIRD_STORM:
-    case CHEST_E_SUMMON:
-    case CHEST_H_SUMMON:
+    case ChestTrapType::SUMMON:
+    case ChestTrapType::BIRD_STORM:
+    case ChestTrapType::E_SUMMON:
+    case ChestTrapType::H_SUMMON:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(召喚のルーン)", " (Summoning Runes)"));
         break;
-    case CHEST_RUNES_OF_EVIL:
+    case ChestTrapType::RUNES_OF_EVIL:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(邪悪なルーン)", " (Gleaming Black Runes)"));
         break;
-    case CHEST_ALARM:
+    case ChestTrapType::ALARM:
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(警報装置)", " (Alarm)"));
         break;
-    default:
-        flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(マルチ・トラップ)", " (Multiple Traps)"));
+    case ChestTrapType::SCATTER:
+        flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(アイテム散乱)", " (Scatter)"));
         break;
+    case ChestTrapType::MAX:
+        throw("Invalid chest trap type is specified!");
     }
 }
 
 static void describe_chest(flavor_type *flavor_ptr)
 {
-    if (flavor_ptr->o_ptr->tval != TV_CHEST)
+    if (flavor_ptr->o_ptr->tval != ItemKindType::CHEST)
         return;
 
     if (!flavor_ptr->known)
@@ -91,7 +101,7 @@ static void describe_chest(flavor_type *flavor_ptr)
     }
 
     if (flavor_ptr->o_ptr->pval < 0) {
-        if (chest_traps[0 - flavor_ptr->o_ptr->pval])
+        if (chest_traps[0 - flavor_ptr->o_ptr->pval].any())
             flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(解除済)", " (disarmed)"));
         else
             flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(非施錠)", " (unlocked)"));
@@ -102,12 +112,12 @@ static void describe_chest(flavor_type *flavor_ptr)
     describe_chest_trap(flavor_ptr);
 }
 
-static void decide_tval_show(player_type *player_ptr, flavor_type *flavor_ptr)
+static void decide_tval_show(flavor_type *flavor_ptr)
 {
-    if (has_flag(flavor_ptr->tr_flags, TR_SHOW_MODS))
+    if (flavor_ptr->tr_flags.has(TR_SHOW_MODS))
         flavor_ptr->show_weapon = true;
 
-    if (object_is_smith(player_ptr, flavor_ptr->o_ptr) && (flavor_ptr->o_ptr->xtra3 == 1 + ESSENCE_SLAY_GLOVE))
+    if (flavor_ptr->o_ptr->is_smith() && (Smith::object_effect(flavor_ptr->o_ptr) == SmithEffect::SLAY_GLOVE))
         flavor_ptr->show_weapon = true;
 
     if (flavor_ptr->o_ptr->to_h && flavor_ptr->o_ptr->to_d)
@@ -124,11 +134,9 @@ static void describe_weapon_dice(player_type *player_ptr, flavor_type *flavor_pt
 
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, ' ');
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, flavor_ptr->p1);
-    if (player_ptr->riding && (flavor_ptr->o_ptr->tval == TV_POLEARM) && ((flavor_ptr->o_ptr->sval == SV_LANCE) || (flavor_ptr->o_ptr->sval == SV_HEAVY_LANCE))) {
-        flavor_ptr->t = object_desc_num(flavor_ptr->t, flavor_ptr->o_ptr->dd + 2);
-    } else {
-        flavor_ptr->t = object_desc_num(flavor_ptr->t, flavor_ptr->o_ptr->dd);    
-    }
+    auto is_bonus = (player_ptr->riding > 0) && flavor_ptr->o_ptr->is_lance();
+    auto bonus = is_bonus ? 2 : 0;
+    flavor_ptr->t = object_desc_num(flavor_ptr->t, flavor_ptr->o_ptr->dd + bonus);
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, 'd');
     flavor_ptr->t = object_desc_num(flavor_ptr->t, flavor_ptr->o_ptr->ds);
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, flavor_ptr->p2);
@@ -137,7 +145,7 @@ static void describe_weapon_dice(player_type *player_ptr, flavor_type *flavor_pt
 static void describe_bow(player_type *player_ptr, flavor_type *flavor_ptr)
 {
     flavor_ptr->power = bow_tmul(flavor_ptr->o_ptr->sval);
-    if (has_flag(flavor_ptr->tr_flags, TR_XTRA_MIGHT))
+    if (flavor_ptr->tr_flags.has(TR_XTRA_MIGHT))
         flavor_ptr->power++;
 
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, ' ');
@@ -150,9 +158,8 @@ static void describe_bow(player_type *player_ptr, flavor_type *flavor_ptr)
     if (!(flavor_ptr->mode & OD_DEBUG)) {
         num_fire = calc_num_fire(player_ptr, flavor_ptr->o_ptr);
     } else {
-        TrFlags flgs;
-        object_flags(player_ptr, flavor_ptr->o_ptr, flgs);
-        if (has_flag(flgs, TR_XTRA_SHOTS))
+        auto flgs = object_flags(flavor_ptr->o_ptr);
+        if (flgs.has(TR_XTRA_SHOTS))
             num_fire += 100;
     }
     if ((num_fire == 0) || (flavor_ptr->power <= 0) || !flavor_ptr->known)
@@ -171,16 +178,16 @@ static void describe_bow(player_type *player_ptr, flavor_type *flavor_ptr)
 static void describe_tval(player_type *player_ptr, flavor_type *flavor_ptr)
 {
     switch (flavor_ptr->o_ptr->tval) {
-    case TV_SHOT:
-    case TV_BOLT:
-    case TV_ARROW:
-    case TV_HAFTED:
-    case TV_POLEARM:
-    case TV_SWORD:
-    case TV_DIGGING:
+    case ItemKindType::SHOT:
+    case ItemKindType::BOLT:
+    case ItemKindType::ARROW:
+    case ItemKindType::HAFTED:
+    case ItemKindType::POLEARM:
+    case ItemKindType::SWORD:
+    case ItemKindType::DIGGING:
         describe_weapon_dice(player_ptr, flavor_ptr);
         break;
-    case TV_BOW:
+    case ItemKindType::BOW:
         describe_bow(player_ptr, flavor_ptr);
         break;
 
@@ -250,7 +257,7 @@ static void describe_bow_power(player_type *player_ptr, flavor_type *flavor_ptr)
 {
     flavor_ptr->avgdam = flavor_ptr->o_ptr->dd * (flavor_ptr->o_ptr->ds + 1) * 10 / 2;
     int tmul = bow_tmul(flavor_ptr->bow_ptr->sval);
-    if (object_is_known(flavor_ptr->bow_ptr))
+    if (flavor_ptr->bow_ptr->is_known())
         flavor_ptr->avgdam += (flavor_ptr->bow_ptr->to_d * 10);
 
     if (flavor_ptr->known)
@@ -262,8 +269,7 @@ static void describe_bow_power(player_type *player_ptr, flavor_type *flavor_ptr)
     tmul = tmul * (100 + (int)(adj_str_td[player_ptr->stat_index[A_STR]]) - 128);
     flavor_ptr->avgdam *= tmul;
     flavor_ptr->avgdam /= (100 * 10);
-    if (player_ptr->concent)
-        flavor_ptr->avgdam = boost_concentration_damage(player_ptr, flavor_ptr->avgdam);
+    flavor_ptr->avgdam = boost_concentration_damage(player_ptr, flavor_ptr->avgdam);
 
     if (flavor_ptr->avgdam < 0)
         flavor_ptr->avgdam = 0;
@@ -338,7 +344,7 @@ static void describe_charges_staff_wand(flavor_type *flavor_ptr)
 {
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, ' ');
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, flavor_ptr->p1);
-    if ((flavor_ptr->o_ptr->tval == TV_STAFF) && (flavor_ptr->o_ptr->number > 1)) {
+    if ((flavor_ptr->o_ptr->tval == ItemKindType::STAFF) && (flavor_ptr->o_ptr->number > 1)) {
         flavor_ptr->t = object_desc_num(flavor_ptr->t, flavor_ptr->o_ptr->number);
         flavor_ptr->t = object_desc_str(flavor_ptr->t, "x ");
     }
@@ -378,45 +384,45 @@ static void describe_charges_rod(flavor_type *flavor_ptr)
 
 static void describe_specific_pval(flavor_type *flavor_ptr)
 {
-    if (has_flag(flavor_ptr->tr_flags, TR_SPEED)) {
+    if (flavor_ptr->tr_flags.has(TR_SPEED)) {
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("加速", " to speed"));
         return;
     }
 
-    if (has_flag(flavor_ptr->tr_flags, TR_BLOWS)) {
+    if (flavor_ptr->tr_flags.has(TR_BLOWS)) {
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("攻撃", " attack"));
 #ifdef JP
 #else
-        if (ABS(flavor_ptr->o_ptr->pval) != 1)
+        if (std::abs(flavor_ptr->o_ptr->pval) != 1)
             flavor_ptr->t = object_desc_chr(flavor_ptr->t, 's');
 #endif
 
         return;
     }
 
-    if (has_flag(flavor_ptr->tr_flags, TR_STEALTH)) {
+    if (flavor_ptr->tr_flags.has(TR_STEALTH)) {
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("隠密", " to stealth"));
         return;
     }
 
-    if (has_flag(flavor_ptr->tr_flags, TR_SEARCH)) {
+    if (flavor_ptr->tr_flags.has(TR_SEARCH)) {
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("探索", " to searching"));
         return;
     }
 
-    if (has_flag(flavor_ptr->tr_flags, TR_INFRA))
+    if (flavor_ptr->tr_flags.has(TR_INFRA))
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("赤外線視力", " to infravision"));
 }
 
 static void describe_pval(flavor_type *flavor_ptr)
 {
-    if (!has_pval_flags(flavor_ptr->tr_flags))
+    if (flavor_ptr->tr_flags.has_none_of(TR_PVAL_FLAG_MASK))
         return;
 
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, ' ');
     flavor_ptr->t = object_desc_chr(flavor_ptr->t, flavor_ptr->p1);
     flavor_ptr->t = object_desc_int(flavor_ptr->t, flavor_ptr->o_ptr->pval);
-    if (has_flag(flavor_ptr->tr_flags, TR_HIDE_TYPE)) {
+    if (flavor_ptr->tr_flags.has(TR_HIDE_TYPE)) {
         flavor_ptr->t = object_desc_chr(flavor_ptr->t, flavor_ptr->p2);
         return;
     }
@@ -427,7 +433,7 @@ static void describe_pval(flavor_type *flavor_ptr)
 
 static void describe_lamp_life(flavor_type *flavor_ptr)
 {
-    if ((flavor_ptr->o_ptr->tval != TV_LITE) || (object_is_fixed_artifact(flavor_ptr->o_ptr) || (flavor_ptr->o_ptr->sval == SV_LITE_FEANOR)))
+    if ((flavor_ptr->o_ptr->tval != ItemKindType::LITE) || (flavor_ptr->o_ptr->is_fixed_artifact() || (flavor_ptr->o_ptr->sval == SV_LITE_FEANOR)))
         return;
 
     flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(", " (with "));
@@ -448,14 +454,14 @@ static void describe_remaining(flavor_type *flavor_ptr)
     if (!flavor_ptr->known)
         return;
 
-    if (((flavor_ptr->o_ptr->tval == TV_STAFF) || (flavor_ptr->o_ptr->tval == TV_WAND)))
+    if (((flavor_ptr->o_ptr->tval == ItemKindType::STAFF) || (flavor_ptr->o_ptr->tval == ItemKindType::WAND)))
         describe_charges_staff_wand(flavor_ptr);
-    else if (flavor_ptr->o_ptr->tval == TV_ROD)
+    else if (flavor_ptr->o_ptr->tval == ItemKindType::ROD)
         describe_charges_rod(flavor_ptr);
 
     describe_pval(flavor_ptr);
     describe_lamp_life(flavor_ptr);
-    if (flavor_ptr->o_ptr->timeout && (flavor_ptr->o_ptr->tval != TV_ROD))
+    if (flavor_ptr->o_ptr->timeout && (flavor_ptr->o_ptr->tval != ItemKindType::ROD))
         flavor_ptr->t = object_desc_str(flavor_ptr->t, _("(充填中)", " (charging)"));
 }
 
@@ -467,13 +473,13 @@ static void decide_item_feeling(flavor_type *flavor_ptr)
         return;
     }
 
-    if (object_is_cursed(flavor_ptr->o_ptr) && (flavor_ptr->known || (flavor_ptr->o_ptr->ident & IDENT_SENSE))) {
+    if (flavor_ptr->o_ptr->is_cursed() && (flavor_ptr->known || (flavor_ptr->o_ptr->ident & IDENT_SENSE))) {
         strcpy(flavor_ptr->fake_insc_buf, _("呪われている", "cursed"));
         return;
     }
 
-    if (((flavor_ptr->o_ptr->tval == TV_RING) || (flavor_ptr->o_ptr->tval == TV_AMULET) || (flavor_ptr->o_ptr->tval == TV_LITE)
-            || (flavor_ptr->o_ptr->tval == TV_FIGURINE))
+    if (((flavor_ptr->o_ptr->tval == ItemKindType::RING) || (flavor_ptr->o_ptr->tval == ItemKindType::AMULET) || (flavor_ptr->o_ptr->tval == ItemKindType::LITE)
+            || (flavor_ptr->o_ptr->tval == ItemKindType::FIGURINE))
         && flavor_ptr->aware && !flavor_ptr->known && !(flavor_ptr->o_ptr->ident & IDENT_SENSE)) {
         strcpy(flavor_ptr->fake_insc_buf, _("未鑑定", "unidentified"));
         return;
@@ -484,13 +490,13 @@ static void decide_item_feeling(flavor_type *flavor_ptr)
         return;
     }
 
-    if (!flavor_ptr->aware && object_is_tried(flavor_ptr->o_ptr))
+    if (!flavor_ptr->aware && flavor_ptr->o_ptr->is_tried())
         strcpy(flavor_ptr->fake_insc_buf, _("未判明", "tried"));
 }
 
 /*!
  * @brief オブジェクトの各表記を返すメイン関数 / Creates a description of the item "o_ptr", and stores it in "out_val".
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param buf 表記を返すための文字列参照ポインタ
  * @param o_ptr 特性短縮表記を得たいオブジェクト構造体の参照ポインタ
  * @param mode 表記に関するオプション指定
@@ -507,14 +513,14 @@ void describe_flavor(player_type *player_ptr, char *buf, object_type *o_ptr, BIT
     }
 
     describe_chest(flavor_ptr);
-    decide_tval_show(player_ptr, flavor_ptr);
+    decide_tval_show(flavor_ptr);
     describe_tval(player_ptr, flavor_ptr);
     describe_named_item_tval(flavor_ptr);
     if (!(mode & OD_DEBUG)) {
         flavor_ptr->bow_ptr = &player_ptr->inventory_list[INVEN_BOW];
         if ((flavor_ptr->bow_ptr->k_idx != 0) && (flavor_ptr->o_ptr->tval == bow_tval_ammo(flavor_ptr->bow_ptr)))
             describe_bow_power(player_ptr, flavor_ptr);
-        else if ((player_ptr->pclass == CLASS_NINJA) && (flavor_ptr->o_ptr->tval == TV_SPIKE))
+        else if ((player_ptr->pclass == PlayerClassType::NINJA) && (flavor_ptr->o_ptr->tval == ItemKindType::SPIKE))
             describe_spike_power(player_ptr, flavor_ptr);
     }
 
@@ -530,7 +536,7 @@ void describe_flavor(player_type *player_ptr, char *buf, object_type *o_ptr, BIT
         return;
     }
 
-    display_short_flavors(player_ptr, flavor_ptr);
+    display_short_flavors(flavor_ptr);
     decide_item_feeling(flavor_ptr);
     display_item_discount(flavor_ptr);
     display_item_fake_inscription(flavor_ptr);

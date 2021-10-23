@@ -5,22 +5,23 @@
 #include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
+#include "util/enum-converter.h"
 
 /*!
  * @brief 施設毎に設定された種族、職業、魔法領域フラグがプレイヤーと一致するかを判定する。
  * @details 各種ギルドや寺院など、特定の職業ならば優遇措置を得られる施設、
  * あるいは食堂など特定の種族では利用できない施設の判定処理を行う。
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param bldg 施設構造体の参照ポインタ
  * @return 種族、職業、魔法領域のいずれかが一致しているかの是非。
  */
 bool is_owner(player_type *player_ptr, building_type *bldg)
 {
-    if (bldg->member_class[player_ptr->pclass] == BUILDING_OWNER) {
+    if (bldg->member_class[enum2i(player_ptr->pclass)] == BUILDING_OWNER) {
         return true;
     }
 
-    if (static_cast<int>(bldg->member_race[static_cast<int>(player_ptr->prace)]) == BUILDING_OWNER) {
+    if (bldg->member_race[enum2i(player_ptr->prace)] == BUILDING_OWNER) {
         return true;
     }
 
@@ -38,18 +39,18 @@ bool is_owner(player_type *player_ptr, building_type *bldg)
  （スペルマスターの特別判定つき）
  * @details 各種ギルドや寺院など、特定の職業ならば優遇措置を得られる施設、
  * あるいは食堂など特定の種族では利用できない施設の判定処理を行う。
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param bldg 施設構造体の参照ポインタ
  * @return 種族、職業、魔法領域のいずれかが一致しているかの是非。
  * @todo is_owner()との実質的な多重実装なので、リファクタリングを行うべきである。
  */
 bool is_member(player_type *player_ptr, building_type *bldg)
 {
-    if (bldg->member_class[player_ptr->pclass]) {
+    if (static_cast<bool>(bldg->member_class[enum2i(player_ptr->pclass)])) {
         return true;
     }
 
-    if (static_cast<bool>(bldg->member_race[static_cast<int>(player_ptr->prace)])) {
+    if (static_cast<bool>(bldg->member_race[enum2i(player_ptr->prace)])) {
         return true;
     }
 
@@ -59,7 +60,7 @@ bool is_member(player_type *player_ptr, building_type *bldg)
         return true;
     }
 
-    if (player_ptr->pclass != CLASS_SORCERER)
+    if (player_ptr->pclass != PlayerClassType::SORCERER)
         return false;
 
     for (int i = 0; i < MAX_MAGIC; i++) {
@@ -72,7 +73,7 @@ bool is_member(player_type *player_ptr, building_type *bldg)
 
 /*!
  * @brief 施設のサービス一覧を表示する / Display a building.
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param bldg 施設構造体の参照ポインタ
  */
 void display_buikding_service(player_type *player_ptr, building_type *bldg)

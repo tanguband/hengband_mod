@@ -16,6 +16,10 @@
 
 #include <climits>
 #include <algorithm>
+#include <iostream>
+#include <string>
+#include <sstream>
+#include <charconv>
 
 /*
  * Get some string input at the cursor location.
@@ -214,7 +218,7 @@ bool askfor(char *buf, int len) { return askfor_aux(buf, len, true); }
 bool get_string(concptr prompt, char *buf, int len)
 {
     bool res;
-    msg_print(NULL);
+    msg_print(nullptr);
     prt(prompt, 0, 0);
     res = askfor(buf, len);
     prt("", 0, 0);
@@ -261,7 +265,7 @@ bool get_check_strict(player_type *player_ptr, concptr prompt, BIT_FLAGS mode)
         num_more = 0;
     }
 
-    msg_print(NULL);
+    msg_print(nullptr);
 
     prt(buf, 0, 0);
     if (!(mode & CHECK_NO_HISTORY) && player_ptr->playing) {
@@ -320,7 +324,7 @@ bool get_check_strict(player_type *player_ptr, concptr prompt, BIT_FLAGS mode)
  */
 bool get_com(concptr prompt, char *command, bool z_escape)
 {
-    msg_print(NULL);
+    msg_print(nullptr);
     prt(prompt, 0, 0);
     if (get_com_no_macros)
         *command = (char)inkey_special(false);
@@ -377,7 +381,7 @@ QUANTITY get_quantity(concptr prompt, QUANTITY max)
         prompt = tmp;
     }
 
-    msg_print(NULL);
+    msg_print(nullptr);
     prt(prompt, 0, 0);
     amt = 1;
     sprintf(buf, "%d", amt);
@@ -413,4 +417,32 @@ void pause_line(int row)
 
     (void)inkey();
     prt("", row, 0);
+}
+
+bool get_value(const char *text, int min, int max, int *value)
+{
+    std::stringstream st;
+    int val;
+    char tmp_val[12] = "";
+    /* std::to_chars() requires Mac OS X 10.15 or later. */
+#if !defined(MACH_O_COCOA) || (defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && __MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_15)
+    std::to_chars(std::begin(tmp_val), std::end(tmp_val) - 1, *value);
+#else
+    snprintf(tmp_val, sizeof(tmp_val), "%d", *value);
+#endif
+    st << text << "(" << min << "-" << max << "): ";
+    int digit = std::max(std::to_string(min).length(), std::to_string(max).length());
+    while (true) {
+        if (!get_string(st.str().c_str(), tmp_val, digit))
+            return false;
+
+        val = atoi(tmp_val);
+
+        if (min <= val && max >= val) {
+            break;
+        }
+        msg_format(_("%dから%dの間で指定して下さい。", "It must be between %d to %d."), min, max);
+    }
+    *value = val;
+    return true;
 }

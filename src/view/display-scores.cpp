@@ -2,7 +2,8 @@
 #include "core/score-util.h"
 #include "io/files-util.h"
 #include "io/input-key-acceptor.h"
-#include "player/player-class.h"
+#include "locale/japanese.h"
+#include "player-info/class-info.h"
 #include "player/player-personality.h"
 #include "player/race-info-table.h"
 #include "system/angband.h"
@@ -10,10 +11,6 @@
 #include "term/term-color-types.h"
 #include "util/angband-files.h"
 #include "util/int-char-converter.h"
-
-#ifdef JP
-#include "locale/japanese.h"
-#endif
 
 /*!
  * @brief 指定された順位範囲でスコアを並べて表示する / Display the scores in a given range.
@@ -37,15 +34,15 @@ void display_scores(int from, int to, int note, high_score *score)
     if (highscore_fd < 0) {
         return;
     }
-    
+
     if (from < 0) {
         from = 0;
     }
-    
+
     if (to < 0) {
         to = 10;
     }
-    
+
     if (to > MAX_HISCORES) {
         to = MAX_HISCORES;
     }
@@ -53,7 +50,7 @@ void display_scores(int from, int to, int note, high_score *score)
     if (highscore_seek(0)) {
         return;
     }
-    
+
     auto num_scores = 0;
     high_score the_score;
     for (; num_scores < MAX_HISCORES; num_scores++) {
@@ -84,7 +81,7 @@ void display_scores(int from, int to, int note, high_score *score)
             if ((note == j) && score) {
                 the_score = (*score);
                 attr = TERM_L_GREEN;
-                score = NULL;
+                score = nullptr;
                 note = -1;
                 j--;
             } else if (highscore_seek(j) || highscore_read(&the_score)) {
@@ -104,7 +101,7 @@ void display_scores(int from, int to, int note, high_score *score)
             for (user = the_score.uid; iswspace(*user); user++) /* loop */
                 ;
 
-            concptr when;            
+            concptr when;
             for (when = the_score.day; iswspace(*when); when++) /* loop */
                 ;
 
@@ -142,7 +139,7 @@ void display_scores(int from, int to, int note, high_score *score)
             } else {
                 sprintf(out_val, "             ");
             }
-            
+
             /* 死亡原因をオリジナルより細かく表示 */
             if (streq(the_score.how, "yet")) {
                 sprintf(out_val + 13, "  まだ生きている (%d%s)", cdun, "階");
@@ -214,11 +211,11 @@ void display_scores(int from, int to)
     if (highscore_fd < 0) {
         quit(_("スコア・ファイルが使用できません。", "Score file unavailable."));
     }
-    
+
     term_clear();
-    display_scores(from, to, -1, NULL);
+    display_scores(from, to, -1, nullptr);
     (void)fd_close(highscore_fd);
     highscore_fd = -1;
-    quit(NULL);
+    quit(nullptr);
 }
 #endif

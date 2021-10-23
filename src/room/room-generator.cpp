@@ -22,7 +22,7 @@
 
 /*!
  * @brief 与えられた部屋型IDに応じて部屋の生成処理分岐を行い結果を返す / Attempt to build a room of the given type at the given block
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @param type 部屋型ID
  * @note that we restrict the number of "crowded" rooms to reduce the chance of overflowing the monster list during level creation.
  * @return 部屋の生成に成功した場合 TRUE を返す。
@@ -83,7 +83,7 @@ static void move_prob_list(room_type dst, room_type src, int *prob_list)
 /*!
  * @brief 部屋生成処理のメインルーチン(Sangbandを経由してOangbandからの実装を引用) / Generate rooms in dungeon.  Build bigger rooms at first.　[from SAngband
  * (originally from OAngband)]
- * @param player_ptr プレーヤーへの参照ポインタ
+ * @param player_ptr プレイヤーへの参照ポインタ
  * @return 部屋生成に成功した場合 TRUE を返す。
  */
 bool generate_rooms(player_type *player_ptr, dun_data_type *dd_ptr)
@@ -93,7 +93,7 @@ bool generate_rooms(player_type *player_ptr, dun_data_type *dd_ptr)
     int prob_list[ROOM_T_MAX];
     int rooms_built = 0;
     int area_size = 100 * (floor_ptr->height * floor_ptr->width) / (MAX_HGT * MAX_WID);
-    int level_index = MIN(10, div_round(floor_ptr->dun_level, 10));
+    int level_index = std::min(10, div_round(floor_ptr->dun_level, 10));
     int16_t room_num[ROOM_T_MAX];
     int dun_rooms = DUN_ROOMS_MAX * area_size / 100;
     room_info_type *room_info_ptr = room_info_normal;
