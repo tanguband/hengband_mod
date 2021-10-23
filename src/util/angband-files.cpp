@@ -260,6 +260,7 @@ errr angband_fgets(FILE *fff, char *buf, ulong n)
              */
             if (*s == '\r') *s = '\n';
 #endif /* MACH_O_COCOA */
+
             if (*s == '\n') {
                 buf[i] = '\0';
                 return 0;
