@@ -4,6 +4,7 @@
 #include "floor/geometry.h"
 #include "system/player-type-definition.h"
 #include "target/target-checker.h"
+#include "util/bit-flags-calculator.h"
 
 /*!
  * @brief ボール系スペルの発動 / Cast a ball spell
@@ -23,8 +24,9 @@
 bool fire_ball(PlayerType *player_ptr, AttributeType typ, DIRECTION dir, int dam, POSITION rad, std::optional<CapturedMonsterType *> cap_mon_ptr)
 {
     BIT_FLAGS flg = PROJECT_STOP | PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL;
-    if (typ == AttributeType::CHARM_LIVING)
+    if (typ == AttributeType::CHARM_LIVING) {
         flg |= PROJECT_HIDE;
+    }
 
     POSITION tx = player_ptr->x + 99 * ddx[dir];
     POSITION ty = player_ptr->y + 99 * ddy[dir];
@@ -55,7 +57,18 @@ bool fire_ball(PlayerType *player_ptr, AttributeType typ, DIRECTION dir, int dam
  */
 bool fire_breath(PlayerType *player_ptr, AttributeType typ, DIRECTION dir, int dam, POSITION rad)
 {
-    return fire_ball(player_ptr, typ, dir, dam, -rad);
+    BIT_FLAGS flg = PROJECT_STOP | PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL | PROJECT_BREATH;
+
+    auto tx = player_ptr->x + 99 * ddx[dir];
+    auto ty = player_ptr->y + 99 * ddy[dir];
+
+    if ((dir == 5) && target_okay(player_ptr)) {
+        reset_bits(flg, PROJECT_STOP);
+        tx = target_col;
+        ty = target_row;
+    }
+
+    return project(player_ptr, 0, rad, ty, tx, dam, typ, flg).notice;
 }
 
 /*!
@@ -175,14 +188,16 @@ bool fire_blast(PlayerType *player_ptr, AttributeType typ, DIRECTION dir, DICE_N
             y = rand_spread(ly, ld * dev / 20);
             x = rand_spread(lx, ld * dev / 20);
 
-            if (distance(ly, lx, y, x) <= ld * dev / 20)
+            if (distance(ly, lx, y, x) <= ld * dev / 20) {
                 break;
+            }
         }
 
         /* Analyze the "dir" and the "target". */
         const auto proj_res = project(player_ptr, 0, 0, y, x, damroll(dd, ds), typ, flg);
-        if (!proj_res.notice)
+        if (!proj_res.notice) {
             result = false;
+        }
     }
 
     return result;
@@ -204,8 +219,9 @@ bool fire_blast(PlayerType *player_ptr, AttributeType typ, DIRECTION dir, DICE_N
 bool fire_bolt(PlayerType *player_ptr, AttributeType typ, DIRECTION dir, int dam)
 {
     BIT_FLAGS flg = PROJECT_STOP | PROJECT_KILL | PROJECT_GRID;
-    if (typ != AttributeType::MONSTER_SHOOT)
+    if (typ != AttributeType::MONSTER_SHOOT) {
         flg |= PROJECT_REFLECTABLE;
+    }
     return project_hook(player_ptr, typ, dir, dam, flg);
 }
 

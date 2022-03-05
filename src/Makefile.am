@@ -407,6 +407,7 @@ hengband_SOURCES = \
 	market/poker.cpp market/poker.h \
 	market/arena.cpp market/arena.h \
 	market/bounty-prize-table.cpp market/bounty-prize-table.h \
+	market/bounty-type-definition.h \
 	market/bounty.cpp market/bounty.h \
 	market/building-recharger.cpp market/building-recharger.h \
 	market/building-quest.cpp market/building-quest.h \
@@ -482,7 +483,7 @@ hengband_SOURCES = \
 	monster-attack/monster-attack-processor.cpp monster-attack/monster-attack-processor.h \
 	monster-attack/monster-attack-status.cpp monster-attack/monster-attack-status.h \
 	monster-attack/monster-attack-switcher.cpp monster-attack/monster-attack-switcher.h \
-	monster-attack/monster-attack-types.cpp monster-attack/monster-attack-types.h \
+	monster-attack/monster-attack-table.cpp monster-attack/monster-attack-table.h \
 	monster-attack/monster-eating.cpp monster-attack/monster-eating.h \
 	\
 	monster-floor/monster-death.cpp monster-floor/monster-death.h \
@@ -625,11 +626,18 @@ hengband_SOURCES = \
 	\
 	object-use/item-use-checker.cpp object-use/item-use-checker.h \
 	object-use/quaff-execution.cpp object-use/quaff-execution.h \
-	object-use/read-execution.cpp object-use/read-execution.h \
 	object-use/throw-execution.cpp object-use/throw-execution.h \
 	object-use/use-execution.cpp object-use/use-execution.h \
 	object-use/zaprod-execution.cpp object-use/zaprod-execution.h \
 	object-use/zapwand-execution.cpp object-use/zapwand-execution.h \
+	\
+	object-use/read/read-execution.cpp object-use/read/read-execution.h \
+	object-use/read/gbh-shirt-read-executor.cpp object-use/read/gbh-shirt-read-executor.h \
+	object-use/read/parchment-read-executor.cpp object-use/read/parchment-read-executor.h \
+	object-use/read/read-executor-base.h \
+	object-use/read/read-executor-factory.cpp object-use/read/read-executor-factory.h \
+	object-use/read/ring-power-read-executor.cpp object-use/read/ring-power-read-executor.h \
+	object-use/read/scroll-read-executor.cpp object-use/read/scroll-read-executor.h \
 	\
 	perception/identification.cpp perception/identification.h \
 	perception/object-perception.cpp perception/object-perception.h \
@@ -911,7 +919,11 @@ hengband_SOURCES = \
 	term/z-term.cpp term/z-term.h term/z-util.cpp term/z-util.h \
 	term/z-virt.cpp term/z-virt.h \
 	\
+	timed-effect/player-confusion.cpp timed-effect/player-confusion.h \
 	timed-effect/player-cut.cpp timed-effect/player-cut.h \
+	timed-effect/player-fear.cpp timed-effect/player-fear.h \
+	timed-effect/player-hallucination.cpp timed-effect/player-hallucination.h \
+	timed-effect/player-paralysis.cpp timed-effect/player-paralysis.h \
 	timed-effect/player-stun.cpp timed-effect/player-stun.h \
 	timed-effect/timed-effects.cpp timed-effect/timed-effects.h \
 	\
@@ -1102,11 +1114,13 @@ OBJCXXCOMPILE = $(srcdir)/gcc-wrap $(OBJCXX) $(DEFS) $(DEFAULT_INCLUDES) \
 	$(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_OBJCXXFLAGS) $(OBJCXXFLAGS)
 CXXCOMPILE = $(srcdir)/gcc-wrap $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
-if PCH
-CXXCOMPILE += -include stdafx.h
-endif
 
 if PCH
+# Would use CPPFLAGS, but that affects both the C++ and Objective-C++
+# preprocessing:  don't want to use the precompiled header for the
+# Objective-C++ code.
+CXXCOMPILE += -include ../src/stdafx.h
+
 stdafx.h.gch: stdafx.h stdafx.cpp Makefile
 	$(CXX) -x c++-header $(CXXFLAGS) $(AM_CXXFLAGS) $(srcdir)/stdafx.cpp -o $@
 	rm -f stdafx.h.gch.sum
@@ -1168,3 +1182,4 @@ distclean-local:
 
 clean-local:
 	-rm stdafx.h.gch stdafx.h.gch.sum
+	-rm -rf ../build

@@ -1,5 +1,6 @@
 ﻿#include "mspell/mspell-breath.h"
 #include "core/disturbance.h"
+#include "effect/attribute-types.h"
 #include "effect/effect-processor.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
@@ -12,8 +13,6 @@
 #include "mspell/mspell-damage-calculator.h"
 #include "mspell/mspell-result.h"
 #include "mspell/mspell-util.h"
-#include "mspell/mspell-result.h"
-#include "effect/attribute-types.h"
 #include "system/floor-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -36,10 +35,11 @@ static bool spell_RF4_BREATH_special_message(MONSTER_IDX r_idx, AttributeType GF
         return true;
     }
     if (r_idx == MON_RAOU && (GF_TYPE == AttributeType::FORCE)) {
-        if (one_in_(2))
+        if (one_in_(2)) {
             msg_format(_("%^s「北斗剛掌波！！」", "%^s says, 'Hokuto Goh-Sho-Ha!!'"), m_name);
-        else
+        } else {
             msg_format(_("%^s「受けてみい！！天将奔烈！！！」", "%^s says, 'Tensho-Honretsu!!'"), m_name);
+        }
         return true;
     }
     return false;
@@ -201,13 +201,15 @@ MonsterSpellResult spell_RF4_BREATH(PlayerType *player_ptr, AttributeType GF_TYP
         break;
     }
 
-    if (mon_to_player || (mon_to_mon && known && see_either))
+    if (mon_to_player || (mon_to_mon && known && see_either)) {
         disturb(player_ptr, true, true);
+    }
 
     if (!spell_RF4_BREATH_special_message(m_ptr->r_idx, GF_TYPE, m_name)) {
         if (player_ptr->blind) {
-            if (mon_to_player || (mon_to_mon && known && see_either))
+            if (mon_to_player || (mon_to_mon && known && see_either)) {
                 msg_format(_("%^sが何かのブレスを吐いた。", "%^s breathes."), m_name);
+            }
         } else {
             if (mon_to_player) {
                 msg_format(_("%^sが%^sのブレスを吐いた。", "%^s breathes %^s."), m_name, type_s);
@@ -217,15 +219,18 @@ MonsterSpellResult spell_RF4_BREATH(PlayerType *player_ptr, AttributeType GF_TYP
         }
     }
 
-    if (mon_to_mon && known && !see_either)
+    if (mon_to_mon && known && !see_either) {
         floor_ptr->monster_noise = true;
+    }
 
-    if (known || see_either)
+    if (known || see_either) {
         sound(SOUND_BREATH);
+    }
 
-    const auto proj_res = breath(player_ptr, y, x, m_idx, GF_TYPE, dam, 0, true, target_type);
-    if (smart_learn_aux && mon_to_player)
+    const auto proj_res = breath(player_ptr, y, x, m_idx, GF_TYPE, dam, 0, target_type);
+    if (smart_learn_aux && mon_to_player) {
         update_smart_learn(player_ptr, m_idx, drs_type);
+    }
 
     auto res = MonsterSpellResult::make_valid(dam);
     res.learnable = proj_res.affected_player;
