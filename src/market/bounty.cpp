@@ -18,12 +18,11 @@
 #include "monster-race/race-flags1.h"
 #include "monster-race/race-flags2.h"
 #include "monster-race/race-flags7.h"
-#include "monster-race/race-flags9.h"
 #include "monster-race/race-indice-types.h"
 #include "monster/monster-list.h"
 #include "monster/monster-util.h"
-#include "object-enchant/apply-magic.h"
 #include "object-enchant/item-apply-magic.h"
+#include "object-enchant/item-magic-applier.h"
 #include "object/object-info.h"
 #include "object/object-kind-hook.h"
 #include "perception/object-perception.h"
@@ -179,7 +178,7 @@ bool exchange_cash(PlayerType *player_ptr)
             msg_format(_("これで合計 %d ポイント獲得しました。", "You earned %d point%s total."), num, (num > 1 ? "s" : ""));
 
             (&forge)->prep(lookup_kind(prize_list[num - 1].tval, prize_list[num - 1].sval));
-            apply_magic_to_object(player_ptr, &forge, player_ptr->current_floor_ptr->object_level, AM_NO_FIXED_ART);
+            ItemMagicApplier(player_ptr, &forge, player_ptr->current_floor_ptr->object_level, AM_NO_FIXED_ART).execute();
 
             object_aware(player_ptr, &forge);
             object_known(&forge);
@@ -312,7 +311,7 @@ void determine_daily_bounty(PlayerType *player_ptr, bool conv_old)
         if (r_ptr->flags2 & RF2_MULTIPLY) {
             continue;
         }
-        if ((r_ptr->flags9 & (RF9_DROP_CORPSE | RF9_DROP_SKELETON)) != (RF9_DROP_CORPSE | RF9_DROP_SKELETON)) {
+        if (!r_ptr->drop_flags.has_all_of({ MonsterDropType::DROP_CORPSE, MonsterDropType::DROP_SKELETON })) {
             continue;
         }
         if (r_ptr->rarity > 10) {
@@ -335,7 +334,7 @@ void determine_bounty_uniques(PlayerType *player_ptr)
     auto is_suitable_for_bounty = [](MonsterRaceId r_idx) {
         const auto &r_ref = r_info[r_idx];
         bool is_suitable = r_ref.kind_flags.has(MonsterKindType::UNIQUE);
-        is_suitable &= any_bits(r_ref.flags9, RF9_DROP_CORPSE | RF9_DROP_SKELETON);
+        is_suitable &= r_ref.drop_flags.has_any_of({ MonsterDropType::DROP_CORPSE, MonsterDropType::DROP_SKELETON });
         is_suitable &= r_ref.rarity <= 100;
         is_suitable &= !no_questor_or_bounty_uniques(r_idx);
         return is_suitable;
