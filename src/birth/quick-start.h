@@ -27,7 +27,7 @@ struct birther {
 
     BASE_STATUS stat_max[6]{}; /* Current "maximal" stat values */
     BASE_STATUS stat_max_max[6]{}; /* Maximal "maximal" stat values */
-    HIT_POINT player_hp[PY_MAX_LEVEL]{};
+    int player_hp[PY_MAX_LEVEL]{};
 
     int16_t chaos_patron{}; /*! カオスパトロンのID */
 
@@ -40,7 +40,7 @@ struct birther {
 
 extern birther previous_char;
 
-struct player_type;
-bool ask_quick_start(player_type *player_ptr);
-void save_prev_data(player_type *player_ptr, birther *birther_ptr);
-void load_prev_data(player_type *player_ptr, bool swap);
+class PlayerType;
+bool ask_quick_start(PlayerType *player_ptr);
+void save_prev_data(PlayerType *player_ptr, birther *birther_ptr);
+void load_prev_data(PlayerType *player_ptr, bool swap);

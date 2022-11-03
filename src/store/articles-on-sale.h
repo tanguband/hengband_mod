@@ -1,16 +1,15 @@
 ﻿#pragma once
 
-#include "store/store.h"
-#include "store/store-owners.h"
 #include "object/tval-types.h"
+#include "store/store-owners.h"
+#include "store/store.h"
 #include "system/angband.h"
+#include <map>
 
-#define STORE_CHOICES   48 /* Number of items to choose stock from */
-
-typedef struct store_stock_item_type {
+struct store_stock_item_type {
     ItemKindType tval;
     OBJECT_SUBTYPE_VALUE sval;
-} store_stock_item_type;
+};
 
-extern store_stock_item_type store_regular_table[MAX_STORES][STORE_MAX_KEEP];
-extern store_stock_item_type store_table[MAX_STORES][STORE_CHOICES];
+extern const std::map<StoreSaleType, std::vector<store_stock_item_type>> store_regular_sale_table;
+extern const std::map<StoreSaleType, std::vector<store_stock_item_type>> store_sale_table;

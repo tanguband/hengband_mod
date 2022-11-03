@@ -14,8 +14,8 @@
 #include "core/disturbance.h"
 #include "core/player-redraw-types.h"
 #include "dungeon/dungeon-flag-types.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
+#include "effect/attribute-types.h"
 #include "effect/effect-characteristics.h"
 #include "effect/effect-processor.h"
 #include "floor/cave.h"
@@ -46,7 +46,7 @@
 #include "spell-kind/spells-world.h"
 #include "spell-realm/spells-hex.h"
 #include "spell/range-calc.h"
-#include "spell/spell-types.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
@@ -66,22 +66,26 @@
  * @param x1 判定を行いたいマスのX座標
  * @return 召還に相応しいならばTRUEを返す
  */
-bool summon_possible(player_type *player_ptr, POSITION y1, POSITION x1)
+bool summon_possible(PlayerType *player_ptr, POSITION y1, POSITION x1)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     for (POSITION y = y1 - 2; y <= y1 + 2; y++) {
         for (POSITION x = x1 - 2; x <= x1 + 2; x++) {
-            if (!in_bounds(floor_ptr, y, x))
+            if (!in_bounds(floor_ptr, y, x)) {
                 continue;
+            }
 
-            if (distance(y1, x1, y, x) > 2)
+            if (distance(y1, x1, y, x) > 2) {
                 continue;
+            }
 
-            if (pattern_tile(floor_ptr, y, x))
+            if (pattern_tile(floor_ptr, y, x)) {
                 continue;
+            }
 
-            if (is_cave_empty_bold(player_ptr, y, x) && projectable(player_ptr, y1, x1, y, x) && projectable(player_ptr, y, x, y1, x1))
+            if (is_cave_empty_bold(player_ptr, y, x) && projectable(player_ptr, y1, x1, y, x) && projectable(player_ptr, y, x, y1, x1)) {
                 return true;
+            }
         }
     }
 
@@ -95,27 +99,32 @@ bool summon_possible(player_type *player_ptr, POSITION y1, POSITION x1)
  * @param m_ptr 判定を行いたいモンスターの構造体参照ポインタ
  * @return 死者復活が有効な状態ならばTRUEを返す。
  */
-bool raise_possible(player_type *player_ptr, monster_type *m_ptr)
+bool raise_possible(PlayerType *player_ptr, monster_type *m_ptr)
 {
     POSITION y = m_ptr->fy;
     POSITION x = m_ptr->fx;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     for (POSITION xx = x - 5; xx <= x + 5; xx++) {
         grid_type *g_ptr;
         for (POSITION yy = y - 5; yy <= y + 5; yy++) {
-            if (distance(y, x, yy, xx) > 5)
+            if (distance(y, x, yy, xx) > 5) {
                 continue;
-            if (!los(player_ptr, y, x, yy, xx))
+            }
+            if (!los(player_ptr, y, x, yy, xx)) {
                 continue;
-            if (!projectable(player_ptr, y, x, yy, xx))
+            }
+            if (!projectable(player_ptr, y, x, yy, xx)) {
                 continue;
+            }
 
             g_ptr = &floor_ptr->grid_array[yy][xx];
             for (const auto this_o_idx : g_ptr->o_idx_list) {
-                object_type *o_ptr = &floor_ptr->o_list[this_o_idx];
+                auto *o_ptr = &floor_ptr->o_list[this_o_idx];
                 if (o_ptr->tval == ItemKindType::CORPSE) {
-                    if (!monster_has_hostile_align(player_ptr, m_ptr, 0, 0, &r_info[o_ptr->pval]))
+                    auto corpse_r_idx = i2enum<MonsterRaceId>(o_ptr->pval);
+                    if (!monster_has_hostile_align(player_ptr, m_ptr, 0, 0, &monraces_info[corpse_r_idx])) {
                         return true;
+                    }
                 }
             }
         }
@@ -144,32 +153,30 @@ bool raise_possible(player_type *player_ptr, monster_type *m_ptr)
  * no equally friendly monster is\n
  * between the attacker and target.\n
  */
-bool clean_shot(player_type *player_ptr, POSITION y1, POSITION x1, POSITION y2, POSITION x2, bool is_friend)
+bool clean_shot(PlayerType *player_ptr, POSITION y1, POSITION x1, POSITION y2, POSITION x2, bool is_friend)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    uint16_t grid_g[512];
-    int grid_n = projection_path(player_ptr, grid_g, get_max_range(player_ptr), y1, x1, y2, x2, 0);
-    if (!grid_n)
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    projection_path grid_g(player_ptr, get_max_range(player_ptr), y1, x1, y2, x2, 0);
+    if (grid_g.path_num() == 0) {
         return false;
+    }
 
-    POSITION y = get_grid_y(grid_g[grid_n - 1]);
-    POSITION x = get_grid_x(grid_g[grid_n - 1]);
-    if ((y != y2) || (x != x2))
+    const auto [last_y, last_x] = grid_g.back();
+    if ((last_y != y2) || (last_x != x2)) {
         return false;
+    }
 
-    for (int i = 0; i < grid_n; i++) {
-        y = get_grid_y(grid_g[i]);
-        x = get_grid_x(grid_g[i]);
-
-        if ((floor_ptr->grid_array[y][x].m_idx > 0) && !((y == y2) && (x == x2))) {
-            monster_type *m_ptr = &floor_ptr->m_list[floor_ptr->grid_array[y][x].m_idx];
-            if (is_friend == is_pet(m_ptr)) {
+    for (const auto &[y, x] : grid_g) {
+        if ((floor_ptr->grid_array[y][x].m_idx > 0) && (y != y2 || x != x2)) {
+            auto *m_ptr = &floor_ptr->m_list[floor_ptr->grid_array[y][x].m_idx];
+            if (is_friend == m_ptr->is_pet()) {
                 return false;
             }
         }
 
-        if (player_bold(player_ptr, y, x) && is_friend)
+        if (player_bold(player_ptr, y, x) && is_friend) {
             return false;
+        }
     }
 
     return true;
@@ -187,7 +194,7 @@ bool clean_shot(player_type *player_ptr, POSITION y1, POSITION x1, POSITION y2, 
  * @param monspell モンスター魔法のID
  * @param target_type モンスターからモンスターへ撃つならMONSTER_TO_MONSTER、モンスターからプレイヤーならMONSTER_TO_PLAYER
  */
-ProjectResult bolt(player_type *player_ptr, MONSTER_IDX m_idx, POSITION y, POSITION x, EFFECT_ID typ, int dam_hp, int target_type)
+ProjectResult bolt(PlayerType *player_ptr, MONSTER_IDX m_idx, POSITION y, POSITION x, AttributeType typ, int dam_hp, int target_type)
 {
     BIT_FLAGS flg = 0;
     switch (target_type) {
@@ -199,8 +206,9 @@ ProjectResult bolt(player_type *player_ptr, MONSTER_IDX m_idx, POSITION y, POSIT
         break;
     }
 
-    if (typ != GF_ARROW)
+    if (typ != AttributeType::MONSTER_SHOOT) {
         flg |= PROJECT_REFLECTABLE;
+    }
 
     return project(player_ptr, m_idx, 0, y, x, dam_hp, typ, flg);
 }
@@ -216,7 +224,7 @@ ProjectResult bolt(player_type *player_ptr, MONSTER_IDX m_idx, POSITION y, POSIT
  * @param monspell モンスター魔法のID
  * @param target_type モンスターからモンスターへ撃つならMONSTER_TO_MONSTER、モンスターからプレイヤーならMONSTER_TO_PLAYER
  */
-ProjectResult beam(player_type *player_ptr, MONSTER_IDX m_idx, POSITION y, POSITION x, EFFECT_ID typ, int dam_hp, int target_type)
+ProjectResult beam(PlayerType *player_ptr, MONSTER_IDX m_idx, POSITION y, POSITION x, AttributeType typ, int dam_hp, int target_type)
 {
     BIT_FLAGS flg = 0;
     switch (target_type) {
@@ -231,6 +239,16 @@ ProjectResult beam(player_type *player_ptr, MONSTER_IDX m_idx, POSITION y, POSIT
     return project(player_ptr, m_idx, 0, y, x, dam_hp, typ, flg);
 }
 
+ProjectResult ball(PlayerType *player_ptr, POSITION y, POSITION x, MONSTER_IDX m_idx, AttributeType typ, int dam_hp, POSITION rad, int target_type)
+{
+    BIT_FLAGS flg = PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL;
+    if (target_type == MONSTER_TO_PLAYER) {
+        flg |= PROJECT_PLAYER;
+    }
+
+    return project(player_ptr, m_idx, rad, y, x, dam_hp, typ, flg);
+}
+
 /*!
  * @brief モンスターのボール型＆ブレス型魔法処理 /
  * Cast a breath (or ball) attack at the player Pass over any monsters that may be in the way Affect grids, objects, monsters, and the player
@@ -241,44 +259,40 @@ ProjectResult beam(player_type *player_ptr, MONSTER_IDX m_idx, POSITION y, POSIT
  * @param typ 効果属性ID
  * @param dam_hp 威力
  * @param rad 半径
- * @param breath
  * @param monspell モンスター魔法のID
  * @param target_type モンスターからモンスターへ撃つならMONSTER_TO_MONSTER、モンスターからプレイヤーならMONSTER_TO_PLAYER
  */
-ProjectResult breath(player_type *player_ptr, POSITION y, POSITION x, MONSTER_IDX m_idx, EFFECT_ID typ, int dam_hp, POSITION rad, bool breath, int target_type)
+ProjectResult breath(PlayerType *player_ptr, POSITION y, POSITION x, MONSTER_IDX m_idx, AttributeType typ, int dam_hp, POSITION rad, int target_type)
 {
-    monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[m_idx];
-    monster_race *r_ptr = &r_info[m_ptr->r_idx];
-    BIT_FLAGS flg = 0x00;
-    switch (target_type) {
-    case MONSTER_TO_MONSTER:
-        flg = PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL;
-        break;
-    case MONSTER_TO_PLAYER:
-        flg = PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL | PROJECT_PLAYER;
-        break;
+    auto *m_ptr = &player_ptr->current_floor_ptr->m_list[m_idx];
+    auto *r_ptr = &monraces_info[m_ptr->r_idx];
+    BIT_FLAGS flg = PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL | PROJECT_BREATH;
+    if (target_type == MONSTER_TO_PLAYER) {
+        flg |= PROJECT_PLAYER;
     }
 
-    if ((rad < 1) && breath)
+    if (rad < 1) {
         rad = (r_ptr->flags2 & (RF2_POWERFUL)) ? 3 : 2;
+    }
 
-    if (breath)
-        rad = 0 - rad;
+    return project(player_ptr, m_idx, rad, y, x, dam_hp, typ, flg);
+}
 
-    switch (typ) {
-    case GF_ROCKET:
-        flg |= PROJECT_STOP;
-        break;
-    case GF_DRAIN_MANA:
-    case GF_MIND_BLAST:
-    case GF_BRAIN_SMASH:
-    case GF_CAUSE_1:
-    case GF_CAUSE_2:
-    case GF_CAUSE_3:
-    case GF_CAUSE_4:
-    case GF_HAND_DOOM:
-        flg |= (PROJECT_HIDE | PROJECT_AIMED);
-        break;
+ProjectResult pointed(PlayerType *player_ptr, POSITION y, POSITION x, MONSTER_IDX m_idx, AttributeType typ, int dam_hp, int target_type)
+{
+    BIT_FLAGS flg = PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL | PROJECT_HIDE | PROJECT_AIMED;
+    if (target_type == MONSTER_TO_PLAYER) {
+        flg |= PROJECT_PLAYER;
+    }
+
+    return project(player_ptr, m_idx, 0, y, x, dam_hp, typ, flg);
+}
+
+ProjectResult rocket(PlayerType *player_ptr, POSITION y, POSITION x, MONSTER_IDX m_idx, AttributeType typ, int dam_hp, POSITION rad, int target_type)
+{
+    BIT_FLAGS flg = PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL | PROJECT_STOP;
+    if (target_type == MONSTER_TO_PLAYER) {
+        flg |= PROJECT_PLAYER;
     }
 
     return project(player_ptr, m_idx, rad, y, x, dam_hp, typ, flg);
@@ -290,7 +304,7 @@ ProjectResult breath(player_type *player_ptr, POSITION y, POSITION x, MONSTER_ID
  * @param spell 判定対象のID
  * @return 非魔術的な特殊技能ならばTRUEを返す。
  */
-bool spell_is_inate(RF_ABILITY spell)
+bool spell_is_inate(MonsterAbilityType spell)
 {
     return RF_ABILITY_NOMAGIC_MASK.has(spell);
 }

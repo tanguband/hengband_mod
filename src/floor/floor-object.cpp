@@ -20,20 +20,20 @@
 #include "inventory/item-getter.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
-#include "object-enchant/apply-magic.h"
 #include "object-enchant/item-apply-magic.h"
+#include "object-enchant/item-magic-applier.h"
 #include "object-enchant/special-object-flags.h"
 #include "object/object-info.h"
 #include "object/object-kind-hook.h"
-#include "object/object-kind.h"
 #include "object/object-stack.h"
 #include "perception/object-perception.h"
 #include "system/alloc-entries.h"
 #include "system/artifact-type-definition.h"
+#include "system/baseitem-info-definition.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
-#include "system/object-type-definition.h"
 #include "system/monster-type-definition.h"
+#include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "system/system-variables.h"
 #include "target/projection-path-calculator.h"
@@ -70,7 +70,7 @@ static errr get_obj_num_prep(void)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param o_ptr デバッグ出力するオブジェクトの構造体参照ポインタ
  */
-static void object_mention(player_type *player_ptr, object_type *o_ptr)
+static void object_mention(PlayerType *player_ptr, ObjectType *o_ptr)
 {
     object_aware(player_ptr, o_ptr);
     object_known(o_ptr);
@@ -81,7 +81,7 @@ static void object_mention(player_type *player_ptr, object_type *o_ptr)
     msg_format_wizard(player_ptr, CHEAT_OBJECT, _("%sを生成しました。", "%s was generated."), o_name);
 }
 
-static int get_base_floor(floor_type *floor_ptr, BIT_FLAGS mode, std::optional<int> rq_mon_level)
+static int get_base_floor(FloorType *floor_ptr, BIT_FLAGS mode, std::optional<int> rq_mon_level)
 {
     if (any_bits(mode, AM_GREAT)) {
         if (rq_mon_level.has_value()) {
@@ -98,7 +98,7 @@ static int get_base_floor(floor_type *floor_ptr, BIT_FLAGS mode, std::optional<i
     return floor_ptr->object_level;
 }
 
-static void set_ammo_quantity(object_type *j_ptr)
+static void set_ammo_quantity(ObjectType *j_ptr)
 {
     auto is_ammo = j_ptr->tval == ItemKindType::SPIKE;
     is_ammo |= j_ptr->tval == ItemKindType::SHOT;
@@ -118,7 +118,7 @@ static void set_ammo_quantity(object_type *j_ptr)
  * @param rq_mon_level ランダムクエスト討伐対象のレベル。ランダムクエスト以外の生成であれば無効値
  * @return アイテムの生成成功可否
  */
-bool make_object(player_type *player_ptr, object_type *j_ptr, BIT_FLAGS mode, std::optional<int> rq_mon_level)
+bool make_object(PlayerType *player_ptr, ObjectType *j_ptr, BIT_FLAGS mode, std::optional<int> rq_mon_level)
 {
     auto *floor_ptr = player_ptr->current_floor_ptr;
     auto prob = any_bits(mode, AM_GOOD) ? 10 : 1000;
@@ -145,7 +145,7 @@ bool make_object(player_type *player_ptr, object_type *j_ptr, BIT_FLAGS mode, st
         j_ptr->prep(k_idx);
     }
 
-    apply_magic_to_object(player_ptr, j_ptr, floor_ptr->object_level, mode);
+    ItemMagicApplier(player_ptr, j_ptr, floor_ptr->object_level, mode).execute();
     set_ammo_quantity(j_ptr);
     if (cheat_peek) {
         object_mention(player_ptr, j_ptr);
@@ -163,21 +163,23 @@ bool make_object(player_type *player_ptr, object_type *j_ptr, BIT_FLAGS mode, st
  * @details
  * The location must be a legal, clean, floor grid.
  */
-bool make_gold(player_type *player_ptr, object_type *j_ptr)
+bool make_gold(PlayerType *player_ptr, ObjectType *j_ptr)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     int i = ((randint1(floor_ptr->object_level + 2) + 2) / 2) - 1;
     if (one_in_(GREAT_OBJ)) {
         i += randint1(floor_ptr->object_level + 1);
     }
 
-    if (coin_type)
+    if (coin_type) {
         i = coin_type;
-    if (i >= MAX_GOLD)
+    }
+    if (i >= MAX_GOLD) {
         i = MAX_GOLD - 1;
+    }
     j_ptr->prep(OBJ_GOLD_LIST + i);
 
-    int32_t base = k_info[OBJ_GOLD_LIST + i].cost;
+    int32_t base = baseitems_info[OBJ_GOLD_LIST + i].cost;
     j_ptr->pval = (base + (8L * randint1(base)) + randint1(8));
 
     return true;
@@ -190,16 +192,17 @@ bool make_gold(player_type *player_ptr, object_type *j_ptr)
  * @param y 削除したフロアマスのY座標
  * @param x 削除したフロアマスのX座標
  */
-void delete_all_items_from_floor(player_type *player_ptr, POSITION y, POSITION x)
+void delete_all_items_from_floor(PlayerType *player_ptr, POSITION y, POSITION x)
 {
     grid_type *g_ptr;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (!in_bounds(floor_ptr, y, x))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (!in_bounds(floor_ptr, y, x)) {
         return;
+    }
 
     g_ptr = &floor_ptr->grid_array[y][x];
     for (const auto this_o_idx : g_ptr->o_idx_list) {
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &floor_ptr->o_list[this_o_idx];
         o_ptr->wipe();
         floor_ptr->o_cnt--;
@@ -216,16 +219,17 @@ void delete_all_items_from_floor(player_type *player_ptr, POSITION y, POSITION x
  * @param item 増やしたいアイテムの所持スロット
  * @param num 増やしたいアイテムの数
  */
-void floor_item_increase(player_type *player_ptr, INVENTORY_IDX item, ITEM_NUMBER num)
+void floor_item_increase(PlayerType *player_ptr, INVENTORY_IDX item, ITEM_NUMBER num)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
 
-    object_type *o_ptr = &floor_ptr->o_list[item];
+    auto *o_ptr = &floor_ptr->o_list[item];
     num += o_ptr->number;
-    if (num > 255)
+    if (num > 255) {
         num = 255;
-    else if (num < 0)
+    } else if (num < 0) {
         num = 0;
+    }
 
     num -= o_ptr->number;
     o_ptr->number += num;
@@ -239,13 +243,15 @@ void floor_item_increase(player_type *player_ptr, INVENTORY_IDX item, ITEM_NUMBE
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param item 消去したいアイテムの所持スロット
  */
-void floor_item_optimize(player_type *player_ptr, INVENTORY_IDX item)
+void floor_item_optimize(PlayerType *player_ptr, INVENTORY_IDX item)
 {
-    object_type *o_ptr = &player_ptr->current_floor_ptr->o_list[item];
-    if (!o_ptr->k_idx)
+    auto *o_ptr = &player_ptr->current_floor_ptr->o_list[item];
+    if (!o_ptr->k_idx) {
         return;
-    if (o_ptr->number)
+    }
+    if (o_ptr->number) {
         return;
+    }
 
     delete_object_idx(player_ptr, item);
 
@@ -260,10 +266,10 @@ void floor_item_optimize(player_type *player_ptr, INVENTORY_IDX item)
  * @details
  * Handle "stacks" of objects correctly.
  */
-void delete_object_idx(player_type *player_ptr, OBJECT_IDX o_idx)
+void delete_object_idx(PlayerType *player_ptr, OBJECT_IDX o_idx)
 {
-    object_type *j_ptr;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    ObjectType *j_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     excise_object_idx(floor_ptr, o_idx);
     j_ptr = &floor_ptr->o_list[o_idx];
     if (!j_ptr->is_held_by_monster()) {
@@ -284,7 +290,7 @@ void delete_object_idx(player_type *player_ptr, OBJECT_IDX o_idx)
  * @param floo_ptr 現在フロアへの参照ポインタ
  * @param o_idx 削除対象のオブジェクト構造体ポインタ
  */
-void excise_object_idx(floor_type *floor_ptr, OBJECT_IDX o_idx)
+void excise_object_idx(FloorType *floor_ptr, OBJECT_IDX o_idx)
 {
     auto &list = get_o_idx_list_contains(floor_ptr, o_idx);
     list.remove(o_idx);
@@ -296,9 +302,9 @@ void excise_object_idx(floor_type *floor_ptr, OBJECT_IDX o_idx)
  * @param o_idx 参照を得るリストに含まれるOBJECT_IDX
  * @return o_idxを含む ObjectIndexList への参照
  */
-ObjectIndexList &get_o_idx_list_contains(floor_type *floor_ptr, OBJECT_IDX o_idx)
+ObjectIndexList &get_o_idx_list_contains(FloorType *floor_ptr, OBJECT_IDX o_idx)
 {
-    object_type *o_ptr = &floor_ptr->o_list[o_idx];
+    auto *o_ptr = &floor_ptr->o_list[o_idx];
 
     if (o_ptr->is_held_by_monster()) {
         return floor_ptr->m_list[o_ptr->held_m_idx].hold_o_idx_list;
@@ -330,7 +336,7 @@ ObjectIndexList &get_o_idx_list_contains(floor_type *floor_ptr, OBJECT_IDX o_idx
  * the object can combine, stack, or be placed.  Artifacts will try very\n
  * hard to be placed, including "teleporting" to a useful grid if needed.\n
  */
-OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE chance, POSITION y, POSITION x)
+OBJECT_IDX drop_near(PlayerType *player_ptr, ObjectType *j_ptr, PERCENTAGE chance, POSITION y, POSITION x)
 {
     int i, k, d, s;
     POSITION dy, dx;
@@ -345,14 +351,16 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
     bool plural = (j_ptr->number != 1);
 #endif
     describe_flavor(player_ptr, o_name, j_ptr, (OD_OMIT_PREFIX | OD_NAME_ONLY));
-
-    // 破損.
     if (!j_ptr->is_artifact() && (randint0(100) < chance)) {
 #ifdef JP
         msg_format("%sは消えた。", o_name);
 #else
         msg_format("The %s disappear%s.", o_name, (plural ? "" : "s"));
 #endif
+        if (w_ptr->wizard) {
+            msg_print(_("(破損)", "(breakage)"));
+        }
+
         return 0;
     }
 
@@ -361,49 +369,59 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
 
     POSITION by = y;
     POSITION bx = x;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     for (dy = -3; dy <= 3; dy++) {
         for (dx = -3; dx <= 3; dx++) {
             bool comb = false;
             d = (dy * dy) + (dx * dx);
-            if (d > 10)
+            if (d > 10) {
                 continue;
+            }
 
             ty = y + dy;
             tx = x + dx;
-            if (!in_bounds(floor_ptr, ty, tx))
+            if (!in_bounds(floor_ptr, ty, tx)) {
                 continue;
-            if (!projectable(player_ptr, y, x, ty, tx))
+            }
+            if (!projectable(player_ptr, y, x, ty, tx)) {
                 continue;
+            }
 
             g_ptr = &floor_ptr->grid_array[ty][tx];
-            if (!cave_drop_bold(floor_ptr, ty, tx))
+            if (!cave_drop_bold(floor_ptr, ty, tx)) {
                 continue;
+            }
 
             k = 0;
             for (const auto this_o_idx : g_ptr->o_idx_list) {
-                object_type *o_ptr;
+                ObjectType *o_ptr;
                 o_ptr = &floor_ptr->o_list[this_o_idx];
-                if (object_similar(o_ptr, j_ptr))
+                if (object_similar(o_ptr, j_ptr)) {
                     comb = true;
+                }
 
                 k++;
             }
 
-            if (!comb)
+            if (!comb) {
                 k++;
-            if (k > 99)
+            }
+            if (k > 99) {
                 continue;
+            }
 
             s = 1000 - (d + k * 5);
-            if (s < bs)
+            if (s < bs) {
                 continue;
+            }
 
-            if (s > bs)
+            if (s > bs) {
                 bn = 0;
+            }
 
-            if ((++bn >= 2) && !one_in_(bn))
+            if ((++bn >= 2) && !one_in_(bn)) {
                 continue;
+            }
 
             bs = s;
             by = ty;
@@ -413,13 +431,16 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
         }
     }
 
-    // ドロップグリッド確保不能.
     if (!flag && !j_ptr->is_artifact()) {
 #ifdef JP
         msg_format("%sは消えた。", o_name);
 #else
         msg_format("The %s disappear%s.", o_name, (plural ? "" : "s"));
 #endif
+        if (w_ptr->wizard) {
+            msg_print(_("(床スペースがない)", "(no floor space)"));
+        }
+
         return 0;
     }
 
@@ -427,14 +448,16 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
         ty = rand_spread(by, 1);
         tx = rand_spread(bx, 1);
 
-        if (!in_bounds(floor_ptr, ty, tx))
+        if (!in_bounds(floor_ptr, ty, tx)) {
             continue;
+        }
 
         by = ty;
         bx = tx;
 
-        if (!cave_drop_bold(floor_ptr, by, bx))
+        if (!cave_drop_bold(floor_ptr, by, bx)) {
             continue;
+        }
 
         flag = true;
     }
@@ -443,21 +466,26 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
         int candidates = 0, pick;
         for (ty = 1; ty < floor_ptr->height - 1; ty++) {
             for (tx = 1; tx < floor_ptr->width - 1; tx++) {
-                if (cave_drop_bold(floor_ptr, ty, tx))
+                if (cave_drop_bold(floor_ptr, ty, tx)) {
                     candidates++;
+                }
             }
         }
 
-        // ドロップグリッド確保不能.
         if (!candidates) {
 #ifdef JP
             msg_format("%sは消えた。", o_name);
 #else
             msg_format("The %s disappear%s.", o_name, (plural ? "" : "s"));
 #endif
+
+            if (w_ptr->wizard) {
+                msg_print(_("(床スペースがない)", "(no floor space)"));
+            }
+
             if (preserve_mode) {
                 if (j_ptr->is_fixed_artifact() && !j_ptr->is_known()) {
-                    a_info[j_ptr->name1].cur_num = 0;
+                    artifacts_info.at(j_ptr->fixed_artifact_idx).is_generated = false;
                 }
             }
 
@@ -469,13 +497,15 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
             for (tx = 1; tx < floor_ptr->width - 1; tx++) {
                 if (cave_drop_bold(floor_ptr, ty, tx)) {
                     pick--;
-                    if (!pick)
+                    if (!pick) {
                         break;
+                    }
                 }
             }
 
-            if (!pick)
+            if (!pick) {
                 break;
+            }
         }
 
         by = ty;
@@ -484,7 +514,7 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
 
     g_ptr = &floor_ptr->grid_array[by][bx];
     for (const auto this_o_idx : g_ptr->o_idx_list) {
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &floor_ptr->o_list[this_o_idx];
         if (object_similar(o_ptr, j_ptr)) {
             object_absorb(o_ptr, j_ptr);
@@ -493,18 +523,22 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
         }
     }
 
-    if (!done)
+    if (!done) {
         o_idx = o_pop(floor_ptr);
+    }
 
-    // アイテム多過.
     if (!done && !o_idx) {
 #ifdef JP
         msg_format("%sは消えた。", o_name);
 #else
         msg_format("The %s disappear%s.", o_name, (plural ? "" : "s"));
 #endif
+        if (w_ptr->wizard) {
+            msg_print(_("(アイテムが多過ぎる)", "(too many objects)"));
+        }
+
         if (j_ptr->is_fixed_artifact()) {
-            a_info[j_ptr->name1].cur_num = 0;
+            artifacts_info.at(j_ptr->fixed_artifact_idx).is_generated = false;
         }
 
         return 0;
@@ -524,8 +558,9 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
     lite_spot(player_ptr, by, bx);
     sound(SOUND_DROP);
 
-    if (player_bold(player_ptr, by, bx))
+    if (player_bold(player_ptr, by, bx)) {
         set_bits(player_ptr->window_flags, PW_FLOOR_ITEM_LIST);
+    }
 
     if (chance && player_bold(player_ptr, by, bx)) {
         msg_print(_("何かが足下に転がってきた。", "You feel something roll beneath your feet."));
@@ -540,13 +575,15 @@ OBJECT_IDX drop_near(player_type *player_ptr, object_type *j_ptr, PERCENTAGE cha
  * @param floo_ptr 現在フロアへの参照ポインタ
  * @param item メッセージの対象にしたいアイテム所持スロット
  */
-void floor_item_charges(floor_type *floor_ptr, INVENTORY_IDX item)
+void floor_item_charges(FloorType *floor_ptr, INVENTORY_IDX item)
 {
-    object_type *o_ptr = &floor_ptr->o_list[item];
-    if ((o_ptr->tval != ItemKindType::STAFF) && (o_ptr->tval != ItemKindType::WAND))
+    auto *o_ptr = &floor_ptr->o_list[item];
+    if ((o_ptr->tval != ItemKindType::STAFF) && (o_ptr->tval != ItemKindType::WAND)) {
         return;
-    if (!o_ptr->is_known())
+    }
+    if (!o_ptr->is_known()) {
         return;
+    }
 
 #ifdef JP
     if (o_ptr->pval <= 0) {
@@ -569,9 +606,9 @@ void floor_item_charges(floor_type *floor_ptr, INVENTORY_IDX item)
  * @param floo_ptr 現在フロアへの参照ポインタ
  * @param item メッセージの対象にしたいアイテム所持スロット
  */
-void floor_item_describe(player_type *player_ptr, INVENTORY_IDX item)
+void floor_item_describe(PlayerType *player_ptr, INVENTORY_IDX item)
 {
-    object_type *o_ptr = &player_ptr->current_floor_ptr->o_list[item];
+    auto *o_ptr = &player_ptr->current_floor_ptr->o_list[item];
     GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(player_ptr, o_name, o_ptr, 0);
 #ifdef JP
@@ -588,23 +625,27 @@ void floor_item_describe(player_type *player_ptr, INVENTORY_IDX item)
 /*
  * Choose an item and get auto-picker entry from it.
  */
-object_type *choose_object(player_type *player_ptr, OBJECT_IDX *idx, concptr q, concptr s, BIT_FLAGS option, const ItemTester& item_tester)
+ObjectType *choose_object(PlayerType *player_ptr, OBJECT_IDX *idx, concptr q, concptr s, BIT_FLAGS option, const ItemTester &item_tester)
 {
     OBJECT_IDX item;
 
-    if (idx)
+    if (idx) {
         *idx = INVEN_NONE;
+    }
 
     FixItemTesterSetter setter(item_tester);
 
-    if (!get_item(player_ptr, &item, q, s, option, item_tester))
+    if (!get_item(player_ptr, &item, q, s, option, item_tester)) {
         return nullptr;
+    }
 
-    if (idx)
+    if (idx) {
         *idx = item;
+    }
 
-    if (item == INVEN_FORCE)
+    if (item == INVEN_FORCE) {
         return nullptr;
+    }
 
     return ref_item(player_ptr, item);
 }

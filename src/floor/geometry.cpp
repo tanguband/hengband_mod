@@ -8,6 +8,8 @@
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
 #include "target/projection-path-calculator.h"
+#include "timed-effect/player-blindness.h"
+#include "timed-effect/timed-effects.h"
 #include "util/bit-flags-calculator.h"
 
 /*!
@@ -72,16 +74,18 @@ POSITION distance(POSITION y1, POSITION x1, POSITION y2, POSITION x2)
     POSITION err;
 
     /* Simple case */
-    if (!dy || !dx)
+    if (!dy || !dx) {
         return d;
+    }
 
     while (true) {
         /* Approximate error */
         err = (target - d * d) / (2 * d);
 
         /* No error - we are done */
-        if (!err)
+        if (!err) {
             break;
+        }
 
         /* Adjust distance */
         d += err;
@@ -97,15 +101,16 @@ POSITION distance(POSITION y1, POSITION x1, POSITION y2, POSITION x2)
  * @param x 方角を確認したX座標
  * @return 方向ID
  */
-DIRECTION coords_to_dir(player_type *player_ptr, POSITION y, POSITION x)
+DIRECTION coords_to_dir(PlayerType *player_ptr, POSITION y, POSITION x)
 {
     DIRECTION d[3][3] = { { 7, 4, 1 }, { 8, 5, 2 }, { 9, 6, 3 } };
     POSITION dy, dx;
 
     dy = y - player_ptr->y;
     dx = x - player_ptr->x;
-    if (std::abs(dx) > 1 || std::abs(dy) > 1)
+    if (std::abs(dx) > 1 || std::abs(dy) > 1) {
         return 0;
+    }
 
     return d[dx + 1][dy + 1];
 }
@@ -145,36 +150,42 @@ DIRECTION coords_to_dir(player_type *player_ptr, POSITION y, POSITION x)
  * "glowing" grid.  This prevents the player from being able to "see" the\n
  * walls of illuminated rooms from a corridor outside the room.\n
  */
-bool player_can_see_bold(player_type *player_ptr, POSITION y, POSITION x)
+bool player_can_see_bold(PlayerType *player_ptr, POSITION y, POSITION x)
 {
     grid_type *g_ptr;
 
     /* Blind players see nothing */
-    if (player_ptr->blind)
+    if (player_ptr->effects()->blindness()->is_blind()) {
         return false;
+    }
 
     g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
 
     /* Note that "torch-lite" yields "illumination" */
-    if (g_ptr->info & (CAVE_LITE | CAVE_MNLT))
+    if (g_ptr->info & (CAVE_LITE | CAVE_MNLT)) {
         return true;
+    }
 
     /* Require line of sight to the grid */
-    if (!player_has_los_bold(player_ptr, y, x))
+    if (!player_has_los_bold(player_ptr, y, x)) {
         return false;
+    }
 
     /* Noctovision of Ninja */
-    if (player_ptr->see_nocto)
+    if (player_ptr->see_nocto) {
         return true;
+    }
 
     /* Require "perma-lite" of the grid */
-    if ((g_ptr->info & (CAVE_GLOW | CAVE_MNDK)) != CAVE_GLOW)
+    if ((g_ptr->info & (CAVE_GLOW | CAVE_MNDK)) != CAVE_GLOW) {
         return false;
+    }
 
     /* Feature code (applying "mimic" field) */
     /* Floors are simple */
-    if (feat_supports_los(g_ptr->get_feat_mimic()))
+    if (feat_supports_los(g_ptr->get_feat_mimic())) {
         return true;
+    }
 
     /* Check for "local" illumination */
     return check_local_illumination(player_ptr, y, x);
@@ -203,8 +214,9 @@ void mmove2(POSITION *y, POSITION *x, POSITION y1, POSITION x1, POSITION y2, POS
     dx = (x2 < x1) ? (x1 - x2) : (x2 - x1);
 
     /* Paranoia -- Hack -- no motion */
-    if (!dy && !dx)
+    if (!dy && !dx) {
         return;
+    }
 
     /* Move mostly vertically */
     if (dy > dx) {
@@ -238,11 +250,10 @@ void mmove2(POSITION *y, POSITION *x, POSITION y1, POSITION x1, POSITION y2, POS
  * @return 個々のモンスターがプレイヤーが見えたらTRUE
  * @todo is_seen() の関数マクロをバラそうとしたがインクルード関係のコンパイルエラーで失敗
  */
-bool is_seen(player_type *player_ptr, monster_type *m_ptr)
+bool is_seen(PlayerType *player_ptr, monster_type *m_ptr)
 {
     bool is_inside_view = !ignore_unview;
     is_inside_view |= player_ptr->phase_out;
-    is_inside_view
-        |= player_can_see_bold(player_ptr, m_ptr->fy, m_ptr->fx) && projectable(player_ptr, player_ptr->y, player_ptr->x, m_ptr->fy, m_ptr->fx);
+    is_inside_view |= player_can_see_bold(player_ptr, m_ptr->fy, m_ptr->fx) && projectable(player_ptr, player_ptr->y, player_ptr->x, m_ptr->fy, m_ptr->fx);
     return m_ptr->ml && is_inside_view;
 }

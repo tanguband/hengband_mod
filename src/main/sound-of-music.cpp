@@ -19,8 +19,9 @@ bool has_monster_music = false;
 void bell(void)
 {
     term_fresh();
-    if (ring_bell)
+    if (ring_bell) {
         term_xtra(TERM_XTRA_NOISE, 0);
+    }
 
     flush();
 }
@@ -31,8 +32,9 @@ void bell(void)
  */
 void sound(int val)
 {
-    if (!use_sound)
+    if (!use_sound) {
         return;
+    }
 
     term_xtra(TERM_XTRA_SOUND, val);
 }
@@ -42,8 +44,9 @@ void sound(int val)
  */
 errr play_music(int type, int val)
 {
-    if (!use_music)
+    if (!use_music) {
         return 1;
+    }
 
     interrupt_scene(type, val);
     return term_xtra(type, val);
@@ -54,10 +57,11 @@ errr play_music(int type, int val)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @details 設定がない場合はミュートする。
  */
-void select_floor_music(player_type *player_ptr)
+void select_floor_music(PlayerType *player_ptr)
 {
-    if (!use_music)
+    if (!use_music) {
         return;
+    }
 
     refresh_scene_table(player_ptr);
     term_xtra(TERM_XTRA_SCENE, 0);
@@ -68,10 +72,11 @@ void select_floor_music(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param monster_list モンスターリスト
  */
-void select_monster_music(player_type *player_ptr, const std::vector<MONSTER_IDX> &monster_list)
+void select_monster_music(PlayerType *player_ptr, const std::vector<MONSTER_IDX> &monster_list)
 {
-    if (!use_music)
+    if (!use_music) {
         return;
+    }
 
     refresh_scene_table(player_ptr, monster_list);
     term_xtra(TERM_XTRA_SCENE, 0);

@@ -1,11 +1,12 @@
 ﻿#pragma once
 
+#include "market/bounty-type-definition.h"
 #include "player-info/class-types.h"
 #include "system/angband.h"
 #include "util/flag-group.h"
 #include "util/rng-xoshiro.h"
 
-#define MAX_BOUNTY 20
+constexpr auto MAX_BOUNTY = 20;
 
 /*!
  * @brief 世界情報構造体
@@ -25,8 +26,8 @@ struct world_type {
 
     MONSTER_IDX timewalk_m_idx{}; /*!< 現在時間停止を行っているモンスターのID */
 
-    MONRACE_IDX bounty_r_idx[MAX_BOUNTY]{};
-    MONSTER_IDX today_mon{}; //!< 実際の日替わり賞金首
+    bounty_type bounties[MAX_BOUNTY]{};
+    MonsterRaceId today_mon{}; //!< 実際の日替わり賞金首
 
     uint32_t play_time{}; /*!< 実プレイ時間 */
 
@@ -62,15 +63,17 @@ struct world_type {
 
     bool creating_savefile{}; /* New savefile is currently created */
 
+    bool wizard{}; /* This world under wizard mode */
+
     OBJECT_IDX max_o_idx{}; /*!< Maximum number of objects in the level */
     MONSTER_IDX max_m_idx{}; /*!< Maximum number of monsters in the level */
 };
 
 extern world_type *w_ptr;
 
-struct player_type;
+class PlayerType;
 bool is_daytime(void);
-void extract_day_hour_min(player_type *player_ptr, int *day, int *hour, int *min);
+void extract_day_hour_min(PlayerType *player_ptr, int *day, int *hour, int *min);
 void update_playtime(void);
 void add_winner_class(PlayerClassType c);
 void add_retired_class(PlayerClassType c);

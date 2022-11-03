@@ -14,9 +14,11 @@
  * included in all such copies.
  */
 
-#include "system/angband.h"
 #include "object/object-index-list.h"
 #include "spell/spells-util.h"
+#include "system/angband.h"
+
+enum class AttributeType;
 
 /*  A structure type for terrain template of saving dungeon floor */
 struct grid_template_type {
@@ -40,35 +42,35 @@ enum grid_bold_type {
     GB_SOLID_NOPERM
 };
 
-struct floor_type;
+class FloorType;
 struct grid_type;
-struct player_type;
+class PlayerType;
 struct monster_race;
-enum class FF;
-bool new_player_spot(player_type *player_ptr);
-bool is_hidden_door(player_type *player_ptr, grid_type *g_ptr);
-bool player_can_enter(player_type *player_ptr, FEAT_IDX feature, BIT_FLAGS16 mode);
+enum class TerrainCharacteristics;
+bool new_player_spot(PlayerType *player_ptr);
+bool is_hidden_door(PlayerType *player_ptr, grid_type *g_ptr);
+bool player_can_enter(PlayerType *player_ptr, FEAT_IDX feature, BIT_FLAGS16 mode);
 bool feat_uses_special(FEAT_IDX f_idx);
-void update_local_illumination(player_type *player_ptr, POSITION y, POSITION x);
-bool no_lite(player_type *player_ptr);
-void print_rel(player_type *player_ptr, SYMBOL_CODE c, TERM_COLOR a, POSITION y, POSITION x);
-void note_spot(player_type *player_ptr, POSITION y, POSITION x);
-void lite_spot(player_type *player_ptr, POSITION y, POSITION x);
-void update_flow(player_type *player_ptr);
-FEAT_IDX feat_state(floor_type *floor_ptr, FEAT_IDX feat, FF action);
-void cave_alter_feat(player_type *player_ptr, POSITION y, POSITION x, FF action);
-void remove_mirror(player_type *player_ptr, POSITION y, POSITION x);
-bool is_open(player_type *player_ptr, FEAT_IDX feat);
-bool check_local_illumination(player_type *player_ptr, POSITION y, POSITION x);
-bool cave_monster_teleportable_bold(player_type *player_ptr, MONSTER_IDX m_idx, POSITION y, POSITION x, teleport_flags mode);
-bool cave_player_teleportable_bold(player_type *player_ptr, POSITION y, POSITION x, teleport_flags mode);
-void place_grid(player_type *player_ptr, grid_type *g_ptr, grid_bold_type pg_type);
-bool darkened_grid(player_type *player_ptr, grid_type *g_ptr);
-void delete_monster(player_type *player_ptr, POSITION y, POSITION x);
-void place_bold(player_type *player_ptr, POSITION y, POSITION x, grid_bold_type gh_type);
-void set_cave_feat(floor_type *floor_ptr, POSITION y, POSITION x, FEAT_IDX feature_idx);
-int count_dt(player_type *player_ptr, POSITION *y, POSITION *x, bool (*test)(player_type *, FEAT_IDX), bool under);
-void cave_lite_hack(floor_type *floor_ptr, POSITION y, POSITION x);
-void cave_redraw_later(floor_type *floor_ptr, POSITION y, POSITION x);
-void cave_note_and_redraw_later(floor_type *floor_ptr, POSITION y, POSITION x);
-void cave_view_hack(floor_type *floor_ptr, POSITION y, POSITION x);
+void update_local_illumination(PlayerType *player_ptr, POSITION y, POSITION x);
+bool no_lite(PlayerType *player_ptr);
+void print_rel(PlayerType *player_ptr, char c, TERM_COLOR a, POSITION y, POSITION x);
+void print_bolt_pict(PlayerType *player_ptr, POSITION y, POSITION x, POSITION ny, POSITION nx, AttributeType typ);
+void note_spot(PlayerType *player_ptr, POSITION y, POSITION x);
+void lite_spot(PlayerType *player_ptr, POSITION y, POSITION x);
+void update_flow(PlayerType *player_ptr);
+FEAT_IDX feat_state(FloorType *floor_ptr, FEAT_IDX feat, TerrainCharacteristics action);
+void cave_alter_feat(PlayerType *player_ptr, POSITION y, POSITION x, TerrainCharacteristics action);
+bool is_open(PlayerType *player_ptr, FEAT_IDX feat);
+bool check_local_illumination(PlayerType *player_ptr, POSITION y, POSITION x);
+bool cave_monster_teleportable_bold(PlayerType *player_ptr, MONSTER_IDX m_idx, POSITION y, POSITION x, teleport_flags mode);
+bool cave_player_teleportable_bold(PlayerType *player_ptr, POSITION y, POSITION x, teleport_flags mode);
+void place_grid(PlayerType *player_ptr, grid_type *g_ptr, grid_bold_type pg_type);
+bool darkened_grid(PlayerType *player_ptr, grid_type *g_ptr);
+void delete_monster(PlayerType *player_ptr, POSITION y, POSITION x);
+void place_bold(PlayerType *player_ptr, POSITION y, POSITION x, grid_bold_type gh_type);
+void set_cave_feat(FloorType *floor_ptr, POSITION y, POSITION x, FEAT_IDX feature_idx);
+int count_dt(PlayerType *player_ptr, POSITION *y, POSITION *x, bool (*test)(PlayerType *, FEAT_IDX), bool under);
+void cave_lite_hack(FloorType *floor_ptr, POSITION y, POSITION x);
+void cave_redraw_later(FloorType *floor_ptr, POSITION y, POSITION x);
+void cave_note_and_redraw_later(FloorType *floor_ptr, POSITION y, POSITION x);
+void cave_view_hack(FloorType *floor_ptr, POSITION y, POSITION x);

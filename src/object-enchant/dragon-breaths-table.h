@@ -1,12 +1,13 @@
 ﻿#pragma once
 
-#include "system/angband.h"
+#include "effect/attribute-types.h"
 #include "object-enchant/tr-types.h"
+#include "system/angband.h"
 
-typedef struct {
+struct dragonbreath_type {
     tr_type flag;
-    int type;
+    AttributeType type;
     concptr name;
-} dragonbreath_type;
+};
 
 extern const dragonbreath_type dragonbreath_info[];

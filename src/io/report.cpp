@@ -11,18 +11,19 @@
 #include "core/stuff-handler.h"
 #include "core/turn-compensator.h"
 #include "core/visuals-reseter.h"
-#include "dungeon/dungeon.h"
 #include "game-option/special-options.h"
 #include "io-dump/character-dump.h"
 #include "io/inet.h"
 #include "io/input-key-acceptor.h"
 #include "mind/mind-elementalist.h"
+#include "player-base/player-class.h"
 #include "player-info/class-info.h"
 #include "player-info/race-info.h"
 #include "player/player-personality.h"
 #include "player/player-status.h"
 #include "realm/realm-names-table.h"
 #include "system/angband-version.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/player-type-definition.h"
 #include "system/system-variables.h"
@@ -55,12 +56,12 @@ concptr screen_dump = nullptr;
 /*
  * simple buffer library
  */
-typedef struct {
+struct BUF {
     size_t max_size;
     size_t size;
     size_t read_head;
     char *data;
-} BUF;
+};
 
 #define BUFSIZE (65536) /*!< スコアサーバ転送バッファサイズ */
 
@@ -72,8 +73,9 @@ static BUF *buf_new(void)
 {
     BUF *p;
     p = static_cast<BUF *>(malloc(sizeof(BUF)));
-    if (!p)
+    if (!p) {
         return nullptr;
+    }
 
     p->size = 0;
     p->max_size = BUFSIZE;
@@ -107,8 +109,9 @@ static int buf_append(BUF *buf, concptr data, size_t size)
 {
     while (buf->size + size > buf->max_size) {
         char *tmp;
-        if ((tmp = static_cast<char *>(malloc(buf->max_size * 2))) == nullptr)
+        if ((tmp = static_cast<char *>(malloc(buf->max_size * 2))) == nullptr) {
             return -1;
+        }
 
         memcpy(tmp, buf->data, buf->max_size);
         free(buf->data);
@@ -143,8 +146,9 @@ static int buf_sprintf(BUF *buf, concptr fmt, ...)
 #endif
     va_end(ap);
 
-    if (ret < 0)
+    if (ret < 0) {
         return -1;
+    }
 
     ret = buf_append(buf, tmpbuf, strlen(tmpbuf));
     return ret;
@@ -194,7 +198,7 @@ static bool http_post(concptr url, BUF *buf)
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, slist);
 
     char user_agent[64];
-    snprintf(user_agent, sizeof(user_agent), "Hengband %d.%d.%d", FAKE_VER_MAJOR - 10, FAKE_VER_MINOR, FAKE_VER_PATCH);
+    snprintf(user_agent, sizeof(user_agent), "Hengband %d.%d.%d", H_VER_MAJOR, H_VER_MINOR, H_VER_PATCH);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, user_agent);
 
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
@@ -235,7 +239,7 @@ static bool http_post(concptr url, BUF *buf)
  * @param dumpbuf 伝送内容バッファ
  * @return エラーコード
  */
-static errr make_dump(player_type *player_ptr, BUF *dumpbuf, display_player_pf display_player)
+static errr make_dump(PlayerType *player_ptr, BUF *dumpbuf)
 {
     char buf[1024];
     FILE *fff;
@@ -254,7 +258,7 @@ static errr make_dump(player_type *player_ptr, BUF *dumpbuf, display_player_pf d
     }
 
     /* 一旦一時ファイルを作る。通常のダンプ出力と共通化するため。 */
-    make_character_dump(player_ptr, fff, display_player);
+    make_character_dump(player_ptr, fff);
     angband_fclose(fff);
 
     /* Open for read */
@@ -274,7 +278,7 @@ static errr make_dump(player_type *player_ptr, BUF *dumpbuf, display_player_pf d
  * @brief スクリーンダンプを作成する/ Make screen dump to buffer
  * @return 作成したスクリーンダンプの参照ポインタ
  */
-concptr make_screen_dump(player_type *player_ptr)
+concptr make_screen_dump(PlayerType *player_ptr)
 {
     static concptr html_head[] = {
         "<html>\n<body text=\"#ffffff\" bgcolor=\"#000000\">\n",
@@ -293,8 +297,9 @@ concptr make_screen_dump(player_type *player_ptr)
     /* Alloc buffer */
     BUF *screen_buf;
     screen_buf = buf_new();
-    if (screen_buf == nullptr)
+    if (screen_buf == nullptr) {
         return nullptr;
+    }
 
     bool old_use_graphics = use_graphics;
     if (old_use_graphics) {
@@ -308,18 +313,20 @@ concptr make_screen_dump(player_type *player_ptr)
         handle_stuff(player_ptr);
     }
 
-    for (int i = 0; html_head[i]; i++)
+    for (int i = 0; html_head[i]; i++) {
         buf_sprintf(screen_buf, html_head[i]);
+    }
 
     /* Dump the screen */
     for (int y = 0; y < hgt; y++) {
         /* Start the row */
-        if (y != 0)
+        if (y != 0) {
             buf_sprintf(screen_buf, "\n");
+        }
 
         /* Dump each row */
         TERM_COLOR a = 0, old_a = 0;
-        SYMBOL_CODE c = ' ';
+        auto c = ' ';
         for (int x = 0; x < wid - 1; x++) {
             int rv, gv, bv;
             concptr cc = nullptr;
@@ -361,17 +368,19 @@ concptr make_screen_dump(player_type *player_ptr)
                 old_a = a;
             }
 
-            if (cc)
+            if (cc) {
                 buf_sprintf(screen_buf, "%s", cc);
-            else
+            } else {
                 buf_sprintf(screen_buf, "%c", c);
+            }
         }
     }
 
     buf_sprintf(screen_buf, "</font>");
 
-    for (int i = 0; html_foot[i]; i++)
+    for (int i = 0; html_foot[i]; i++) {
         buf_sprintf(screen_buf, html_foot[i]);
+    }
 
     /* Screen dump size is too big ? */
     concptr ret;
@@ -387,8 +396,9 @@ concptr make_screen_dump(player_type *player_ptr)
     /* Free buffer */
     buf_delete(screen_buf);
 
-    if (!old_use_graphics)
+    if (!old_use_graphics) {
         return ret;
+    }
 
     use_graphics = true;
     reset_visuals(player_ptr);
@@ -403,7 +413,7 @@ concptr make_screen_dump(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 正常にスコアを送信できたらtrue、失敗時に送信を中止したらfalse
  */
-bool report_score(player_type *player_ptr, display_player_pf display_player)
+bool report_score(PlayerType *player_ptr)
 {
     auto *score = buf_new();
     char personality_desc[128];
@@ -415,7 +425,7 @@ bool report_score(player_type *player_ptr, display_player_pf display_player)
     sprintf(personality_desc, "%s ", ap_ptr->title);
 #endif
 
-    auto realm1_name = player_ptr->pclass == PlayerClassType::ELEMENTALIST ? get_element_title(player_ptr->element) : realm_names[player_ptr->realm1];
+    auto realm1_name = PlayerClass(player_ptr).equals(PlayerClassType::ELEMENTALIST) ? get_element_title(player_ptr->element) : realm_names[player_ptr->realm1];
     buf_sprintf(score, "name: %s\n", player_ptr->name);
     buf_sprintf(score, "version: %s\n", title);
     buf_sprintf(score, "score: %d\n", calc_score(player_ptr));
@@ -431,10 +441,10 @@ bool report_score(player_type *player_ptr, display_player_pf display_player)
     buf_sprintf(score, "seikaku: %s\n", personality_desc);
     buf_sprintf(score, "realm1: %s\n", realm1_name);
     buf_sprintf(score, "realm2: %s\n", realm_names[player_ptr->realm2]);
-    buf_sprintf(score, "killer: %s\n", player_ptr->died_from);
+    buf_sprintf(score, "killer: %s\n", player_ptr->died_from.data());
     buf_sprintf(score, "-----charcter dump-----\n");
 
-    make_dump(player_ptr, score, display_player);
+    make_dump(player_ptr, score);
     if (screen_dump) {
         buf_sprintf(score, "-----screen shot-----\n");
         buf_append(score, screen_dump, strlen(screen_dump));

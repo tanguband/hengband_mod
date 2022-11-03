@@ -15,12 +15,13 @@
  * Successful haggle.
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void store_owner_says_comment(player_type *player_ptr)
+void store_owner_says_comment(PlayerType *player_ptr, StoreSaleType store_num)
 {
-    if (cur_store_num == StoreSaleType::BLACK)
+    if (store_num == StoreSaleType::BLACK) {
         msg_print(comment_1_B[randint0(MAX_COMMENT_1)]);
-    else
+    } else {
         msg_print(comment_1[randint0(MAX_COMMENT_1)]);
+    }
 
     if (one_in_(RUMOR_CHANCE)) {
         msg_print(_("店主は耳うちした:", "The shopkeeper whispers something into your ear:"));
@@ -37,7 +38,7 @@ void store_owner_says_comment(player_type *player_ptr)
  * @details
  * We paid "price", it was worth "value", and we thought it was worth "guess"
  */
-void purchase_analyze(player_type *player_ptr, PRICE price, PRICE value, PRICE guess)
+void purchase_analyze(PlayerType *player_ptr, PRICE price, PRICE value, PRICE guess)
 {
     /* Item was worthless, but we bought it */
     if ((value <= 0) && (price > value)) {
@@ -52,8 +53,9 @@ void purchase_analyze(player_type *player_ptr, PRICE price, PRICE value, PRICE g
     if ((value < guess) && (price > value)) {
         msg_print(comment_7b[randint0(MAX_COMMENT_7B)]);
         chg_virtue(player_ptr, V_JUSTICE, -1);
-        if (one_in_(4))
+        if (one_in_(4)) {
             chg_virtue(player_ptr, V_HONOUR, -1);
+        }
         sound(SOUND_STORE2);
         return;
     }
@@ -61,10 +63,11 @@ void purchase_analyze(player_type *player_ptr, PRICE price, PRICE value, PRICE g
     /* Item was a good bargain, and we got away with it */
     if ((value > guess) && (value < (4 * guess)) && (price < value)) {
         msg_print(comment_7c[randint0(MAX_COMMENT_7C)]);
-        if (one_in_(4))
+        if (one_in_(4)) {
             chg_virtue(player_ptr, V_HONOUR, -1);
-        else if (one_in_(4))
+        } else if (one_in_(4)) {
             chg_virtue(player_ptr, V_HONOUR, 1);
+        }
         sound(SOUND_STORE3);
         return;
     }
@@ -72,12 +75,15 @@ void purchase_analyze(player_type *player_ptr, PRICE price, PRICE value, PRICE g
     /* Item was a great bargain, and we got away with it */
     if ((value > guess) && (price < value)) {
         msg_print(comment_7d[randint0(MAX_COMMENT_7D)]);
-        if (one_in_(2))
+        if (one_in_(2)) {
             chg_virtue(player_ptr, V_HONOUR, -1);
-        if (one_in_(4))
+        }
+        if (one_in_(4)) {
             chg_virtue(player_ptr, V_HONOUR, 1);
-        if (10 * price < value)
+        }
+        if (10 * price < value) {
             chg_virtue(player_ptr, V_SACRIFICE, 1);
+        }
         sound(SOUND_STORE4);
         return;
     }

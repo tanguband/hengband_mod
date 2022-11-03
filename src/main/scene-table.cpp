@@ -36,7 +36,8 @@ static void resize_scene_list()
  * @param type action-type
  * @param val action-val
  */
-void interrupt_scene(int type, int val) {
+void interrupt_scene(int type, int val)
+{
     interrupt_scene_type = type;
     interrupt_scene_val = val;
 
@@ -50,7 +51,7 @@ void interrupt_scene(int type, int val) {
  * @brief 現在のフロアに合ったBGM選曲
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void refresh_scene_table(player_type *player_ptr)
+void refresh_scene_table(PlayerType *player_ptr)
 {
     // clear interrupt_scene
     interrupt_scene(0, 0);
@@ -64,7 +65,7 @@ void refresh_scene_table(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param monster_list 視界内モンスターリスト
  */
-void refresh_scene_table(player_type *player_ptr, const std::vector<MONSTER_IDX> &monster_list)
+void refresh_scene_table(PlayerType *player_ptr, const std::vector<MONSTER_IDX> &monster_list)
 {
     resize_scene_list();
     int index = 0;

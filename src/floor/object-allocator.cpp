@@ -1,5 +1,4 @@
 ﻿#include "floor/object-allocator.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "floor/cave.h"
 #include "floor/dungeon-tunnel-util.h"
@@ -13,10 +12,12 @@
 #include "grid/trap.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "util/bit-flags-calculator.h"
 #include "wizard/wizard-messages.h"
 
@@ -28,20 +29,24 @@
  * @note Assumes "in_bounds()"
  * @details We count only granite walls and permanent walls.
  */
-static int next_to_walls(floor_type *floor_ptr, POSITION y, POSITION x)
+static int next_to_walls(FloorType *floor_ptr, POSITION y, POSITION x)
 {
     int k = 0;
-    if (in_bounds(floor_ptr, y + 1, x) && floor_ptr->grid_array[y + 1][x].is_extra())
+    if (in_bounds(floor_ptr, y + 1, x) && floor_ptr->grid_array[y + 1][x].is_extra()) {
         k++;
+    }
 
-    if (in_bounds(floor_ptr, y - 1, x) && floor_ptr->grid_array[y - 1][x].is_extra())
+    if (in_bounds(floor_ptr, y - 1, x) && floor_ptr->grid_array[y - 1][x].is_extra()) {
         k++;
+    }
 
-    if (in_bounds(floor_ptr, y, x + 1) && floor_ptr->grid_array[y][x + 1].is_extra())
+    if (in_bounds(floor_ptr, y, x + 1) && floor_ptr->grid_array[y][x + 1].is_extra()) {
         k++;
+    }
 
-    if (in_bounds(floor_ptr, y, x - 1) && floor_ptr->grid_array[y][x - 1].is_extra())
+    if (in_bounds(floor_ptr, y, x - 1) && floor_ptr->grid_array[y][x - 1].is_extra()) {
         k++;
+    }
 
     return k;
 }
@@ -54,12 +59,13 @@ static int next_to_walls(floor_type *floor_ptr, POSITION y, POSITION x)
  * @param walls 最低減隣接させたい外壁の数
  * @return 階段を生成して問題がないならばTRUEを返す。
  */
-static bool alloc_stairs_aux(player_type *player_ptr, POSITION y, POSITION x, int walls)
+static bool alloc_stairs_aux(PlayerType *player_ptr, POSITION y, POSITION x, int walls)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    grid_type *g_ptr = &floor_ptr->grid_array[y][x];
-    if (!g_ptr->is_floor() || pattern_tile(floor_ptr, y, x) || !g_ptr->o_idx_list.empty() || (g_ptr->m_idx != 0) || next_to_walls(floor_ptr, y, x) < walls)
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    auto *g_ptr = &floor_ptr->grid_array[y][x];
+    if (!g_ptr->is_floor() || pattern_tile(floor_ptr, y, x) || !g_ptr->o_idx_list.empty() || (g_ptr->m_idx != 0) || next_to_walls(floor_ptr, y, x) < walls) {
         return false;
+    }
 
     return true;
 }
@@ -72,46 +78,57 @@ static bool alloc_stairs_aux(player_type *player_ptr, POSITION y, POSITION x, in
  * @param walls 最低減隣接させたい外壁の数
  * @return 規定数通りに生成に成功したらTRUEを返す。
  */
-bool alloc_stairs(player_type *player_ptr, FEAT_IDX feat, int num, int walls)
+bool alloc_stairs(PlayerType *player_ptr, FEAT_IDX feat, int num, int walls)
 {
     int shaft_num = 0;
-    feature_type *f_ptr = &f_info[feat];
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (f_ptr->flags.has(FF::LESS)) {
-        if (ironman_downward || !floor_ptr->dun_level)
+    auto *f_ptr = &terrains_info[feat];
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (f_ptr->flags.has(TerrainCharacteristics::LESS)) {
+        if (ironman_downward || !floor_ptr->dun_level) {
             return true;
-
-        if (floor_ptr->dun_level > d_info[floor_ptr->dungeon_idx].mindepth)
-            shaft_num = (randint1(num + 1)) / 2;
-    } else if (f_ptr->flags.has(FF::MORE)) {
-        QUEST_IDX q_idx = quest_number(player_ptr, floor_ptr->dun_level);
-        if (floor_ptr->dun_level > 1 && q_idx) {
-            monster_race *r_ptr = &r_info[quest[q_idx].r_idx];
-            if (!(r_ptr->flags1 & RF1_UNIQUE) || 0 < r_ptr->max_num)
-                return true;
         }
 
-        if (floor_ptr->dun_level >= d_info[floor_ptr->dungeon_idx].maxdepth)
-            return true;
+        if (floor_ptr->dun_level > dungeons_info[floor_ptr->dungeon_idx].mindepth) {
+            shaft_num = (randint1(num + 1)) / 2;
+        }
+    } else if (f_ptr->flags.has(TerrainCharacteristics::MORE)) {
+        auto q_idx = quest_number(player_ptr, floor_ptr->dun_level);
+        const auto &quest_list = QuestList::get_instance();
+        if (floor_ptr->dun_level > 1 && inside_quest(q_idx)) {
+            auto *r_ptr = &monraces_info[quest_list[q_idx].r_idx];
+            if (r_ptr->kind_flags.has_not(MonsterKindType::UNIQUE) || 0 < r_ptr->max_num) {
+                return true;
+            }
+        }
 
-        if ((floor_ptr->dun_level < d_info[floor_ptr->dungeon_idx].maxdepth - 1) && !quest_number(player_ptr, floor_ptr->dun_level + 1))
+        if (floor_ptr->dun_level >= dungeons_info[floor_ptr->dungeon_idx].maxdepth) {
+            return true;
+        }
+
+        if ((floor_ptr->dun_level < dungeons_info[floor_ptr->dungeon_idx].maxdepth - 1) && !inside_quest(quest_number(player_ptr, floor_ptr->dun_level + 1))) {
             shaft_num = (randint1(num) + 1) / 2;
-    } else
+        }
+    } else {
         return false;
+    }
 
     for (int i = 0; i < num; i++) {
         while (true) {
             grid_type *g_ptr;
             int candidates = 0;
             const POSITION max_x = floor_ptr->width - 1;
-            for (POSITION y = 1; y < floor_ptr->height - 1; y++)
-                for (POSITION x = 1; x < max_x; x++)
-                    if (alloc_stairs_aux(player_ptr, y, x, walls))
+            for (POSITION y = 1; y < floor_ptr->height - 1; y++) {
+                for (POSITION x = 1; x < max_x; x++) {
+                    if (alloc_stairs_aux(player_ptr, y, x, walls)) {
                         candidates++;
+                    }
+                }
+            }
 
             if (!candidates) {
-                if (walls <= 0)
+                if (walls <= 0) {
                     return false;
+                }
 
                 walls--;
                 continue;
@@ -124,18 +141,20 @@ bool alloc_stairs(player_type *player_ptr, FEAT_IDX feat, int num, int walls)
                 for (x = 1; x < floor_ptr->width - 1; x++) {
                     if (alloc_stairs_aux(player_ptr, y, x, walls)) {
                         pick--;
-                        if (pick == 0)
+                        if (pick == 0) {
                             break;
+                        }
                     }
                 }
 
-                if (pick == 0)
+                if (pick == 0) {
                     break;
+                }
             }
 
             g_ptr = &floor_ptr->grid_array[y][x];
             g_ptr->mimic = 0;
-            g_ptr->feat = (i < shaft_num) ? feat_state(player_ptr->current_floor_ptr, feat, FF::SHAFT) : feat;
+            g_ptr->feat = (i < shaft_num) ? feat_state(player_ptr->current_floor_ptr, feat, TerrainCharacteristics::SHAFT) : feat;
             g_ptr->info &= ~(CAVE_FLOOR);
             break;
         }
@@ -149,7 +168,7 @@ bool alloc_stairs(player_type *player_ptr, FEAT_IDX feat, int num, int walls)
  * @param Y 指定Y座標
  * @param X 指定X座標
  */
-static void place_rubble(floor_type *floor_ptr, POSITION y, POSITION x)
+static void place_rubble(FloorType *floor_ptr, POSITION y, POSITION x)
 {
     set_cave_feat(floor_ptr, y, x, feat_rubble);
 }
@@ -161,13 +180,13 @@ static void place_rubble(floor_type *floor_ptr, POSITION y, POSITION x)
  * @param num 配置したい数
  * @return 規定数通りに生成に成功したらTRUEを返す。
  */
-void alloc_object(player_type *player_ptr, dap_type set, EFFECT_ID typ, int num)
+void alloc_object(PlayerType *player_ptr, dap_type set, dungeon_allocation_type typ, int num)
 {
     POSITION y = 0;
     POSITION x = 0;
     int dummy = 0;
     grid_type *g_ptr;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     num = num * floor_ptr->height * floor_ptr->width / (MAX_HGT * MAX_WID) + 1;
     for (int k = 0; k < num; k++) {
         while (dummy < SAFE_MAX_ATTEMPTS) {
@@ -175,15 +194,18 @@ void alloc_object(player_type *player_ptr, dap_type set, EFFECT_ID typ, int num)
             y = randint0(floor_ptr->height);
             x = randint0(floor_ptr->width);
             g_ptr = &floor_ptr->grid_array[y][x];
-            if (!g_ptr->is_floor() || !g_ptr->o_idx_list.empty() || g_ptr->m_idx)
+            if (!g_ptr->is_floor() || !g_ptr->o_idx_list.empty() || g_ptr->m_idx) {
                 continue;
+            }
 
-            if (player_bold(player_ptr, y, x))
+            if (player_bold(player_ptr, y, x)) {
                 continue;
+            }
 
             auto is_room = floor_ptr->grid_array[y][x].is_room();
-            if (((set == ALLOC_SET_CORR) && is_room) || ((set == ALLOC_SET_ROOM) && !is_room))
+            if (((set == ALLOC_SET_CORR) && is_room) || ((set == ALLOC_SET_ROOM) && !is_room)) {
                 continue;
+            }
 
             break;
         }
@@ -207,6 +229,8 @@ void alloc_object(player_type *player_ptr, dap_type set, EFFECT_ID typ, int num)
             break;
         case ALLOC_TYP_OBJECT:
             place_object(player_ptr, y, x, 0L);
+            break;
+        default:
             break;
         }
     }

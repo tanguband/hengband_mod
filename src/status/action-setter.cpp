@@ -32,7 +32,7 @@
  * #ACTION_NONE / #ACTION_SEARCH / #ACTION_REST / #ACTION_LEARN / #ACTION_FISH / #ACTION_MONK_STANCE / #ACTION_SAMURAI_STANCE / #ACTION_SING / #ACTION_HAYAGAKE / #ACTION_SPELL
  * から選択。
  */
-void set_action(player_type *player_ptr, uint8_t typ)
+void set_action(PlayerType *player_ptr, uint8_t typ)
 {
     int prev_typ = player_ptr->action;
     if (typ == prev_typ) {
@@ -57,12 +57,12 @@ void set_action(player_type *player_ptr, uint8_t typ)
     }
     case ACTION_MONK_STANCE: {
         msg_print(_("構えをといた。", "You stop assuming the special stance."));
-        PlayerClass(player_ptr).set_monk_stance(MonkStance::NONE);
+        PlayerClass(player_ptr).set_monk_stance(MonkStanceType::NONE);
         break;
     }
     case ACTION_SAMURAI_STANCE: {
         msg_print(_("型を崩した。", "You stop assuming the special stance."));
-        PlayerClass(player_ptr).set_samurai_stance(SamuraiStance::NONE);
+        PlayerClass(player_ptr).set_samurai_stance(SamuraiStanceType::NONE);
         player_ptr->update |= (PU_MONSTERS);
         player_ptr->redraw |= (PR_STATUS);
         break;
@@ -85,8 +85,9 @@ void set_action(player_type *player_ptr, uint8_t typ)
     player_ptr->action = typ;
 
     /* If we are requested other action, stop singing */
-    if (prev_typ == ACTION_SING)
+    if (prev_typ == ACTION_SING) {
         stop_singing(player_ptr);
+    }
 
     if (prev_typ == ACTION_SPELL) {
         SpellHex spell_hex(player_ptr);

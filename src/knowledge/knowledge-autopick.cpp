@@ -19,10 +19,11 @@
  * @brief 自動拾い設定ファイルをロードするコマンドのメインルーチン /
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void do_cmd_reload_autopick(player_type *player_ptr)
+void do_cmd_reload_autopick(PlayerType *player_ptr)
 {
-    if (!get_check(_("自動拾い設定ファイルをロードしますか? ", "Reload auto-pick preference file? ")))
+    if (!get_check(_("自動拾い設定ファイルをロードしますか? ", "Reload auto-pick preference file? "))) {
         return;
+    }
 
     autopick_load_pref(player_ptr, true);
 }
@@ -30,12 +31,13 @@ void do_cmd_reload_autopick(player_type *player_ptr)
 /*
  * Check the status of "autopick"
  */
-void do_cmd_knowledge_autopick(player_type *player_ptr)
+void do_cmd_knowledge_autopick(PlayerType *player_ptr)
 {
     FILE *fff = nullptr;
     GAME_TEXT file_name[FILE_NAME_SIZE];
-    if (!open_temporary_file(&fff, file_name))
+    if (!open_temporary_file(&fff, file_name)) {
         return;
+    }
 
     if (autopick_list.empty()) {
         fprintf(fff, _("自動破壊/拾いには何も登録されていません。", "No preference for auto picker/destroyer."));
@@ -57,10 +59,11 @@ void do_cmd_knowledge_autopick(player_type *player_ptr)
             tmp = _("確認", "Query");
         }
 
-        if (act & DO_DISPLAY)
+        if (act & DO_DISPLAY) {
             fprintf(fff, "%11s", format("[%s]", tmp));
-        else
+        } else {
             fprintf(fff, "%11s", format("(%s)", tmp));
+        }
 
         tmp = autopick_line_from_entry(&item);
         fprintf(fff, " %s", tmp);

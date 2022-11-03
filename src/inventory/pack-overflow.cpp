@@ -14,16 +14,18 @@
 /*!
  * @brief アイテムの所持種類数が超えた場合にアイテムを床に落とす処理
  */
-void pack_overflow(player_type *player_ptr)
+void pack_overflow(PlayerType *player_ptr)
 {
-    if (player_ptr->inventory_list[INVEN_PACK].k_idx == 0)
+    if (player_ptr->inventory_list[INVEN_PACK].k_idx == 0) {
         return;
+    }
 
     GAME_TEXT o_name[MAX_NLEN];
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     update_creature(player_ptr);
-    if (!player_ptr->inventory_list[INVEN_PACK].k_idx)
+    if (!player_ptr->inventory_list[INVEN_PACK].k_idx) {
         return;
+    }
 
     o_ptr = &player_ptr->inventory_list[INVEN_PACK];
     disturb(player_ptr, false, true);

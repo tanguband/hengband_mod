@@ -13,16 +13,17 @@
 #include "object-hook/hook-weapon.h"
 #include "object/object-flags.h"
 #include "object/object-info.h"
-#include "object/object-kind.h"
 #include "sv-definition/sv-amulet-types.h"
 #include "sv-definition/sv-other-types.h"
 #include "sv-definition/sv-ring-types.h"
 #include "sv-definition/sv-weapon-types.h"
 #include "system/artifact-type-definition.h"
+#include "system/baseitem-info-definition.h"
 #include "system/monster-race-definition.h"
 #include "term/screen-processor.h"
 #include "util/bit-flags-calculator.h"
 #include "util/buffer-shaper.h"
+#include "util/enum-converter.h"
 
 /*!
  * @brief オブジェクトの*鑑定*内容を詳述して表示する /
@@ -32,7 +33,7 @@
  * @param mode 表示オプション
  * @return 特筆すべき情報が一つでもあった場合TRUE、一つもなく表示がキャンセルされた場合FALSEを返す。
  */
-bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
+bool screen_object(PlayerType *player_ptr, ObjectType *o_ptr, BIT_FLAGS mode)
 {
     char temp[70 * 20];
     concptr info[128];
@@ -42,7 +43,8 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
     int trivial_info = 0;
     auto flgs = object_flags(o_ptr);
 
-    shape_buffer(o_ptr->name1 ? a_info[o_ptr->name1].text.c_str() : k_info[o_ptr->k_idx].text.c_str(), 77 - 15, temp, sizeof(temp));
+    const auto item_text = o_ptr->is_fixed_artifact() ? artifacts_info.at(o_ptr->fixed_artifact_idx).text.data() : baseitems_info[o_ptr->k_idx].text.data();
+    shape_buffer(item_text, 77 - 15, temp, sizeof(temp));
 
     int i = 0;
     for (int j = 0; temp[j]; j += 1 + strlen(&temp[j])) {
@@ -64,7 +66,7 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         info[i++] = _("それは投げた時ペットに変化する。", "It will transform into a pet when thrown.");
     }
 
-    if (o_ptr->name1 == ART_STONEMASK) {
+    if (o_ptr->is_specific_artifact(FixedArtifactId::STONEMASK)) {
         info[i++] = _("それを装備した者は吸血鬼になる。", "It makes you turn into a vampire permanently.");
     }
 
@@ -101,54 +103,64 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         info[i++] = _("それは物を強く投げることを可能にする。", "It provides great strength when you throw an item.");
     }
 
-    if (flgs.has(TR_DOWN_SAVING)) {
-        info[i++] = _("それは魔法抵抗力を下げる。", "It decreases your magic resistance.");
-    }
-
     if (o_ptr->tval == ItemKindType::STATUE) {
-        monster_race *r_ptr = &r_info[o_ptr->pval];
-        if (o_ptr->pval == MON_BULLGATES)
+        auto statue_r_idx = i2enum<MonsterRaceId>(o_ptr->pval);
+        auto *r_ptr = &monraces_info[statue_r_idx];
+        if (statue_r_idx == MonsterRaceId::BULLGATES) {
             info[i++] = _("それは部屋に飾ると恥ずかしい。", "It is shameful.");
-        else if (r_ptr->flags2 & (RF2_ELDRITCH_HORROR))
+        } else if (r_ptr->flags2 & (RF2_ELDRITCH_HORROR)) {
             info[i++] = _("それは部屋に飾ると恐い。", "It is fearful.");
-        else
+        } else {
             info[i++] = _("それは部屋に飾ると楽しい。", "It is cheerful.");
+        }
     }
 
-    if (flgs.has(TR_DARK_SOURCE))
+    if (flgs.has(TR_DARK_SOURCE)) {
         info[i++] = _("それは全く光らない。", "It provides no light.");
+    }
 
     POSITION rad = 0;
-    if (flgs.has(TR_LITE_1) && flgs.has_not(TR_DARK_SOURCE))
+    if (flgs.has(TR_LITE_1) && flgs.has_not(TR_DARK_SOURCE)) {
         rad += 1;
-    if (flgs.has(TR_LITE_2) && flgs.has_not(TR_DARK_SOURCE))
+    }
+    if (flgs.has(TR_LITE_2) && flgs.has_not(TR_DARK_SOURCE)) {
         rad += 2;
-    if (flgs.has(TR_LITE_3) && flgs.has_not(TR_DARK_SOURCE))
+    }
+    if (flgs.has(TR_LITE_3) && flgs.has_not(TR_DARK_SOURCE)) {
         rad += 3;
-    if (flgs.has(TR_LITE_M1))
+    }
+    if (flgs.has(TR_LITE_M1)) {
         rad -= 1;
-    if (flgs.has(TR_LITE_M2))
+    }
+    if (flgs.has(TR_LITE_M2)) {
         rad -= 2;
-    if (flgs.has(TR_LITE_M3))
+    }
+    if (flgs.has(TR_LITE_M3)) {
         rad -= 3;
-
-    if (o_ptr->name2 == EGO_LITE_SHINE)
-        rad++;
-
-    if (flgs.has(TR_LITE_FUEL) && flgs.has_not(TR_DARK_SOURCE)) {
-        if (rad > 0)
-            sprintf(desc, _("それは燃料補給によって明かり(半径 %d)を授ける。", "It provides light (radius %d) when fueled."), (int)rad);
-    } else {
-        if (rad > 0)
-            sprintf(desc, _("それは永遠なる明かり(半径 %d)を授ける。", "It provides light (radius %d) forever."), (int)rad);
-        if (rad < 0)
-            sprintf(desc, _("それは明かりの半径を狭める(半径に-%d)。", "It decreases the radius of your light by %d."), (int)-rad);
     }
 
-    if (rad != 0)
-        info[i++] = desc;
+    if (o_ptr->ego_idx == EgoType::LITE_SHINE) {
+        rad++;
+    }
 
-    if (o_ptr->name2 == EGO_LITE_LONG) {
+    if (flgs.has(TR_LITE_FUEL) && flgs.has_not(TR_DARK_SOURCE)) {
+        if (rad > 0) {
+            sprintf(desc, _("それは燃料補給によって明かり(半径 %d)を授ける。", "It provides light (radius %d) when fueled."), (int)rad);
+        }
+    } else {
+        if (rad > 0) {
+            sprintf(desc, _("それは永遠なる明かり(半径 %d)を授ける。", "It provides light (radius %d) forever."), (int)rad);
+        }
+        if (rad < 0) {
+            sprintf(desc, _("それは明かりの半径を狭める(半径に-%d)。", "It decreases the radius of your light by %d."), (int)-rad);
+        }
+    }
+
+    if (rad != 0) {
+        info[i++] = desc;
+    }
+
+    if (o_ptr->ego_idx == EgoType::LITE_LONG) {
         info[i++] = _("それは長いターン明かりを授ける。", "It provides light for much longer time.");
     }
 
@@ -369,31 +381,37 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         info[i++] = _("それはあなたの魅力を維持する。", "It sustains your charisma.");
     }
 
-    if (flgs.has(TR_IM_ACID))
+    if (flgs.has(TR_IM_ACID)) {
         info[i++] = _("それは酸に対する完全な免疫を授ける。", "It provides immunity to acid.");
-    else if (flgs.has(TR_VUL_ACID))
+    } else if (flgs.has(TR_VUL_ACID)) {
         info[i++] = _("それは酸に対する弱点を授ける。", "It provides vulnerability to acid.");
+    }
 
-    if (flgs.has(TR_IM_ELEC))
+    if (flgs.has(TR_IM_ELEC)) {
         info[i++] = _("それは電撃に対する完全な免疫を授ける。", "It provides immunity to electricity.");
-    else if (flgs.has(TR_VUL_ELEC))
+    } else if (flgs.has(TR_VUL_ELEC)) {
         info[i++] = _("それは電撃に対する弱点を授ける。", "It provides vulnerability to electricity.");
+    }
 
-    if (flgs.has(TR_IM_FIRE))
+    if (flgs.has(TR_IM_FIRE)) {
         info[i++] = _("それは火に対する完全な免疫を授ける。", "It provides immunity to fire.");
-    else if (flgs.has(TR_VUL_FIRE))
+    } else if (flgs.has(TR_VUL_FIRE)) {
         info[i++] = _("それは火に対する弱点を授ける。", "It provides vulnerability to fire.");
+    }
 
-    if (flgs.has(TR_IM_COLD))
+    if (flgs.has(TR_IM_COLD)) {
         info[i++] = _("それは寒さに対する完全な免疫を授ける。", "It provides immunity to cold.");
-    else if (flgs.has(TR_VUL_COLD))
+    } else if (flgs.has(TR_VUL_COLD)) {
         info[i++] = _("それは寒さに対する弱点を授ける。", "It provides vulnerability to cold.");
+    }
 
-    if (flgs.has(TR_IM_DARK))
+    if (flgs.has(TR_IM_DARK)) {
         info[i++] = _("それは暗黒に対する完全な免疫を授ける。", "It provides immunity to dark.");
+    }
 
-    if (flgs.has(TR_VUL_LITE))
+    if (flgs.has(TR_VUL_LITE)) {
         info[i++] = _("それは閃光に対する弱点を授ける。", "It provides vulnerability to cold.");
+    }
 
     if (flgs.has(TR_THROW)) {
         info[i++] = _("それは敵に投げて大きなダメージを与えることができる。", "It is perfectly balanced for throwing.");
@@ -559,8 +577,7 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         info[i++] = _("それは呪いへの抵抗力を高める。", "It increases your resistance to curses.");
     }
 
-    if (flgs.has(TR_SH_FIRE))
-    {
+    if (flgs.has(TR_SH_FIRE)) {
         info[i++] = _("それは炎のバリアを張る。", "It produces a fiery sheath.");
     }
 
@@ -570,6 +587,18 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
 
     if (flgs.has(TR_SH_COLD)) {
         info[i++] = _("それは冷気のバリアを張る。", "It produces a sheath of coldness.");
+    }
+
+    if (flgs.has(TR_SELF_FIRE)) {
+        info[i++] = _("それはあなたを燃やす。", "It burns you.");
+    }
+
+    if (flgs.has(TR_SELF_ELEC)) {
+        info[i++] = _("それはあなたを電撃で包む。", "It electrocutes you.");
+    }
+
+    if (flgs.has(TR_SELF_COLD)) {
+        info[i++] = _("それはあなたを凍らせる。", "It freezes you.");
     }
 
     if (flgs.has(TR_NO_MAGIC)) {
@@ -593,9 +622,9 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
     }
 
     if (o_ptr->is_cursed()) {
-        if (o_ptr->curse_flags.has(TRC::PERMA_CURSE)) {
+        if (o_ptr->curse_flags.has(CurseTraitType::PERMA_CURSE)) {
             info[i++] = _("それは永遠の呪いがかけられている。", "It is permanently cursed.");
-        } else if (o_ptr->curse_flags.has(TRC::HEAVY_CURSE)) {
+        } else if (o_ptr->curse_flags.has(CurseTraitType::HEAVY_CURSE)) {
             info[i++] = _("それは強力な呪いがかけられている。", "It is heavily cursed.");
         } else {
             info[i++] = _("それは呪われている。", "It is cursed.");
@@ -608,78 +637,91 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         }
     }
 
-    if ((flgs.has(TR_TY_CURSE)) || o_ptr->curse_flags.has(TRC::TY_CURSE)) {
+    if ((flgs.has(TR_TY_CURSE)) || o_ptr->curse_flags.has(CurseTraitType::TY_CURSE)) {
         info[i++] = _("それは太古の禍々しい怨念が宿っている。", "It carries an ancient foul curse.");
     }
 
-    if ((flgs.has(TR_AGGRAVATE)) || o_ptr->curse_flags.has(TRC::AGGRAVATE)) {
+    if ((flgs.has(TR_AGGRAVATE)) || o_ptr->curse_flags.has(CurseTraitType::AGGRAVATE)) {
         info[i++] = _("それは付近のモンスターを怒らせる。", "It aggravates nearby creatures.");
     }
 
-    if ((flgs.has(TR_DRAIN_EXP)) || o_ptr->curse_flags.has(TRC::DRAIN_EXP)) {
+    if ((flgs.has(TR_DRAIN_EXP)) || o_ptr->curse_flags.has(CurseTraitType::DRAIN_EXP)) {
         info[i++] = _("それは経験値を吸い取る。", "It drains experience.");
     }
 
-    if (o_ptr->curse_flags.has(TRC::SLOW_REGEN)) {
+    if (o_ptr->curse_flags.has(CurseTraitType::SLOW_REGEN)) {
         info[i++] = _("それは回復力を弱める。", "It slows your regenerative powers.");
     }
 
-    if (o_ptr->curse_flags.has(TRC::ADD_L_CURSE) || flgs.has(TR_ADD_L_CURSE)) {
+    if (o_ptr->curse_flags.has(CurseTraitType::ADD_L_CURSE) || flgs.has(TR_ADD_L_CURSE)) {
         info[i++] = _("それは弱い呪いを増やす。", "It adds weak curses.");
     }
 
-    if (o_ptr->curse_flags.has(TRC::ADD_H_CURSE) || flgs.has(TR_ADD_H_CURSE)) {
+    if (o_ptr->curse_flags.has(CurseTraitType::ADD_H_CURSE) || flgs.has(TR_ADD_H_CURSE)) {
         info[i++] = _("それは強力な呪いを増やす。", "It adds heavy curses.");
     }
 
-    if ((flgs.has(TR_CALL_ANIMAL)) || o_ptr->curse_flags.has(TRC::CALL_ANIMAL)) {
+    if (o_ptr->curse_flags.has(CurseTraitType::PERSISTENT_CURSE) || flgs.has(TR_PERSISTENT_CURSE)) {
+        info[i++] = _("それは頻繁に呪いをかけなおす。", "It curses itself persistently.");
+    }
+
+    if ((flgs.has(TR_CALL_ANIMAL)) || o_ptr->curse_flags.has(CurseTraitType::CALL_ANIMAL)) {
         info[i++] = _("それは動物を呼び寄せる。", "It attracts animals.");
     }
 
-    if ((flgs.has(TR_CALL_DEMON)) || o_ptr->curse_flags.has(TRC::CALL_DEMON)) {
+    if ((flgs.has(TR_CALL_DEMON)) || o_ptr->curse_flags.has(CurseTraitType::CALL_DEMON)) {
         info[i++] = _("それは悪魔を呼び寄せる。", "It attracts demons.");
     }
 
-    if ((flgs.has(TR_CALL_DRAGON)) || o_ptr->curse_flags.has(TRC::CALL_DRAGON)) {
+    if ((flgs.has(TR_CALL_DRAGON)) || o_ptr->curse_flags.has(CurseTraitType::CALL_DRAGON)) {
         info[i++] = _("それはドラゴンを呼び寄せる。", "It attracts dragons.");
     }
 
-    if ((flgs.has(TR_CALL_UNDEAD)) || o_ptr->curse_flags.has(TRC::CALL_UNDEAD)) {
+    if ((flgs.has(TR_CALL_UNDEAD)) || o_ptr->curse_flags.has(CurseTraitType::CALL_UNDEAD)) {
         info[i++] = _("それは死霊を呼び寄せる。", "It attracts undead.");
     }
 
-    if ((flgs.has(TR_COWARDICE)) || o_ptr->curse_flags.has(TRC::COWARDICE)) {
+    if ((flgs.has(TR_COWARDICE)) || o_ptr->curse_flags.has(CurseTraitType::COWARDICE)) {
         info[i++] = _("それは恐怖感を引き起こす。", "It makes you subject to cowardice.");
     }
 
-    if (flgs.has(TR_BERS_RAGE) || o_ptr->curse_flags.has(TRC::BERS_RAGE))
+    if (flgs.has(TR_BERS_RAGE) || o_ptr->curse_flags.has(CurseTraitType::BERS_RAGE)) {
         info[i++] = _("それは狂戦士化の発作を引き起こす。", "It makes you subject to berserker fits.");
+    }
 
-    if ((flgs.has(TR_TELEPORT)) || o_ptr->curse_flags.has(TRC::TELEPORT)) {
+    if ((flgs.has(TR_TELEPORT)) || o_ptr->curse_flags.has(CurseTraitType::TELEPORT)) {
         info[i++] = _("それはランダムなテレポートを引き起こす。", "It induces random teleportation.");
     }
 
-    if ((flgs.has(TR_LOW_MELEE)) || o_ptr->curse_flags.has(TRC::LOW_MELEE)) {
+    if ((flgs.has(TR_LOW_MELEE)) || o_ptr->curse_flags.has(CurseTraitType::LOW_MELEE)) {
         info[i++] = _("それは攻撃を外しやすい。", "It causes you to miss blows.");
     }
 
-    if ((flgs.has(TR_LOW_AC)) || o_ptr->curse_flags.has(TRC::LOW_AC)) {
+    if ((flgs.has(TR_LOW_AC)) || o_ptr->curse_flags.has(CurseTraitType::LOW_AC)) {
         info[i++] = _("それは攻撃を受けやすい。", "It helps your enemies' blows.");
     }
 
-    if ((flgs.has(TR_HARD_SPELL)) || o_ptr->curse_flags.has(TRC::HARD_SPELL)) {
+    if (o_ptr->curse_flags.has(CurseTraitType::VUL_CURSE) || flgs.has(TR_VUL_CURSE)) {
+        info[i++] = _("それは呪いへの抵抗力を下げる。", "It decreases your resistance to curses.");
+    }
+
+    if (flgs.has(TR_DOWN_SAVING)) {
+        info[i++] = _("それは魔法抵抗力を半減させる。", "It halves your magic resistance.");
+    }
+
+    if ((flgs.has(TR_HARD_SPELL)) || o_ptr->curse_flags.has(CurseTraitType::HARD_SPELL)) {
         info[i++] = _("それは魔法を唱えにくくする。", "It encumbers you while spellcasting.");
     }
 
-    if ((flgs.has(TR_FAST_DIGEST)) || o_ptr->curse_flags.has(TRC::FAST_DIGEST)) {
+    if ((flgs.has(TR_FAST_DIGEST)) || o_ptr->curse_flags.has(CurseTraitType::FAST_DIGEST)) {
         info[i++] = _("それはあなたの新陳代謝を速くする。", "It speeds your metabolism.");
     }
 
-    if ((flgs.has(TR_DRAIN_HP)) || o_ptr->curse_flags.has(TRC::DRAIN_HP)) {
+    if ((flgs.has(TR_DRAIN_HP)) || o_ptr->curse_flags.has(CurseTraitType::DRAIN_HP)) {
         info[i++] = _("それはあなたの体力を吸い取る。", "It drains you.");
     }
 
-    if ((flgs.has(TR_DRAIN_MANA)) || o_ptr->curse_flags.has(TRC::DRAIN_MANA)) {
+    if ((flgs.has(TR_DRAIN_MANA)) || o_ptr->curse_flags.has(CurseTraitType::DRAIN_MANA)) {
         info[i++] = _("それはあなたの魔力を吸い取る。", "It drains your mana.");
     }
 
@@ -735,20 +777,23 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         }
     }
 
-    if (mode & SCROBJ_FORCE_DETAIL)
+    if (mode & SCROBJ_FORCE_DETAIL) {
         trivial_info = 0;
+    }
 
-    if (i <= trivial_info)
+    if (i <= trivial_info) {
         return false;
+    }
 
     screen_save();
     int wid, hgt;
     term_get_size(&wid, &hgt);
 
-    if (!(mode & SCROBJ_FAKE_OBJECT))
+    if (!(mode & SCROBJ_FAKE_OBJECT)) {
         describe_flavor(player_ptr, o_name, o_ptr, 0);
-    else
+    } else {
         describe_flavor(player_ptr, o_name, o_ptr, (OD_NAME_ONLY | OD_STORE));
+    }
 
     prt(o_name, 0, 0);
     for (int k = 1; k < hgt; k++) {
@@ -756,9 +801,10 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
     }
 
     if ((o_ptr->tval == ItemKindType::STATUE) && (o_ptr->sval == SV_PHOTO)) {
-        monster_race *r_ptr = &r_info[o_ptr->pval];
-        int namelen = strlen(r_ptr->name.c_str());
-        prt(format("%s: '", r_ptr->name.c_str()), 1, 15);
+        auto statue_r_idx = i2enum<MonsterRaceId>(o_ptr->pval);
+        auto *r_ptr = &monraces_info[statue_r_idx];
+        int namelen = strlen(r_ptr->name.data());
+        prt(format("%s: '", r_ptr->name.data()), 1, 15);
         term_queue_bigchar(18 + namelen, 1, r_ptr->x_attr, r_ptr->x_char, 0, 0);
         prt("'", 1, (use_bigtile ? 20 : 19) + namelen);
     } else {
@@ -771,8 +817,9 @@ bool screen_object(player_type *player_ptr, object_type *o_ptr, BIT_FLAGS mode)
         if ((k == hgt - 2) && (j + 1 < i)) {
             prt(_("-- 続く --", "-- more --"), k, 15);
             inkey();
-            for (; k > 2; k--)
+            for (; k > 2; k--) {
                 prt("", k, 15);
+            }
         }
     }
 

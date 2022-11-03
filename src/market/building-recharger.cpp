@@ -12,9 +12,9 @@
 #include "object-hook/hook-magic.h"
 #include "object/item-tester-hooker.h"
 #include "object/item-use-flags.h"
-#include "object/object-kind.h"
 #include "perception/object-perception.h"
 #include "spell-kind/spells-perception.h"
+#include "system/baseitem-info-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "term/screen-processor.h"
@@ -31,7 +31,7 @@
  * the base-item.\n
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void building_recharge(player_type *player_ptr)
+void building_recharge(PlayerType *player_ptr)
 {
     msg_flag = false;
     clear_bldg(4, 18);
@@ -41,13 +41,14 @@ void building_recharge(player_type *player_ptr)
     concptr s = _("魔力を充填すべきアイテムがない。", "You have nothing to recharge.");
 
     OBJECT_IDX item;
-    object_type *o_ptr;
-    o_ptr = choose_object(player_ptr, &item, q, s, (USE_INVEN | USE_FLOOR), FuncItemTester(&object_type::is_rechargeable));
-    if (!o_ptr)
+    ObjectType *o_ptr;
+    o_ptr = choose_object(player_ptr, &item, q, s, (USE_INVEN | USE_FLOOR), FuncItemTester(&ObjectType::is_rechargeable));
+    if (!o_ptr) {
         return;
+    }
 
-    object_kind *k_ptr;
-    k_ptr = &k_info[o_ptr->k_idx];
+    BaseItemInfo *k_ptr;
+    k_ptr = &baseitems_info[o_ptr->k_idx];
 
     /*
      * We don't want to give the player free info about
@@ -74,7 +75,7 @@ void building_recharge(player_type *player_ptr)
         return;
     }
 
-    DEPTH lev = k_info[o_ptr->k_idx].level;
+    DEPTH lev = baseitems_info[o_ptr->k_idx].level;
     PRICE price;
     if (o_ptr->tval == ItemKindType::ROD) {
         if (o_ptr->timeout > 0) {
@@ -85,10 +86,10 @@ void building_recharge(player_type *player_ptr)
             return;
         }
     } else if (o_ptr->tval == ItemKindType::STAFF) {
-        price = (k_info[o_ptr->k_idx].cost / 10) * o_ptr->number;
+        price = (baseitems_info[o_ptr->k_idx].cost / 10) * o_ptr->number;
         price = std::max(10, price);
     } else {
-        price = (k_info[o_ptr->k_idx].cost / 10);
+        price = (baseitems_info[o_ptr->k_idx].cost / 10);
         price = std::max(10, price);
     }
 
@@ -135,16 +136,18 @@ void building_recharge(player_type *player_ptr)
         }
     } else {
         int max_charges;
-        if (o_ptr->tval == ItemKindType::STAFF)
+        if (o_ptr->tval == ItemKindType::STAFF) {
             max_charges = k_ptr->pval - o_ptr->pval;
-        else
+        } else {
             max_charges = o_ptr->number * k_ptr->pval - o_ptr->pval;
+        }
 
         charges = (PARAMETER_VALUE)get_quantity(
             format(_("一回分＄%d で何回分充填しますか？", "Add how many charges for %d gold apiece? "), price), std::min(player_ptr->au / price, max_charges));
 
-        if (charges < 1)
+        if (charges < 1) {
             return;
+        }
 
         price *= charges;
         o_ptr->pval += charges;
@@ -173,7 +176,7 @@ void building_recharge(player_type *player_ptr)
  * the base-item.\n
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void building_recharge_all(player_type *player_ptr)
+void building_recharge_all(PlayerType *player_ptr)
 {
     msg_flag = false;
     clear_bldg(4, 18);
@@ -182,17 +185,19 @@ void building_recharge_all(player_type *player_ptr)
     PRICE price = 0;
     PRICE total_cost = 0;
     for (INVENTORY_IDX i = 0; i < INVEN_PACK; i++) {
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &player_ptr->inventory_list[i];
 
-        if ((o_ptr->tval < ItemKindType::STAFF) || (o_ptr->tval > ItemKindType::ROD))
+        if ((o_ptr->tval < ItemKindType::STAFF) || (o_ptr->tval > ItemKindType::ROD)) {
             continue;
-        if (!o_ptr->is_known())
+        }
+        if (!o_ptr->is_known()) {
             total_cost += 50;
+        }
 
-        DEPTH lev = k_info[o_ptr->k_idx].level;
-        object_kind *k_ptr;
-        k_ptr = &k_info[o_ptr->k_idx];
+        DEPTH lev = baseitems_info[o_ptr->k_idx].level;
+        BaseItemInfo *k_ptr;
+        k_ptr = &baseitems_info[o_ptr->k_idx];
 
         switch (o_ptr->tval) {
         case ItemKindType::ROD:
@@ -200,13 +205,13 @@ void building_recharge_all(player_type *player_ptr)
             break;
 
         case ItemKindType::STAFF:
-            price = (k_info[o_ptr->k_idx].cost / 10) * o_ptr->number;
+            price = (baseitems_info[o_ptr->k_idx].cost / 10) * o_ptr->number;
             price = std::max(10, price);
             price = (k_ptr->pval - o_ptr->pval) * price;
             break;
 
         case ItemKindType::WAND:
-            price = (k_info[o_ptr->k_idx].cost / 10);
+            price = (baseitems_info[o_ptr->k_idx].cost / 10);
             price = std::max(10, price);
             price = (o_ptr->number * k_ptr->pval - o_ptr->pval) * price;
             break;
@@ -215,8 +220,9 @@ void building_recharge_all(player_type *player_ptr)
             break;
         }
 
-        if (price > 0)
+        if (price > 0) {
             total_cost += price;
+        }
     }
 
     if (!total_cost) {
@@ -231,17 +237,19 @@ void building_recharge_all(player_type *player_ptr)
         return;
     }
 
-    if (!get_check(format(_("すべてのアイテムを ＄%d で再充填しますか？", "Recharge all items for %d gold? "), total_cost)))
+    if (!get_check(format(_("すべてのアイテムを ＄%d で再充填しますか？", "Recharge all items for %d gold? "), total_cost))) {
         return;
+    }
 
     for (INVENTORY_IDX i = 0; i < INVEN_PACK; i++) {
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &player_ptr->inventory_list[i];
-        object_kind *k_ptr;
-        k_ptr = &k_info[o_ptr->k_idx];
+        BaseItemInfo *k_ptr;
+        k_ptr = &baseitems_info[o_ptr->k_idx];
 
-        if ((o_ptr->tval < ItemKindType::STAFF) || (o_ptr->tval > ItemKindType::ROD))
+        if ((o_ptr->tval < ItemKindType::STAFF) || (o_ptr->tval > ItemKindType::ROD)) {
             continue;
+        }
 
         if (!o_ptr->is_known()) {
             identify_item(player_ptr, o_ptr);
@@ -253,14 +261,16 @@ void building_recharge_all(player_type *player_ptr)
             o_ptr->timeout = 0;
             break;
         case ItemKindType::STAFF:
-            if (o_ptr->pval < k_ptr->pval)
+            if (o_ptr->pval < k_ptr->pval) {
                 o_ptr->pval = k_ptr->pval;
+            }
 
             o_ptr->ident &= ~(IDENT_EMPTY);
             break;
         case ItemKindType::WAND:
-            if (o_ptr->pval < o_ptr->number * k_ptr->pval)
+            if (o_ptr->pval < o_ptr->number * k_ptr->pval) {
                 o_ptr->pval = o_ptr->number * k_ptr->pval;
+            }
 
             o_ptr->ident &= ~(IDENT_EMPTY);
             break;

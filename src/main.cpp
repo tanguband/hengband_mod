@@ -26,7 +26,9 @@
 #include "util/angband-files.h"
 #include "util/string-processor.h"
 #include "view/display-scores.h"
+#include "wizard/spoiler-util.h"
 #include "wizard/wizard-spoiler.h"
+#include <string>
 
 /*
  * Available graphic modes
@@ -57,8 +59,9 @@ static void quit_hook(concptr s)
     /* Scan windows */
     for (j = 8 - 1; j >= 0; j--) {
         /* Unused */
-        if (!angband_term[j])
+        if (!angband_term[j]) {
             continue;
+        }
 
         /* Nuke it */
         term_nuke(angband_term[j]);
@@ -88,7 +91,7 @@ static void create_user_dir(void)
     mkdir(dirpath, 0700);
 
     /* Build the path to the variant-specific sub-directory */
-    path_build(subdirpath, sizeof(subdirpath), dirpath, VERSION_NAME);
+    path_build(subdirpath, sizeof(subdirpath), dirpath, VARIANT_NAME.data());
 
     /* Create the directory */
     mkdir(subdirpath, 0700);
@@ -134,10 +137,12 @@ static void init_stuff(void)
     varpath[511] = '\0';
 
     /* Hack -- Add a path separator (only if needed) */
-    if (!suffix(libpath, PATH_SEP))
+    if (!suffix(libpath, PATH_SEP)) {
         strcat(libpath, PATH_SEP);
-    if (!suffix(varpath, PATH_SEP))
+    }
+    if (!suffix(varpath, PATH_SEP)) {
         strcat(varpath, PATH_SEP);
+    }
 
     /* Initialize */
     init_file_paths(libpath, varpath);
@@ -160,8 +165,9 @@ static void change_path(concptr info)
     s = angband_strchr(info, '=');
 
     /* Verify equal sign */
-    if (!s)
+    if (!s) {
         quit_fmt("Try '-d<what>=<path>' not '-d%s'", info);
+    }
 
     /* Analyze */
     switch (tolower(info[0])) {
@@ -272,6 +278,8 @@ static void display_usage(const char *program)
 
 #ifdef USE_GCU
     puts("  -mgcu    To use GCU (GNU Curses)");
+    puts("  --       Sub options");
+    puts("  -- -o    old subwindow layout (no bigscreen)");
 #endif /* USE_GCU */
 
 #ifdef USE_CAP
@@ -297,14 +305,14 @@ static bool parse_long_opt(const char *opt)
     init_stuff();
     init_angband(p_ptr, true);
     switch (output_all_spoilers()) {
-    case spoiler_output_status::SPOILER_OUTPUT_SUCCESS:
+    case SpoilerOutputResultType::SUCCESSFUL:
         puts("Successfully created a spoiler file.");
         quit(nullptr);
         break;
-    case spoiler_output_status::SPOILER_OUTPUT_FAIL_FOPEN:
+    case SpoilerOutputResultType::FILE_OPEN_FAILED:
         quit("Cannot create spoiler file.");
         break;
-    case spoiler_output_status::SPOILER_OUTPUT_FAIL_FCLOSE:
+    case SpoilerOutputResultType::FILE_CLOSE_FAILED:
         quit("Cannot close spoiler file.");
         break;
     default:
@@ -431,8 +439,9 @@ int main(int argc, char *argv[])
         case 'S':
         case 's': {
             show_score = atoi(&argv[i][2]);
-            if (show_score <= 0)
+            if (show_score <= 0) {
                 show_score = 10;
+            }
             break;
         }
         case 'u':
@@ -490,8 +499,9 @@ int main(int argc, char *argv[])
         }
         }
 
-        if (!is_usage_needed)
+        if (!is_usage_needed) {
             continue;
+        }
 
         display_usage(argv[0]);
     }
@@ -507,17 +517,6 @@ int main(int argc, char *argv[])
 
     /* Install "quit" hook */
     quit_aux = quit_hook;
-
-#ifdef USE_XAW
-    /* Attempt to use the "main-xaw.c" support */
-    if (!done && (!mstr || (streq(mstr, "xaw")))) {
-        extern errr init_xaw(int, char **);
-        if (0 == init_xaw(argc, argv)) {
-            ANGBAND_SYS = "xaw";
-            done = true;
-        }
-    }
-#endif
 
 #ifdef USE_X11
     /* Attempt to use the "main-x11.c" support */
@@ -553,12 +552,14 @@ int main(int argc, char *argv[])
 #endif
 
     /* Make sure we have a display! */
-    if (!done)
+    if (!done) {
         quit("Unable to prepare any 'display module'!");
+    }
 
     /* Hack -- If requested, display scores and quit */
-    if (show_score > 0)
+    if (show_score > 0) {
         display_scores(0, show_score);
+    }
 
     /* Catch nasty signals */
     signals_init();
@@ -576,7 +577,7 @@ int main(int argc, char *argv[])
     quit(nullptr);
 
     /* Exit */
-    return (0);
+    return 0;
 }
 
 #endif

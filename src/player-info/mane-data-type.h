@@ -6,12 +6,12 @@
 
 constexpr int MAX_MANE = 16;
 
-enum class RF_ABILITY;
+enum class MonsterAbilityType;
 
 struct mane_data_type {
     struct mane_type {
-        RF_ABILITY spell{};
-        HIT_POINT damage{};
+        MonsterAbilityType spell{};
+        int damage{};
     };
 
     std::deque<mane_type> mane_list{};

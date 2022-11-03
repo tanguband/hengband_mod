@@ -25,6 +25,8 @@
 #include "main/sound-of-music.h"
 #include "mind/mind-elementalist.h"
 #include "monster-floor/monster-remover.h"
+#include "player-base/player-class.h"
+#include "player-base/player-race.h"
 #include "player-info/class-info.h"
 #include "player-info/race-types.h"
 #include "player/patron.h"
@@ -43,7 +45,7 @@
  * @brief プレイヤーキャラの作成結果を日記に書く
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-static void write_birth_diary(player_type *player_ptr)
+static void write_birth_diary(PlayerType *player_ptr)
 {
     concptr indent = "                            ";
 
@@ -73,8 +75,8 @@ static void write_birth_diary(player_type *player_ptr)
     }
     sprintf(buf, _("%s性格に%sを選択した。", "%schose %s personality."), indent, personality_info[player_ptr->ppersonality].title);
     exe_write_diary(player_ptr, DIARY_DESCRIPTION, 1, buf);
-    if (player_ptr->pclass == PlayerClassType::CHAOS_WARRIOR) {
-        sprintf(buf, _("%s守護神%sと契約を交わした。", "%smade a contract with patron %s."), indent, patron_list[player_ptr->chaos_patron].name.c_str());
+    if (PlayerClass(player_ptr).equals(PlayerClassType::CHAOS_WARRIOR)) {
+        sprintf(buf, _("%s守護神%sと契約を交わした。", "%smade a contract with patron %s."), indent, patron_list[player_ptr->chaos_patron].name.data());
         exe_write_diary(player_ptr, DIARY_DESCRIPTION, 1, buf);
     }
 }
@@ -85,7 +87,7 @@ static void write_birth_diary(player_type *player_ptr)
  * Note that we may be called with "junk" leftover in the various
  * fields, so we must be sure to clear them first.
  */
-void player_birth(player_type *player_ptr)
+void player_birth(PlayerType *player_ptr)
 {
     w_ptr->play_time = 0;
     wipe_monsters_list(player_ptr);
@@ -93,8 +95,9 @@ void player_birth(player_type *player_ptr)
     if (!ask_quick_start(player_ptr)) {
         play_music(TERM_XTRA_MUSIC_BASIC, MUSIC_BASIC_NEW_GAME);
         while (true) {
-            if (player_birth_wizard(player_ptr))
+            if (player_birth_wizard(player_ptr)) {
                 break;
+            }
 
             player_wipe_without_name(player_ptr);
         }
@@ -108,14 +111,17 @@ void player_birth(player_type *player_ptr)
     }
 
     seed_wilderness();
-    if (player_ptr->prace == PlayerRaceType::BEASTMAN)
+    if (PlayerRace(player_ptr).equals(PlayerRaceType::BEASTMAN)) {
         player_ptr->hack_mutation = true;
-    else
+    } else {
         player_ptr->hack_mutation = false;
+    }
 
-    if (!window_flag[1])
+    if (!window_flag[1]) {
         window_flag[1] |= PW_MESSAGE;
+    }
 
-    if (!window_flag[2])
+    if (!window_flag[2]) {
         window_flag[2] |= PW_INVEN;
+    }
 }

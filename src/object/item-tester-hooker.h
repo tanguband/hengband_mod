@@ -5,8 +5,9 @@
 #include <functional>
 #include <memory>
 
-struct object_type;
-struct player_type;
+enum class StoreSaleType;
+class ObjectType;
+class PlayerType;
 
 /*!
  * @brief アイテムの絞り込み条件をテストする基底クラス
@@ -14,14 +15,14 @@ struct player_type;
 class ItemTester {
 public:
     virtual ~ItemTester() = default;
-    bool okay(const object_type *o_ptr) const;
+    bool okay(const ObjectType *o_ptr) const;
     virtual std::unique_ptr<ItemTester> clone() const = 0;
 
 protected:
     ItemTester() = default;
 
 private:
-    virtual bool okay_impl(const object_type *o_ptr) const = 0;
+    virtual bool okay_impl(const ObjectType *o_ptr) const = 0;
 };
 
 /**
@@ -46,7 +47,7 @@ public:
     AllMatchItemTester() = default;
 
 private:
-    virtual bool okay_impl(const object_type *) const
+    virtual bool okay_impl(const ObjectType *) const
     {
         return true;
     }
@@ -60,7 +61,7 @@ public:
     explicit TvalItemTester(ItemKindType tval);
 
 private:
-    virtual bool okay_impl(const object_type *o_ptr) const;
+    virtual bool okay_impl(const ObjectType *o_ptr) const;
 
     ItemKindType tval;
 };
@@ -70,14 +71,15 @@ private:
  */
 class FuncItemTester : public CloneableItemTester<FuncItemTester> {
 public:
-    using TestMemberFunctionPtr = bool (object_type::*)() const;
+    using TestMemberFunctionPtr = bool (ObjectType::*)() const;
     explicit FuncItemTester(TestMemberFunctionPtr test_func);
-    explicit FuncItemTester(std::function<bool(const object_type *)> test_func);
-    explicit FuncItemTester(std::function<bool(player_type *, const object_type *)> test_func, player_type *player_ptr);
+    explicit FuncItemTester(std::function<bool(const ObjectType *)> test_func);
+    explicit FuncItemTester(std::function<bool(PlayerType *, const ObjectType *)> test_func, PlayerType *player_ptr);
+    explicit FuncItemTester(std::function<bool(PlayerType *, const ObjectType *, StoreSaleType)> test_func, PlayerType *player_ptr, StoreSaleType store_num);
 
 private:
-    virtual bool okay_impl(const object_type *o_ptr) const;
+    virtual bool okay_impl(const ObjectType *o_ptr) const;
 
-    std::function<bool(player_type *, const object_type *)> test_func;
-    player_type *player_ptr;
+    std::function<bool(PlayerType *, const ObjectType *)> test_func;
+    PlayerType *player_ptr;
 };

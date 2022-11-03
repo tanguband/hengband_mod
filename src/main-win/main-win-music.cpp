@@ -4,7 +4,6 @@
  */
 
 #include "main-win/main-win-music.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "floor/floor-town.h"
 #include "main-win/main-win-define.h"
@@ -16,6 +15,7 @@
 #include "main/scene-table.h"
 #include "main/sound-of-music.h"
 #include "monster-race/monster-race.h"
+#include "system/dungeon-info.h"
 #include "system/monster-race-definition.h"
 #include "term/z-term.h"
 #include "util/angband-files.h"
@@ -49,15 +49,11 @@ static concptr basic_key_at(int index, char *buf)
 {
     (void)buf;
 
-    if (index >= MUSIC_BASIC_MAX)
+    if (index >= MUSIC_BASIC_MAX) {
         return nullptr;
+    }
 
     return angband_music_basic_name[index];
-}
-
-static inline DUNGEON_IDX get_dungeon_count()
-{
-    return static_cast<DUNGEON_IDX>(d_info.size());
 }
 
 /*!
@@ -68,16 +64,12 @@ static inline DUNGEON_IDX get_dungeon_count()
  */
 static concptr dungeon_key_at(int index, char *buf)
 {
-    if (index >= get_dungeon_count())
+    if (index >= static_cast<int>(dungeons_info.size())) {
         return nullptr;
+    }
 
     sprintf(buf, "dungeon%03d", index);
     return buf;
-}
-
-static inline QUEST_IDX get_quest_count()
-{
-    return max_q_idx;
 }
 
 /*!
@@ -88,16 +80,13 @@ static inline QUEST_IDX get_quest_count()
  */
 static concptr quest_key_at(int index, char *buf)
 {
-    if (index >= get_quest_count())
+    const auto &quest_list = QuestList::get_instance();
+    if (index > enum2i(quest_list.rbegin()->first)) {
         return nullptr;
+    }
 
     sprintf(buf, "quest%03d", index);
     return buf;
-}
-
-static inline int16_t get_town_count()
-{
-    return max_towns;
 }
 
 /*!
@@ -108,16 +97,12 @@ static inline int16_t get_town_count()
  */
 static concptr town_key_at(int index, char *buf)
 {
-    if (index >= get_town_count())
+    if (index >= static_cast<int>(max_towns)) {
         return nullptr;
+    }
 
     sprintf(buf, "town%03d", index);
     return buf;
-}
-
-static inline MONRACE_IDX get_monster_count()
-{
-    return static_cast<MONRACE_IDX>(r_info.size());
 }
 
 /*!
@@ -128,8 +113,9 @@ static inline MONRACE_IDX get_monster_count()
  */
 static concptr monster_key_at(int index, char *buf)
 {
-    if (index >= get_monster_count())
+    if (index >= static_cast<int>(monraces_info.size())) {
         return nullptr;
+    }
 
     sprintf(buf, "monster%04d", index);
     return buf;
@@ -188,29 +174,34 @@ errr stop_music(void)
  */
 errr play_music(int type, int val)
 {
-    if (type == TERM_XTRA_MUSIC_MUTE)
+    if (type == TERM_XTRA_MUSIC_MUTE) {
         return stop_music();
+    }
 
-    if (current_music_type == type && current_music_id == val)
-        return 0; // now playing
+    if (current_music_type == type && current_music_id == val) {
+        return 0;
+    } // now playing
 
     concptr filename = music_cfg_data->get_rand(type, val);
-    if (!filename)
-        return 1; // no setting
+    if (!filename) {
+        return 1;
+    } // no setting
 
     char buf[MAIN_WIN_MAX_PATH];
     path_build(buf, MAIN_WIN_MAX_PATH, ANGBAND_DIR_XTRA_MUSIC, filename);
 
-    if (current_music_type != TERM_XTRA_MUSIC_MUTE)
-        if (0 == strcmp(current_music_path, buf))
-            return 0; // now playing same file
+    if (current_music_type != TERM_XTRA_MUSIC_MUTE) {
+        if (0 == strcmp(current_music_path, buf)) {
+            return 0;
+        }
+    } // now playing same file
 
     current_music_type = type;
     current_music_id = val;
     strcpy(current_music_path, buf);
 
     to_wchar path(buf);
-    mci_open_parms.lpstrDeviceType = mci_device_type.c_str();
+    mci_open_parms.lpstrDeviceType = mci_device_type.data();
     mci_open_parms.lpstrElementName = path.wc_str();
     mciSendCommandW(mci_open_parms.wDeviceID, MCI_STOP, MCI_WAIT, 0);
     mciSendCommandW(mci_open_parms.wDeviceID, MCI_CLOSE, MCI_WAIT, 0);

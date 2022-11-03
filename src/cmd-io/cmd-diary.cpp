@@ -3,9 +3,9 @@
 #include "core/asking-player.h"
 #include "core/show-file.h"
 #include "game-option/play-record-options.h"
-#include "io/record-play-movie.h"
 #include "io/files-util.h"
 #include "io/input-key-acceptor.h"
+#include "io/record-play-movie.h"
 #include "io/write-diary.h"
 #include "main/sound-of-music.h"
 #include "player-base/player-class.h"
@@ -21,7 +21,7 @@
  * @brief 日記のタイトル表記と内容出力
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-static void display_diary(player_type *player_ptr)
+static void display_diary(PlayerType *player_ptr)
 {
     char diary_title[256];
     GAME_TEXT file_name[MAX_NLEN];
@@ -30,13 +30,14 @@ static void display_diary(player_type *player_ptr)
     sprintf(file_name, _("playrecord-%s.txt", "playrec-%s.txt"), savefile_base);
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, file_name);
 
-    if (player_ptr->pclass == PlayerClassType::WARRIOR || player_ptr->pclass == PlayerClassType::MONK || player_ptr->pclass == PlayerClassType::SAMURAI
-        || player_ptr->pclass == PlayerClassType::BERSERKER)
+    PlayerClass pc(player_ptr);
+    if (pc.is_tough()) {
         strcpy(tmp, subtitle[randint0(MAX_SUBTITLE - 1)]);
-    else if (PlayerClass(player_ptr).is_wizard())
+    } else if (pc.is_wizard()) {
         strcpy(tmp, subtitle[randint0(MAX_SUBTITLE - 1) + 1]);
-    else
+    } else {
         strcpy(tmp, subtitle[randint0(MAX_SUBTITLE - 2) + 1]);
+    }
 
 #ifdef JP
     sprintf(diary_title, "「%s%s%sの伝説 -%s-」", ap_ptr->title, ap_ptr->no ? "の" : "", player_ptr->name, tmp);
@@ -50,7 +51,7 @@ static void display_diary(player_type *player_ptr)
 /*!
  * @brief 日記に任意の内容を表記するコマンドのメインルーチン /
  */
-static void add_diary_note(player_type *player_ptr)
+static void add_diary_note(PlayerType *player_ptr)
 {
     char tmp[80] = "\0";
     char bunshou[80] = "\0";
@@ -63,15 +64,17 @@ static void add_diary_note(player_type *player_ptr)
 /*!
  * @brief 最後に取得したアイテムの情報を日記に追加するメインルーチン /
  */
-static void do_cmd_last_get(player_type *player_ptr)
+static void do_cmd_last_get(PlayerType *player_ptr)
 {
-    if (record_o_name[0] == '\0')
+    if (record_o_name[0] == '\0') {
         return;
+    }
 
     char buf[256];
     sprintf(buf, _("%sの入手を記録します。", "Do you really want to record getting %s? "), record_o_name);
-    if (!get_check(buf))
+    if (!get_check(buf)) {
         return;
+    }
 
     GAME_TURN turn_tmp = w_ptr->game_turn;
     w_ptr->game_turn = record_turn;
@@ -89,8 +92,9 @@ static void do_cmd_erase_diary(void)
     char buf[256];
     FILE *fff = nullptr;
 
-    if (!get_check(_("本当に記録を消去しますか？", "Do you really want to delete all your records? ")))
+    if (!get_check(_("本当に記録を消去しますか？", "Do you really want to delete all your records? "))) {
         return;
+    }
     sprintf(file_name, _("playrecord-%s.txt", "playrec-%s.txt"), savefile_base);
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, file_name);
     fd_kill(buf);
@@ -110,7 +114,7 @@ static void do_cmd_erase_diary(void)
  * @brief 日記コマンド
  * @param crerature_ptr プレイヤーへの参照ポインタ
  */
-void do_cmd_diary(player_type *player_ptr)
+void do_cmd_diary(PlayerType *player_ptr)
 {
     screen_save();
     while (true) {
@@ -123,8 +127,9 @@ void do_cmd_diary(player_type *player_ptr)
         prt(_("(R) プレイ動画を記録する/中止する", "(R) Record playing movie / or stop it"), 9, 5);
         prt(_("コマンド:", "Command: "), 18, 0);
         int i = inkey();
-        if (i == ESCAPE)
+        if (i == ESCAPE) {
             break;
+        }
 
         switch (i) {
         case '1':

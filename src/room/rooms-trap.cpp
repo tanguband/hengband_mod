@@ -1,15 +1,16 @@
 ﻿#include "room/rooms-trap.h"
 #include "dungeon/dungeon-flag-types.h"
-#include "dungeon/dungeon.h"
 #include "floor/floor-generator.h"
 #include "game-option/cheat-types.h"
 #include "grid/feature.h"
 #include "grid/grid.h"
 #include "room/space-finder.h"
 #include "system/dungeon-data-definition.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "wizard/wizard-messages.h"
 
 /*!
@@ -18,7 +19,7 @@
  * @details
  * A special trap is placed at center of the room
  */
-bool build_type14(player_type *player_ptr, dun_data_type *dd_ptr)
+bool build_type14(PlayerType *player_ptr, dun_data_type *dd_ptr)
 {
     POSITION y, x, y2, x2, yval, xval;
     POSITION y1, x1, xsize, ysize;
@@ -38,12 +39,13 @@ bool build_type14(player_type *player_ptr, dun_data_type *dd_ptr)
     ysize = y1 + y2 + 1;
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
-    if (!find_space(player_ptr, dd_ptr, &yval, &xval, ysize + 2, xsize + 2))
+    if (!find_space(player_ptr, dd_ptr, &yval, &xval, ysize + 2, xsize + 2)) {
         return false;
+    }
 
     /* Choose lite or dark */
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    light = ((floor_ptr->dun_level <= randint1(25)) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS));
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    light = ((floor_ptr->dun_level <= randint1(25)) && dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS));
 
     /* Get corner values */
     y1 = yval - ysize / 2;
@@ -57,8 +59,9 @@ bool build_type14(player_type *player_ptr, dun_data_type *dd_ptr)
             g_ptr = &floor_ptr->grid_array[y][x];
             place_grid(player_ptr, g_ptr, GB_FLOOR);
             g_ptr->info |= (CAVE_ROOM);
-            if (light)
+            if (light) {
                 g_ptr->info |= (CAVE_GLOW);
+            }
         }
     }
 
@@ -76,16 +79,17 @@ bool build_type14(player_type *player_ptr, dun_data_type *dd_ptr)
         place_grid(player_ptr, g_ptr, GB_OUTER);
     }
 
-    if (floor_ptr->dun_level < 30 + randint1(30))
+    if (floor_ptr->dun_level < 30 + randint1(30)) {
         trap = feat_trap_piranha;
-    else
+    } else {
         trap = feat_trap_armageddon;
+    }
 
     /* Place a special trap */
     g_ptr = &floor_ptr->grid_array[rand_spread(yval, ysize / 4)][rand_spread(xval, xsize / 4)];
     g_ptr->mimic = g_ptr->feat;
     g_ptr->feat = trap;
 
-    msg_format_wizard(player_ptr, CHEAT_DUNGEON, _("%sの部屋が生成されました。", "Room of %s was generated."), f_info[trap].name.c_str());
+    msg_format_wizard(player_ptr, CHEAT_DUNGEON, _("%sの部屋が生成されました。", "Room of %s was generated."), terrains_info[trap].name.data());
     return true;
 }

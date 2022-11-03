@@ -1,12 +1,20 @@
 ﻿#pragma once
 
-#include "system/angband.h"
-#include "monster-attack/monster-attack-types.h"
+#include "monster-attack/monster-attack-table.h"
 #include "monster-race/monster-aura-types.h"
 #include "monster-race/race-ability-flags.h"
+#include "monster-race/race-behavior-flags.h"
+#include "monster-race/race-drop-flags.h"
+#include "monster-race/race-feature-flags.h"
+#include "monster-race/race-flags-resistance.h"
+#include "monster-race/race-kind-flags.h"
+#include "monster-race/race-visual-flags.h"
+#include "system/angband.h"
 #include "util/flag-group.h"
 #include <string>
 #include <unordered_map>
+
+enum class MonsterRaceId : int16_t;
 
 enum monster_sex {
     MSEX_NONE = 0,
@@ -15,7 +23,7 @@ enum monster_sex {
 };
 
 struct monster_race;
-typedef struct lore_type {
+struct lore_type {
 #ifdef JP
     char jverb_buf[64];
 #else
@@ -23,23 +31,28 @@ typedef struct lore_type {
 #endif
     bool nightmare;
     monster_race *r_ptr;
-    SPEED speed;
+    byte speed;
     ITEM_NUMBER drop_gold;
     ITEM_NUMBER drop_item;
     BIT_FLAGS flags1;
     BIT_FLAGS flags2;
     BIT_FLAGS flags3;
-    EnumClassFlagGroup<RF_ABILITY> ability_flags;
+    EnumClassFlagGroup<MonsterAbilityType> ability_flags;
     EnumClassFlagGroup<MonsterAuraType> aura_flags;
+    EnumClassFlagGroup<MonsterBehaviorType> behavior_flags;
+    EnumClassFlagGroup<MonsterVisualType> visual_flags;
+    EnumClassFlagGroup<MonsterKindType> kind_flags;
+    EnumClassFlagGroup<MonsterResistanceType> resistance_flags;
+    EnumClassFlagGroup<MonsterDropType> drop_flags;
+    EnumClassFlagGroup<MonsterFeatureType> feature_flags;
 
     BIT_FLAGS flags7;
-    BIT_FLAGS flagsr;
     bool reinforce;
     bool know_everything;
     BIT_FLAGS mode;
     monster_sex msex;
     bool old;
-    MONRACE_IDX r_idx;
+    MonsterRaceId r_idx;
     int vn;
     byte color[96];
     concptr vp[96];
@@ -52,11 +65,11 @@ typedef struct lore_type {
     byte pc;
     concptr q;
     byte qc;
-    rbm_type method;
+    RaceBlowMethodType method;
     int count;
     bool shoot = false;
     bool rocket = false;
-} lore_type;
+};
 
 enum monster_lore_mode {
     MONSTER_LORE_NONE,
@@ -68,10 +81,12 @@ enum monster_lore_mode {
 typedef void (*hook_c_roff_pf)(TERM_COLOR attr, concptr str);
 extern hook_c_roff_pf hook_c_roff;
 
-lore_type *initialize_lore_type(lore_type *lore_ptr, MONRACE_IDX r_idx, monster_lore_mode mode);
+lore_type *initialize_lore_type(lore_type *lore_ptr, MonsterRaceId r_idx, monster_lore_mode mode);
 void hooked_roff(concptr str);
 
-enum WHO_WORD_TYPE { WHO = 0, WHOSE = 1, WHOM = 2 };
+enum WHO_WORD_TYPE { WHO = 0,
+    WHOSE = 1,
+    WHOM = 2 };
 using who_word_definition = std::unordered_map<WHO_WORD_TYPE, const std::unordered_map<bool, const std::unordered_map<monster_sex, std::string>>>;
 
 class Who {

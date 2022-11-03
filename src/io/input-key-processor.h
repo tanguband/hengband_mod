@@ -1,4 +1,5 @@
 ﻿#pragma once
 
-struct player_type;
-void process_command(player_type* player_ptr);
+class PlayerType;
+bool enter_wizard_mode(PlayerType *player_ptr);
+void process_command(PlayerType *player_ptr);

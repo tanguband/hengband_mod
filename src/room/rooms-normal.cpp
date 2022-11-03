@@ -1,16 +1,16 @@
 ﻿#include "room/rooms-normal.h"
 #include "dungeon/dungeon-flag-types.h"
-#include "dungeon/dungeon.h"
 #include "floor/geometry.h"
 #include "grid/door.h"
 #include "grid/grid.h"
-#include "grid/stair.h"
 #include "grid/object-placer.h"
+#include "grid/stair.h"
 #include "grid/trap.h"
 #include "room/door-definition.h"
 #include "room/rooms-builder.h"
 #include "room/space-finder.h"
 #include "room/vault-builder.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
@@ -19,7 +19,7 @@
  * @brief タイプ1の部屋…通常可変長方形の部屋を生成する / Type 1 -- normal rectangular rooms
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
+bool build_type1(PlayerType *player_ptr, dun_data_type *dd_ptr)
 {
     POSITION y, x, y2, x2, yval, xval;
     POSITION y1, x1, xsize, ysize;
@@ -28,8 +28,8 @@ bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
 
     grid_type *g_ptr;
 
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    bool curtain = (d_info[floor_ptr->dungeon_idx].flags.has(DF::CURTAIN)) && one_in_(d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_CAVE) ? 48 : 512);
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    bool curtain = (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::CURTAIN)) && one_in_(dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_CAVE) ? 48 : 512);
 
     /* Pick a room size */
     y1 = randint1(4);
@@ -52,12 +52,13 @@ bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
         ysize = y1 + y2 + 1;
 
         /* Find and reserve some space in the dungeon.  Get center of room. */
-        if (!find_space(player_ptr, dd_ptr, &yval, &xval, ysize + 2, xsize + 2))
+        if (!find_space(player_ptr, dd_ptr, &yval, &xval, ysize + 2, xsize + 2)) {
             return false;
+        }
     }
 
     /* Choose lite or dark */
-    light = ((floor_ptr->dun_level <= randint1(25)) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS));
+    light = ((floor_ptr->dun_level <= randint1(25)) && dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS));
 
     /* Get corner values */
     y1 = yval - ysize / 2;
@@ -71,8 +72,9 @@ bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
             g_ptr = &floor_ptr->grid_array[y][x];
             place_grid(player_ptr, g_ptr, GB_FLOOR);
             g_ptr->info |= (CAVE_ROOM);
-            if (light)
+            if (light) {
                 g_ptr->info |= (CAVE_GLOW);
+            }
         }
     }
 
@@ -154,14 +156,15 @@ bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
     }
     /* Hack -- Occasional divided room */
     else if (one_in_(50)) {
-        bool curtain2 = (d_info[floor_ptr->dungeon_idx].flags.has(DF::CURTAIN)) && one_in_(d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_CAVE) ? 2 : 128);
+        bool curtain2 = (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::CURTAIN)) && one_in_(dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_CAVE) ? 2 : 128);
 
         if (randint1(100) < 50) {
             /* Horizontal wall */
             for (x = x1; x <= x2; x++) {
                 place_bold(player_ptr, yval, x, GB_INNER);
-                if (curtain2)
+                if (curtain2) {
                     floor_ptr->grid_array[yval][x].feat = feat_door[DOOR_CURTAIN].closed;
+                }
             }
 
             /* Prevent edge of wall from being tunneled */
@@ -171,8 +174,9 @@ bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
             /* Vertical wall */
             for (y = y1; y <= y2; y++) {
                 place_bold(player_ptr, y, xval, GB_INNER);
-                if (curtain2)
+                if (curtain2) {
                     floor_ptr->grid_array[y][xval].feat = feat_door[DOOR_CURTAIN].closed;
+                }
             }
 
             /* Prevent edge of wall from being tunneled */
@@ -181,8 +185,9 @@ bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
         }
 
         place_random_door(player_ptr, yval, xval, true);
-        if (curtain2)
+        if (curtain2) {
             floor_ptr->grid_array[yval][xval].feat = feat_door[DOOR_CURTAIN].closed;
+        }
     }
 
     return true;
@@ -192,7 +197,7 @@ bool build_type1(player_type *player_ptr, dun_data_type *dd_ptr)
  * @brief タイプ2の部屋…二重長方形の部屋を生成する / Type 2 -- Overlapping rectangular rooms
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-bool build_type2(player_type *player_ptr, dun_data_type *dd_ptr)
+bool build_type2(PlayerType *player_ptr, dun_data_type *dd_ptr)
 {
     POSITION y, x, xval, yval;
     POSITION y1a, x1a, y2a, x2a;
@@ -201,12 +206,13 @@ bool build_type2(player_type *player_ptr, dun_data_type *dd_ptr)
     grid_type *g_ptr;
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25)) {
         return false;
+    }
 
     /* Choose lite or dark */
-    light = ((floor_ptr->dun_level <= randint1(25)) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS));
+    light = ((floor_ptr->dun_level <= randint1(25)) && dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS));
 
     /* Determine extents of the first room */
     y1a = yval - randint1(4);
@@ -226,8 +232,9 @@ bool build_type2(player_type *player_ptr, dun_data_type *dd_ptr)
             g_ptr = &floor_ptr->grid_array[y][x];
             place_grid(player_ptr, g_ptr, GB_FLOOR);
             g_ptr->info |= (CAVE_ROOM);
-            if (light)
+            if (light) {
                 g_ptr->info |= (CAVE_GLOW);
+            }
         }
     }
 
@@ -237,8 +244,9 @@ bool build_type2(player_type *player_ptr, dun_data_type *dd_ptr)
             g_ptr = &floor_ptr->grid_array[y][x];
             place_grid(player_ptr, g_ptr, GB_FLOOR);
             g_ptr->info |= (CAVE_ROOM);
-            if (light)
+            if (light) {
                 g_ptr->info |= (CAVE_GLOW);
+            }
         }
     }
 
@@ -302,7 +310,7 @@ bool build_type2(player_type *player_ptr, dun_data_type *dd_ptr)
  * the code below will work (with "bounds checking") for 5x5, or even\n
  * for unsymetric values like 4x3 or 5x3 or 3x4 or 3x5, or even larger.\n
  */
-bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
+bool build_type3(PlayerType *player_ptr, dun_data_type *dd_ptr)
 {
     POSITION y, x, dy, dx, wy, wx;
     POSITION y1a, x1a, y2a, x2a;
@@ -312,12 +320,13 @@ bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
     grid_type *g_ptr;
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25)) {
         return false;
+    }
 
     /* Choose lite or dark */
-    light = ((floor_ptr->dun_level <= randint1(25)) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS));
+    light = ((floor_ptr->dun_level <= randint1(25)) && dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS));
 
     /* For now, always 3x3 */
     wx = wy = 1;
@@ -346,8 +355,9 @@ bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
             g_ptr = &floor_ptr->grid_array[y][x];
             place_grid(player_ptr, g_ptr, GB_FLOOR);
             g_ptr->info |= (CAVE_ROOM);
-            if (light)
+            if (light) {
                 g_ptr->info |= (CAVE_GLOW);
+            }
         }
     }
 
@@ -357,8 +367,9 @@ bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
             g_ptr = &floor_ptr->grid_array[y][x];
             place_grid(player_ptr, g_ptr, GB_FLOOR);
             g_ptr->info |= (CAVE_ROOM);
-            if (light)
+            if (light) {
                 g_ptr->info |= (CAVE_GLOW);
+            }
         }
     }
 
@@ -469,8 +480,9 @@ bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
         if (one_in_(3)) {
             /* Pinch the east/west sides */
             for (y = y1b; y <= y2b; y++) {
-                if (y == yval)
+                if (y == yval) {
                     continue;
+                }
                 g_ptr = &floor_ptr->grid_array[y][x1a - 1];
                 place_grid(player_ptr, g_ptr, GB_INNER);
                 g_ptr = &floor_ptr->grid_array[y][x2a + 1];
@@ -479,8 +491,9 @@ bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
 
             /* Pinch the north/south sides */
             for (x = x1a; x <= x2a; x++) {
-                if (x == xval)
+                if (x == xval) {
                     continue;
+                }
                 g_ptr = &floor_ptr->grid_array[y1b - 1][x];
                 place_grid(player_ptr, g_ptr, GB_INNER);
                 g_ptr = &floor_ptr->grid_array[y2b + 1][x];
@@ -489,10 +502,9 @@ bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
 
             /* Sometimes shut using secret doors */
             if (one_in_(3)) {
-                int door_type
-                    = (d_info[floor_ptr->dungeon_idx].flags.has(DF::CURTAIN) && one_in_(d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_CAVE) ? 16 : 256))
-                    ? DOOR_CURTAIN
-                    : (d_info[floor_ptr->dungeon_idx].flags.has(DF::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
+                int door_type = (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::CURTAIN) && one_in_(dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_CAVE) ? 16 : 256))
+                                    ? DOOR_CURTAIN
+                                    : (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
 
                 place_secret_door(player_ptr, yval, x1a - 1, door_type);
                 place_secret_door(player_ptr, yval, x2a + 1, door_type);
@@ -539,7 +551,7 @@ bool build_type3(player_type *player_ptr, dun_data_type *dd_ptr)
  *	4 - Inner room has a maze\n
  *	5 - A set of four inner rooms\n
  */
-bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
+bool build_type4(PlayerType *player_ptr, dun_data_type *dd_ptr)
 {
     POSITION y, x, y1, x1;
     POSITION y2, x2, tmp, yval, xval;
@@ -547,12 +559,13 @@ bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
     grid_type *g_ptr;
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (!find_space(player_ptr, dd_ptr, &yval, &xval, 11, 25)) {
         return false;
+    }
 
     /* Choose lite or dark */
-    light = ((floor_ptr->dun_level <= randint1(25)) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS));
+    light = ((floor_ptr->dun_level <= randint1(25)) && dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS));
 
     /* Large room */
     y1 = yval - 4;
@@ -566,8 +579,9 @@ bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
             g_ptr = &floor_ptr->grid_array[y][x];
             place_grid(player_ptr, g_ptr, GB_FLOOR);
             g_ptr->info |= (CAVE_ROOM);
-            if (light)
+            if (light) {
                 g_ptr->info |= (CAVE_GLOW);
+            }
         }
     }
 
@@ -652,8 +666,9 @@ bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
         /* Place another inner room */
         for (y = yval - 1; y <= yval + 1; y++) {
             for (x = xval - 1; x <= xval + 1; x++) {
-                if ((x == xval) && (y == yval))
+                if ((x == xval) && (y == yval)) {
                     continue;
+                }
                 g_ptr = &floor_ptr->grid_array[y][x];
                 place_grid(player_ptr, g_ptr, GB_INNER);
             }
@@ -737,9 +752,9 @@ bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
 
         /* Occasionally, some Inner rooms */
         if (one_in_(3)) {
-            int door_type = (d_info[floor_ptr->dungeon_idx].flags.has(DF::CURTAIN) && one_in_(d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_CAVE) ? 16 : 256))
-                ? DOOR_CURTAIN
-                : (d_info[floor_ptr->dungeon_idx].flags.has(DF::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
+            int door_type = (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::CURTAIN) && one_in_(dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_CAVE) ? 16 : 256))
+                                ? DOOR_CURTAIN
+                                : (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
 
             /* Long horizontal walls */
             for (x = xval - 5; x <= xval + 5; x++) {
@@ -764,10 +779,12 @@ bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
             vault_monsters(player_ptr, yval, xval + 2, randint1(2));
 
             /* Objects */
-            if (one_in_(3))
+            if (one_in_(3)) {
                 place_object(player_ptr, yval, xval - 2, 0L);
-            if (one_in_(3))
+            }
+            if (one_in_(3)) {
                 place_object(player_ptr, yval, xval + 2, 0L);
+            }
         }
 
         break;
@@ -817,9 +834,9 @@ bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
 
     /* Four small rooms. */
     case 5: {
-        int door_type = (d_info[floor_ptr->dungeon_idx].flags.has(DF::CURTAIN) && one_in_(d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_CAVE) ? 16 : 256))
-            ? DOOR_CURTAIN
-            : (d_info[floor_ptr->dungeon_idx].flags.has(DF::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
+        int door_type = (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::CURTAIN) && one_in_(dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_CAVE) ? 16 : 256))
+                            ? DOOR_CURTAIN
+                            : (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
 
         /* Inner "cross" */
         for (y = y1; y <= y2; y++) {
@@ -871,21 +888,23 @@ bool build_type4(player_type *player_ptr, dun_data_type *dd_ptr)
  *\n
  * When done fill from the inside to find the walls,\n
  */
-bool build_type11(player_type *player_ptr, dun_data_type *dd_ptr)
+bool build_type11(PlayerType *player_ptr, dun_data_type *dd_ptr)
 {
     POSITION rad, x, y, x0, y0;
     int light = false;
 
     /* Occasional light */
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if ((randint1(floor_ptr->dun_level) <= 15) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if ((randint1(floor_ptr->dun_level) <= 15) && dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS)) {
         light = true;
+    }
 
     rad = randint0(9);
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
-    if (!find_space(player_ptr, dd_ptr, &y0, &x0, rad * 2 + 1, rad * 2 + 1))
+    if (!find_space(player_ptr, dd_ptr, &y0, &x0, rad * 2 + 1, rad * 2 + 1)) {
         return false;
+    }
 
     /* Make circular floor */
     for (x = x0 - rad; x <= x0 + rad; x++) {
@@ -915,7 +934,7 @@ bool build_type11(player_type *player_ptr, dun_data_type *dd_ptr)
  *\n
  * When done fill from the inside to find the walls,\n
  */
-bool build_type12(player_type *player_ptr, dun_data_type *dd_ptr)
+bool build_type12(PlayerType *player_ptr, dun_data_type *dd_ptr)
 {
     POSITION rad, x, y, x0, y0;
     int light = false;
@@ -929,15 +948,17 @@ bool build_type12(player_type *player_ptr, dun_data_type *dd_ptr)
     h4 = randint1(32) - 16;
 
     /* Occasional light */
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if ((randint1(floor_ptr->dun_level) <= 5) && d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if ((randint1(floor_ptr->dun_level) <= 5) && dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS)) {
         light = true;
+    }
 
     rad = randint1(9);
 
     /* Find and reserve some space in the dungeon.  Get center of room. */
-    if (!find_space(player_ptr, dd_ptr, &y0, &x0, rad * 2 + 3, rad * 2 + 3))
+    if (!find_space(player_ptr, dd_ptr, &y0, &x0, rad * 2 + 3, rad * 2 + 3)) {
         return false;
+    }
 
     /* Make floor */
     for (x = x0 - rad; x <= x0 + rad; x++) {

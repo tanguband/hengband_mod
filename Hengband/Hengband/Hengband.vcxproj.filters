@@ -95,9 +95,6 @@
     <ClCompile Include="..\..\src\knowledge\knowledge-experiences.cpp">
       <Filter>knowledge</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\object\object-kind.cpp">
-      <Filter>object</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\object\object-kind-hook.cpp">
       <Filter>object</Filter>
     </ClCompile>
@@ -347,9 +344,6 @@
     <ClCompile Include="..\..\src\dungeon\dungeon-processor.cpp">
       <Filter>dungeon</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\dungeon\dungeon.cpp">
-      <Filter>dungeon</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\core\game-play.cpp">
       <Filter>core</Filter>
     </ClCompile>
@@ -494,22 +488,10 @@
     <ClCompile Include="..\..\src\core\scores.cpp">
       <Filter>core</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mspell\mspell-bolt.cpp">
-      <Filter>mspell</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mspell\mspell-breath.cpp">
-      <Filter>mspell</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mspell\mspell-curse.cpp">
-      <Filter>mspell</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\mspell\mspell-damage-calculator.cpp">
       <Filter>mspell</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\mspell\mspell-learn-checker.cpp">
-      <Filter>mspell</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mspell\mspell-ball.cpp">
       <Filter>mspell</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\mspell\mspell-summon.cpp">
@@ -525,9 +507,6 @@
       <Filter>mspell</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\mspell\mspell-special.cpp">
-      <Filter>mspell</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mspell\mspell-particularity.cpp">
       <Filter>mspell</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\mspell\assign-monster-spell.cpp">
@@ -809,16 +788,7 @@
     <ClCompile Include="..\..\src\object-enchant\object-ego.cpp">
       <Filter>object-enchant</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-weapon.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-armor.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-others.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic.cpp">
+    <ClCompile Include="..\..\src\object-enchant\item-magic-applier.cpp">
       <Filter>object-enchant</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\perception\object-perception.cpp">
@@ -959,10 +929,7 @@
     <ClCompile Include="..\..\src\monster-attack\monster-attack-switcher.cpp">
       <Filter>monster-attack</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\monster-attack\monster-attack-types.cpp">
-      <Filter>monster-attack</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\monster-attack\monster-attack-util.cpp">
+    <ClCompile Include="..\..\src\monster-attack\monster-attack-table.cpp">
       <Filter>monster-attack</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\monster-attack\monster-eating.cpp">
@@ -986,7 +953,7 @@
     <ClCompile Include="..\..\src\info-reader\race-info-tokens-table.cpp">
       <Filter>info-reader</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\info-reader\kind-info-tokens-table.cpp">
+    <ClCompile Include="..\..\src\info-reader\baseitem-tokens-table.cpp">
       <Filter>info-reader</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\info-reader\dungeon-info-tokens-table.cpp">
@@ -1004,7 +971,7 @@
     <ClCompile Include="..\..\src\info-reader\vault-reader.cpp">
       <Filter>info-reader</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\info-reader\kind-reader.cpp">
+    <ClCompile Include="..\..\src\info-reader\baseitem-reader.cpp">
       <Filter>info-reader</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\info-reader\artifact-reader.cpp">
@@ -1499,9 +1466,6 @@
     <ClCompile Include="..\..\src\load\quest-loader.cpp">
       <Filter>load</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\object-use\quaff-execution.cpp">
-      <Filter>object-use</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\flavor\flag-inscriptions-table.cpp">
       <Filter>flavor</Filter>
     </ClCompile>
@@ -1765,9 +1729,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\mspell\mspell-lite.cpp">
       <Filter>mspell</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-use\read-execution.cpp">
-      <Filter>object-use</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\player\player-status-flags.cpp">
       <Filter>player</Filter>
@@ -2241,12 +2202,6 @@
     <ClCompile Include="..\..\src\view\display-scores.cpp">
       <Filter>view</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-ring.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-amulet.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\system\object-type-definition.cpp">
       <Filter>system</Filter>
     </ClCompile>
@@ -2258,27 +2213,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\main-win\wav-reader.cpp">
       <Filter>main-win</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\abstract-protector-enchanter.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-shield.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-cloak.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-helm.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-crown.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-boots.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\apply-magic-gloves.cpp">
-      <Filter>object-enchant</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\monster\monster-damage.cpp">
       <Filter>monster</Filter>
@@ -2298,12 +2232,6 @@
     <ClCompile Include="..\..\src\object-use\throw-execution.cpp">
       <Filter>object-use</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\object-smith.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\smith-tables.cpp">
-      <Filter>object-enchant</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\player-info\race-info.cpp">
       <Filter>player-info</Filter>
     </ClCompile>
@@ -2312,9 +2240,6 @@
     </ClCompile>
     <ClCompile Include="..\..\src\player-base\player-class.cpp">
       <Filter>player-base</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\object-enchant\smith-info.cpp">
-      <Filter>object-enchant</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\timed-effect\timed-effects.cpp">
       <Filter>timed-effect</Filter>
@@ -2358,10 +2283,10 @@
     <ClCompile Include="..\..\src\load\old\load-v1-7-0.cpp">
       <Filter>load\old</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\load\old\item-loader-savefile10.cpp">
+    <ClCompile Include="..\..\src\load\old\item-loader-savefile50.cpp">
       <Filter>load\old</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\load\old\monster-loader-savefile10.cpp">
+    <ClCompile Include="..\..\src\load\old\monster-loader-savefile50.cpp">
       <Filter>load\old</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\load\item\item-loader-base.cpp">
@@ -2372,6 +2297,183 @@
     </ClCompile>
     <ClCompile Include="..\..\src\load\monster\monster-loader-factory.cpp">
       <Filter>load\monster</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\abstract-protector-enchanter.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-armor.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-boots.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-cloak.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-crown.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-gloves.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-helm.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-shield.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\abstract-weapon-enchanter.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\apply-magic-bow.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\smith\object-smith.cpp">
+      <Filter>smith</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\smith\smith-info.cpp">
+      <Filter>smith</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\smith\smith-tables.cpp">
+      <Filter>smith</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\others\apply-magic-amulet.cpp">
+      <Filter>object-enchant\others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\others\apply-magic-ring.cpp">
+      <Filter>object-enchant\others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\others\apply-magic-others.cpp">
+      <Filter>object-enchant\others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\others\apply-magic-lite.cpp">
+      <Filter>object-enchant\others</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\monster-race\monster-kind-mask.cpp">
+      <Filter>monster-race</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\monster-race\race-resistance-mask.cpp">
+      <Filter>monster-race</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-confusion.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-hallucination.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-paralysis.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-fear.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\read\read-execution.cpp">
+      <Filter>object-use\read</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\read\read-executor-factory.cpp">
+      <Filter>object-use\read</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\read\scroll-read-executor.cpp">
+      <Filter>object-use\read</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\read\gbh-shirt-read-executor.cpp">
+      <Filter>object-use\read</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\read\ring-power-read-executor.cpp">
+      <Filter>object-use\read</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\read\parchment-read-executor.cpp">
+      <Filter>object-use\read</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\spell-class\spells-mirror-master.cpp">
+      <Filter>spell-class</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\quaff\quaff-execution.cpp">
+      <Filter>object-use\quaff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-use\quaff\quaff-effects.cpp">
+      <Filter>object-use\quaff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-dragon-armor.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-hard-armor.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\protector\apply-magic-soft-armor.cpp">
+      <Filter>object-enchant\protector</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\apply-magic-sword.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\apply-magic-digging.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\apply-magic-arrow.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\melee-weapon-enchanter.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\apply-magic-hafted.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\weapon\apply-magic-polearm.cpp">
+      <Filter>object-enchant\weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\object-enchant\enchanter-factory.cpp">
+      <Filter>object-enchant</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mspell\mspell-data.cpp">
+      <Filter>mspell</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mspell\mspell-attack\abstract-mspell.cpp">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mspell\mspell-attack\mspell-ball.cpp">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mspell\mspell-attack\mspell-bolt.cpp">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mspell\mspell-attack\mspell-breath.cpp">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mspell\mspell-attack\mspell-curse.cpp">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mspell\mspell-attack\mspell-particularity.cpp">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\monster-race\race-feature-mask.cpp">
+      <Filter>monster-race</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-acceleration.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-deceleration.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-poison.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\timed-effect\player-blindness.cpp">
+      <Filter>timed-effect</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\system\monster-type-definition.cpp">
+      <Filter>system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\system\baseitem-info-definition.cpp">
+      <Filter>system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\system\floor-type-definition.cpp">
+      <Filter>system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\system\dungeon-info.cpp">
+      <Filter>system</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\system\terrain-type-definition.cpp">
+      <Filter>system</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2467,9 +2569,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\knowledge\knowledge-experiences.h">
       <Filter>knowledge</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object\object-kind.h">
-      <Filter>object</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\object\object-kind-hook.h">
       <Filter>object</Filter>
@@ -2642,9 +2741,6 @@
     <ClInclude Include="..\..\src\effect\effect-monster-switcher.h">
       <Filter>effect</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\effect\effect-player-util.h">
-      <Filter>effect</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\effect\effect-player-switcher.h">
       <Filter>effect</Filter>
     </ClInclude>
@@ -2750,9 +2846,6 @@
     <ClInclude Include="..\..\src\dungeon\dungeon-processor.h">
       <Filter>dungeon</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\dungeon\dungeon.h">
-      <Filter>dungeon</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\core\game-play.h">
       <Filter>core</Filter>
     </ClInclude>
@@ -2820,9 +2913,6 @@
       <Filter>system</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\system\h-config.h">
-      <Filter>system</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\system\h-define.h">
       <Filter>system</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\system\h-system.h">
@@ -2909,22 +2999,10 @@
     <ClInclude Include="..\..\src\core\scores.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\mspell\mspell-bolt.h">
-      <Filter>mspell</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\mspell\mspell-breath.h">
-      <Filter>mspell</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\mspell\mspell-curse.h">
-      <Filter>mspell</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\mspell\mspell-damage-calculator.h">
       <Filter>mspell</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\mspell\mspell-learn-checker.h">
-      <Filter>mspell</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\mspell\mspell-ball.h">
       <Filter>mspell</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\mspell\mspell-summon.h">
@@ -2940,9 +3018,6 @@
       <Filter>mspell</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\mspell\mspell-special.h">
-      <Filter>mspell</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\mspell\mspell-particularity.h">
       <Filter>mspell</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\mspell\assign-monster-spell.h">
@@ -3305,19 +3380,10 @@
     <ClInclude Include="..\..\src\object\tval-types.h">
       <Filter>object</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-weapon.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-armor.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\object-enchant\enchanter-base.h">
       <Filter>object-enchant</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-others.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic.h">
+    <ClInclude Include="..\..\src\object-enchant\item-magic-applier.h">
       <Filter>object-enchant</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\perception\object-perception.h">
@@ -3470,10 +3536,7 @@
     <ClInclude Include="..\..\src\monster-attack\monster-attack-switcher.h">
       <Filter>monster-attack</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\monster-attack\monster-attack-types.h">
-      <Filter>monster-attack</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\monster-attack\monster-attack-util.h">
+    <ClInclude Include="..\..\src\monster-attack\monster-attack-table.h">
       <Filter>monster-attack</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\monster-attack\monster-eating.h">
@@ -3497,7 +3560,7 @@
     <ClInclude Include="..\..\src\info-reader\race-info-tokens-table.h">
       <Filter>info-reader</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\info-reader\kind-info-tokens-table.h">
+    <ClInclude Include="..\..\src\info-reader\baseitem-tokens-table.h">
       <Filter>info-reader</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\info-reader\dungeon-info-tokens-table.h">
@@ -3521,7 +3584,7 @@
     <ClInclude Include="..\..\src\info-reader\vault-reader.h">
       <Filter>info-reader</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\info-reader\kind-reader.h">
+    <ClInclude Include="..\..\src\info-reader\baseitem-reader.h">
       <Filter>info-reader</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\info-reader\artifact-reader.h">
@@ -3636,9 +3699,6 @@
       <Filter>monster-race</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\monster-race\race-flags7.h">
-      <Filter>monster-race</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\monster-race\race-flags9.h">
       <Filter>monster-race</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\monster-race\race-flags-resistance.h">
@@ -3799,9 +3859,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\player-info\class-types.h">
       <Filter>player-info</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\spell\spell-types.h">
-      <Filter>spell</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\system\monster-race-definition.h">
       <Filter>system</Filter>
@@ -4130,9 +4187,6 @@
     <ClInclude Include="..\..\src\core\player-redraw-types.h">
       <Filter>core</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\object-use\quaff-execution.h">
-      <Filter>object-use</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\flavor\object-flavor-types.h">
       <Filter>flavor</Filter>
     </ClInclude>
@@ -4313,9 +4367,6 @@
     <ClInclude Include="..\..\src\floor\floor-base-definitions.h">
       <Filter>floor</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\floor\sight-definitions.h">
-      <Filter>floor</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\system\floor-type-definition.h">
       <Filter>system</Filter>
     </ClInclude>
@@ -4420,9 +4471,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\mspell\mspell-lite.h">
       <Filter>mspell</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-use\read-execution.h">
-      <Filter>object-use</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\player\player-status-flags.h">
       <Filter>player</Filter>
@@ -4947,12 +4995,6 @@
     <ClInclude Include="..\..\src\view\display-scores.h">
       <Filter>view</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-ring.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-amulet.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\dungeon\dungeon-flag-mask.h">
       <Filter>dungeon</Filter>
     </ClInclude>
@@ -4964,27 +5006,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\main-win\wav-reader.h">
       <Filter>main-win</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\abstract-protector-enchanter.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-shield.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-cloak.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-helm.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-crown.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-boots.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\apply-magic-gloves.h">
-      <Filter>object-enchant</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\system\grid-type-definition.h">
       <Filter>system</Filter>
@@ -5016,15 +5037,6 @@
     <ClInclude Include="..\..\src\object-enchant\tr-flags.h">
       <Filter>object-enchant</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\object-smith.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\smith-types.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\smith-tables.h">
-      <Filter>object-enchant</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\player-info\race-info.h">
       <Filter>player-info</Filter>
     </ClInclude>
@@ -5036,9 +5048,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\player-base\player-class.h">
       <Filter>player-base</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\object-enchant\smith-info.h">
-      <Filter>object-enchant</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\timed-effect\timed-effects.h">
       <Filter>timed-effect</Filter>
@@ -5112,7 +5121,7 @@
     <ClInclude Include="..\..\src\monster-race\monster-aura-types.h">
       <Filter>monster-race</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\mspell\mspell.h">
+    <ClInclude Include="..\..\src\mspell\mspell-result.h">
       <Filter>mspell</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\load\old\load-v1-5-0.h">
@@ -5121,16 +5130,16 @@
     <ClInclude Include="..\..\src\load\old\load-v1-7-0.h">
       <Filter>load\old</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\load\old\item-loader-savefile10.h">
+    <ClInclude Include="..\..\src\load\old\item-loader-savefile50.h">
       <Filter>load\old</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\load\old\monster-loader-savefile10.h">
+    <ClInclude Include="..\..\src\load\old\monster-loader-savefile50.h">
       <Filter>load\old</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\load\old\item-flag-types-savefile10.h">
+    <ClInclude Include="..\..\src\load\old\item-flag-types-savefile50.h">
       <Filter>load\old</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\load\old\monster-flag-types-savefile10.h">
+    <ClInclude Include="..\..\src\load\old\monster-flag-types-savefile50.h">
       <Filter>load\old</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\load\item\item-loader-base.h">
@@ -5150,6 +5159,216 @@
     </ClInclude>
     <ClInclude Include="..\..\src\load\monster\monster-loader-version-types.h">
       <Filter>load\monster</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\effect\attribute-types.h">
+      <Filter>effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-behavior-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\abstract-protector-enchanter.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-armor.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-boots.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-cloak.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-crown.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-gloves.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-helm.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-shield.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\abstract-weapon-enchanter.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\apply-magic-bow.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\smith\object-smith.h">
+      <Filter>smith</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\smith\smith-info.h">
+      <Filter>smith</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\smith\smith-tables.h">
+      <Filter>smith</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\smith\smith-types.h">
+      <Filter>smith</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\others\apply-magic-amulet.h">
+      <Filter>object-enchant\others</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\others\apply-magic-ring.h">
+      <Filter>object-enchant\others</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\others\apply-magic-others.h">
+      <Filter>object-enchant\others</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-visual-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\others\apply-magic-lite.h">
+      <Filter>object-enchant\others</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\system\angband-exceptions.h">
+      <Filter>system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-kind-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\monster-kind-mask.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-resistance-mask.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-confusion.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-hallucination.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-paralysis.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-fear.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\market\bounty-type-definition.h">
+      <Filter>market</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\read\read-execution.h">
+      <Filter>object-use\read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\read\read-executor-factory.h">
+      <Filter>object-use\read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\read\scroll-read-executor.h">
+      <Filter>object-use\read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\read\gbh-shirt-read-executor.h">
+      <Filter>object-use\read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\read\ring-power-read-executor.h">
+      <Filter>object-use\read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\read\parchment-read-executor.h">
+      <Filter>object-use\read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\read\read-executor-base.h">
+      <Filter>object-use\read</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\spell-class\spells-mirror-master.h">
+      <Filter>spell-class</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\quaff\quaff-execution.h">
+      <Filter>object-use\quaff</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-use\quaff\quaff-effects.h">
+      <Filter>object-use\quaff</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-drop-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-dragon-armor.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-hard-armor.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\protector\apply-magic-soft-armor.h">
+      <Filter>object-enchant\protector</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\apply-magic-sword.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\apply-magic-digging.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\apply-magic-arrow.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-wilderness-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\melee-weapon-enchanter.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\apply-magic-hafted.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\weapon\apply-magic-polearm.h">
+      <Filter>object-enchant\weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\object-enchant\enchanter-factory.h">
+      <Filter>object-enchant</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\mspell\mspell-data.h">
+      <Filter>mspell</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\mspell\mspell-attack\abstract-mspell.h">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\mspell\mspell-attack\mspell-ball.h">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\mspell\mspell-attack\mspell-bolt.h">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\mspell\mspell-attack\mspell-breath.h">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\mspell\mspell-attack\mspell-curse.h">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\mspell\mspell-attack\mspell-particularity.h">
+      <Filter>mspell\mspell-attack</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-feature-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-feature-mask.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-acceleration.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-population-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\monster-race\race-speak-flags.h">
+      <Filter>monster-race</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-deceleration.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-poison.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\timed-effect\player-blindness.h">
+      <Filter>timed-effect</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\system\baseitem-info-definition.h">
+      <Filter>system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\system\dungeon-info.h">
+      <Filter>system</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\system\terrain-type-definition.h">
+      <Filter>system</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -5381,6 +5600,30 @@
     </Filter>
     <Filter Include="load\monster">
       <UniqueIdentifier>{ad11aaea-5034-4df2-9a9b-d63457fdad55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="object-enchant\protector">
+      <UniqueIdentifier>{bec9d846-2241-4692-89bf-9ca8988347d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="object-enchant\weapon">
+      <UniqueIdentifier>{67ae112a-43ae-49a3-96ab-4f60c7c51931}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="smith">
+      <UniqueIdentifier>{a69deeae-ad91-4e9e-b811-25f6d4b49aec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="object-enchant\others">
+      <UniqueIdentifier>{8e025e92-a617-4072-9c36-ba6fc3801284}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="object-use\read">
+      <UniqueIdentifier>{b0af4dd7-335a-466f-adb9-cd217597e87b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="spell-class">
+      <UniqueIdentifier>{b03873b1-e021-4bfe-84e4-0fa1e0bc87a2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="object-use\quaff">
+      <UniqueIdentifier>{5eec2f75-7108-42ad-9aa4-85b1129354db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mspell\mspell-attack">
+      <UniqueIdentifier>{ab971e7b-4a9e-4f88-a557-eb89840abd61}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

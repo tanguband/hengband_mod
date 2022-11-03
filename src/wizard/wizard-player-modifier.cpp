@@ -39,15 +39,16 @@ constexpr std::array wizard_player_modifier_menu_table = {
  */
 void display_wizard_player_modifier_menu()
 {
-    for (auto y = 1U; y <= wizard_player_modifier_menu_table.size(); y++)
+    for (auto y = 1U; y <= wizard_player_modifier_menu_table.size(); y++) {
         term_erase(14, y, 64);
+    }
 
     int r = 1;
     int c = 15;
     for (const auto &[symbol, desc] : wizard_player_modifier_menu_table) {
         std::stringstream ss;
         ss << symbol << ") " << desc;
-        put_str(ss.str().c_str(), r++, c);
+        put_str(ss.str().data(), r++, c);
     }
 }
 
@@ -55,7 +56,7 @@ void display_wizard_player_modifier_menu()
  * @brief プレイヤー設定コマンドの入力を受け付ける
  * @param player_ptr プレイヤーの情報へのポインタ
  */
-void wizard_player_modifier(player_type *player_ptr)
+void wizard_player_modifier(PlayerType *player_ptr)
 {
     screen_save();
     display_wizard_player_modifier_menu();

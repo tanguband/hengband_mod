@@ -18,17 +18,18 @@
 #include "monster/monster-status.h"
 #include "object/item-tester-hooker.h"
 #include "object/object-info.h"
-#include "object/object-kind.h"
 #include "object/object-mark-types.h"
 #include "player/player-status-flags.h"
 #include "player/player-status.h"
 #include "spell-kind/magic-item-recharger.h"
+#include "system/baseitem-info-definition.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "target/target-describer.h"
 #include "target/target-preparation.h"
 #include "target/target-setter.h"
@@ -36,6 +37,8 @@
 #include "term/gameterm.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
+#include "timed-effect/player-hallucination.h"
+#include "timed-effect/timed-effects.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-lore.h"
 #include "view/display-map.h"
@@ -66,15 +69,17 @@ FixItemTesterSetter::~FixItemTesterSetter()
  * @brief サブウィンドウに所持品一覧を表示する / Hack -- display inventory in sub-windows
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void fix_inventory(player_type *player_ptr)
+void fix_inventory(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_INVEN)))
+        if (!(window_flag[j] & (PW_INVEN))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         display_inventory(player_ptr, *fix_item_tester);
@@ -101,23 +106,16 @@ void fix_inventory(player_type *player_ptr)
 static void print_monster_line(TERM_LEN x, TERM_LEN y, monster_type *m_ptr, int n_same)
 {
     char buf[256];
-    MONRACE_IDX r_idx = m_ptr->ap_r_idx;
-    monster_race *r_ptr = &r_info[r_idx];
+    MonsterRaceId r_idx = m_ptr->ap_r_idx;
+    auto *r_ptr = &monraces_info[r_idx];
 
     term_erase(0, y, 255);
     term_gotoxy(x, y);
-    if (!r_ptr)
+    if (!r_ptr) {
         return;
-    if (r_ptr->flags1 & RF1_UNIQUE) {
-        bool is_bounty = false;
-        for (int i = 0; i < MAX_BOUNTY; i++) {
-            if (w_ptr->bounty_r_idx[i] == r_idx) {
-                is_bounty = true;
-                break;
-            }
-        }
-
-        term_addstr(-1, TERM_WHITE, is_bounty ? "  W" : "  U");
+    }
+    if (r_ptr->kind_flags.has(MonsterKindType::UNIQUE)) {
+        term_addstr(-1, TERM_WHITE, MonsterRace(r_idx).is_bounty(true) ? "  W" : "  U");
     } else {
         sprintf(buf, "%3d", n_same);
         term_addstr(-1, TERM_WHITE, buf);
@@ -126,7 +124,7 @@ static void print_monster_line(TERM_LEN x, TERM_LEN y, monster_type *m_ptr, int 
     term_addstr(-1, TERM_WHITE, " ");
     term_add_bigch(r_ptr->x_attr, r_ptr->x_char);
 
-    if (r_ptr->r_tkills && m_ptr->mflag2.has_not(MFLAG2::KAGE)) {
+    if (r_ptr->r_tkills && m_ptr->mflag2.has_not(MonsterConstantFlagType::KAGE)) {
         sprintf(buf, " %2d", (int)r_ptr->level);
     } else {
         strcpy(buf, " ??");
@@ -134,7 +132,7 @@ static void print_monster_line(TERM_LEN x, TERM_LEN y, monster_type *m_ptr, int 
 
     term_addstr(-1, TERM_WHITE, buf);
 
-    sprintf(buf, " %s ", r_ptr->name.c_str());
+    sprintf(buf, " %s ", r_ptr->name.data());
     term_addstr(-1, TERM_WHITE, buf);
 }
 
@@ -144,7 +142,7 @@ static void print_monster_line(TERM_LEN x, TERM_LEN y, monster_type *m_ptr, int 
  * @param y 表示行
  * @param max_lines 最大何行描画するか
  */
-void print_monster_list(floor_type *floor_ptr, const std::vector<MONSTER_IDX> &monster_list, TERM_LEN x, TERM_LEN y, TERM_LEN max_lines)
+void print_monster_list(FloorType *floor_ptr, const std::vector<MONSTER_IDX> &monster_list, TERM_LEN x, TERM_LEN y, TERM_LEN max_lines)
 {
     TERM_LEN line = y;
     monster_type *last_mons = nullptr;
@@ -152,13 +150,15 @@ void print_monster_list(floor_type *floor_ptr, const std::vector<MONSTER_IDX> &m
     size_t i;
     for (i = 0; i < monster_list.size(); i++) {
         auto m_ptr = &floor_ptr->m_list[monster_list[i]];
-        if (is_pet(m_ptr))
-            continue; // pet
-        if (!m_ptr->r_idx)
-            continue; // dead?
+        if (m_ptr->is_pet()) {
+            continue;
+        } // pet
+        if (!MonsterRace(m_ptr->r_idx).is_valid()) {
+            continue;
+        } // dead?
 
-        //ソート済みなので同じモンスターは連続する．これを利用して同じモンスターをカウント，まとめて表示する．
-        //先頭モンスター
+        // ソート済みなので同じモンスターは連続する．これを利用して同じモンスターをカウント，まとめて表示する．
+        // 先頭モンスター
         if (!last_mons) {
             last_mons = m_ptr;
             n_same = 1;
@@ -168,7 +168,7 @@ void print_monster_list(floor_type *floor_ptr, const std::vector<MONSTER_IDX> &m
         // same race?
         if (last_mons->ap_r_idx == m_ptr->ap_r_idx) {
             n_same++;
-            continue; //表示処理を次に回す
+            continue; // 表示処理を次に回す
         }
 
         // last_mons と m_ptr が(見た目が)異なるなら、last_mons とその数を出力。
@@ -178,8 +178,9 @@ void print_monster_list(floor_type *floor_ptr, const std::vector<MONSTER_IDX> &m
         last_mons = m_ptr;
 
         // 行数が足りなくなったら中断。
-        if (line - y == max_lines)
+        if (line - y == max_lines) {
             break;
+        }
     }
 
     if (i != monster_list.size()) {
@@ -187,10 +188,12 @@ void print_monster_list(floor_type *floor_ptr, const std::vector<MONSTER_IDX> &m
         term_addstr(-1, TERM_WHITE, "-- and more --");
     } else {
         // 行数が足りていれば last_mons とその数を出力し、残りの行をクリア。
-        if (last_mons)
+        if (last_mons) {
             print_monster_line(x, line++, last_mons, n_same);
-        for (; line < max_lines; line++)
+        }
+        for (; line < max_lines; line++) {
             term_erase(0, line, 255);
+        }
     }
 }
 
@@ -198,19 +201,22 @@ void print_monster_list(floor_type *floor_ptr, const std::vector<MONSTER_IDX> &m
  * @brief 出現中モンスターのリストをサブウィンドウに表示する / Hack -- display monster list in sub-windows
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void fix_monster_list(player_type *player_ptr)
+void fix_monster_list(PlayerType *player_ptr)
 {
     static std::vector<MONSTER_IDX> monster_list;
     std::once_flag once;
 
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
-        if (!(window_flag[j] & PW_MONSTER_LIST))
+        }
+        if (!(window_flag[j] & PW_MONSTER_LIST)) {
             continue;
-        if (angband_term[j]->never_fresh)
+        }
+        if (angband_term[j]->never_fresh) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         int w, h;
@@ -231,10 +237,11 @@ void fix_monster_list(player_type *player_ptr)
  * @brief 装備アイテム一覧を表示する /
  * Choice window "shadow" of the "show_equip()" function
  */
-static void display_equipment(player_type *player_ptr, const ItemTester &item_tester)
+static void display_equipment(PlayerType *player_ptr, const ItemTester &item_tester)
 {
-    if (!player_ptr || !player_ptr->inventory_list)
+    if (!player_ptr || !player_ptr->inventory_list) {
         return;
+    }
 
     TERM_LEN wid, hgt;
     term_get_size(&wid, &hgt);
@@ -244,8 +251,9 @@ static void display_equipment(player_type *player_ptr, const ItemTester &item_te
     GAME_TEXT o_name[MAX_NLEN];
     for (int i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
         int cur_row = i - INVEN_MAIN_HAND;
-        if (cur_row >= hgt)
+        if (cur_row >= hgt) {
             break;
+        }
 
         auto o_ptr = &player_ptr->inventory_list[i];
         auto do_disp = player_ptr->select_ring_slot ? is_ring_slot(i) : item_tester.okay(o_ptr);
@@ -269,15 +277,17 @@ static void display_equipment(player_type *player_ptr, const ItemTester &item_te
         }
 
         int n = strlen(o_name);
-        if (o_ptr->timeout)
+        if (o_ptr->timeout) {
             attr = TERM_L_DARK;
+        }
 
         if (show_item_graph) {
-            TERM_COLOR a = object_attr(o_ptr);
-            SYMBOL_CODE c = object_char(o_ptr);
+            const auto a = o_ptr->get_color();
+            const auto c = o_ptr->get_symbol();
             term_queue_bigchar(cur_col, cur_row, a, c, 0, 0);
-            if (use_bigtile)
+            if (use_bigtile) {
                 cur_col++;
+            }
 
             cur_col += 2;
         }
@@ -295,8 +305,9 @@ static void display_equipment(player_type *player_ptr, const ItemTester &item_te
         }
     }
 
-    for (int i = INVEN_TOTAL - INVEN_MAIN_HAND; i < hgt; i++)
+    for (int i = INVEN_TOTAL - INVEN_MAIN_HAND; i < hgt; i++) {
         term_erase(0, i, 255);
+    }
 }
 
 /*!
@@ -304,14 +315,16 @@ static void display_equipment(player_type *player_ptr, const ItemTester &item_te
  * Hack -- display equipment in sub-windows
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void fix_equip(player_type *player_ptr)
+void fix_equip(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
-        if (!(window_flag[j] & (PW_EQUIP)))
+        }
+        if (!(window_flag[j] & (PW_EQUIP))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         display_equipment(player_ptr, *fix_item_tester);
@@ -325,19 +338,21 @@ void fix_equip(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * Hack -- display character in sub-windows
  */
-void fix_player(player_type *player_ptr)
+void fix_player(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_PLAYER)))
+        if (!(window_flag[j] & (PW_PLAYER))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         update_playtime();
-        display_player(player_ptr, 0);
+        (void)display_player(player_ptr, 0);
         term_fresh();
         term_activate(old);
     }
@@ -351,12 +366,14 @@ void fix_player(player_type *player_ptr)
 void fix_message(void)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_MESSAGE)))
+        if (!(window_flag[j] & (PW_MESSAGE))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         TERM_LEN w, h;
@@ -381,16 +398,18 @@ void fix_message(void)
  * @details
  * Note that the "player" symbol does NOT appear on the map.
  */
-void fix_overhead(player_type *player_ptr)
+void fix_overhead(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
+        term_type *old = game_term;
         TERM_LEN wid, hgt;
-        if (!angband_term[j])
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_OVERHEAD)))
+        if (!(window_flag[j] & (PW_OVERHEAD))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         term_get_size(&wid, &hgt);
@@ -408,35 +427,36 @@ void fix_overhead(player_type *player_ptr)
  * @brief 自分の周辺の地形をTermに表示する
  * @param プレイヤー情報への参照ポインタ
  */
-static void display_dungeon(player_type *player_ptr)
+static void display_dungeon(PlayerType *player_ptr)
 {
     TERM_COLOR ta = 0;
-    SYMBOL_CODE tc = '\0';
+    auto tc = '\0';
 
-    for (TERM_LEN x = player_ptr->x - Term->wid / 2 + 1; x <= player_ptr->x + Term->wid / 2; x++) {
-        for (TERM_LEN y = player_ptr->y - Term->hgt / 2 + 1; y <= player_ptr->y + Term->hgt / 2; y++) {
+    for (TERM_LEN x = player_ptr->x - game_term->wid / 2 + 1; x <= player_ptr->x + game_term->wid / 2; x++) {
+        for (TERM_LEN y = player_ptr->y - game_term->hgt / 2 + 1; y <= player_ptr->y + game_term->hgt / 2; y++) {
             TERM_COLOR a;
-            SYMBOL_CODE c;
+            char c;
             if (!in_bounds2(player_ptr->current_floor_ptr, y, x)) {
-                feature_type *f_ptr = &f_info[feat_none];
+                auto *f_ptr = &terrains_info[feat_none];
                 a = f_ptr->x_attr[F_LIT_STANDARD];
                 c = f_ptr->x_char[F_LIT_STANDARD];
-                term_queue_char(x - player_ptr->x + Term->wid / 2 - 1, y - player_ptr->y + Term->hgt / 2 - 1, a, c, ta, tc);
+                term_queue_char(x - player_ptr->x + game_term->wid / 2 - 1, y - player_ptr->y + game_term->hgt / 2 - 1, a, c, ta, tc);
                 continue;
             }
 
             map_info(player_ptr, y, x, &a, &c, &ta, &tc);
 
             if (!use_graphics) {
-                if (w_ptr->timewalk_m_idx)
+                if (w_ptr->timewalk_m_idx) {
                     a = TERM_DARK;
-                else if (is_invuln(player_ptr) || player_ptr->timewalk)
+                } else if (is_invuln(player_ptr) || player_ptr->timewalk) {
                     a = TERM_WHITE;
-                else if (player_ptr->wraith_form)
+                } else if (player_ptr->wraith_form) {
                     a = TERM_L_DARK;
+                }
             }
 
-            term_queue_char(x - player_ptr->x + Term->wid / 2 - 1, y - player_ptr->y + Term->hgt / 2 - 1, a, c, ta, tc);
+            term_queue_char(x - player_ptr->x + game_term->wid / 2 - 1, y - player_ptr->y + game_term->hgt / 2 - 1, a, c, ta, tc);
         }
     }
 }
@@ -445,15 +465,17 @@ static void display_dungeon(player_type *player_ptr)
  * @brief 自分の周辺のダンジョンの地形をサブウィンドウに表示する / display dungeon view around player in a sub window
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void fix_dungeon(player_type *player_ptr)
+void fix_dungeon(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_DUNGEON)))
+        if (!(window_flag[j] & (PW_DUNGEON))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         display_dungeon(player_ptr);
@@ -467,19 +489,22 @@ void fix_dungeon(player_type *player_ptr)
  * Hack -- display dungeon view in sub-windows
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void fix_monster(player_type *player_ptr)
+void fix_monster(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_MONSTER)))
+        if (!(window_flag[j] & (PW_MONSTER))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
-        if (player_ptr->monster_race_idx)
+        if (MonsterRace(player_ptr->monster_race_idx).is_valid()) {
             display_roff(player_ptr);
+        }
 
         term_fresh();
         term_activate(old);
@@ -491,19 +516,22 @@ void fix_monster(player_type *player_ptr)
  * Hack -- display object recall in sub-windows
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void fix_object(player_type *player_ptr)
+void fix_object(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_OBJECT)))
+        if (!(window_flag[j] & (PW_OBJECT))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
-        if (player_ptr->object_kind_idx)
-            display_koff(player_ptr, player_ptr->object_kind_idx);
+        if (player_ptr->baseitem_info_idx) {
+            display_koff(player_ptr, player_ptr->baseitem_info_idx);
+        }
 
         term_fresh();
         term_activate(old);
@@ -518,14 +546,16 @@ void fix_object(player_type *player_ptr)
  * @details
  * Lookコマンドでカーソルを合わせた場合に合わせてミミックは考慮しない。
  */
-static const monster_type *monster_on_floor_items(floor_type *floor_ptr, const grid_type *g_ptr)
+static const monster_type *monster_on_floor_items(FloorType *floor_ptr, const grid_type *g_ptr)
 {
-    if (g_ptr->m_idx == 0)
+    if (g_ptr->m_idx == 0) {
         return nullptr;
+    }
 
     auto m_ptr = &floor_ptr->m_list[g_ptr->m_idx];
-    if (!monster_is_valid(m_ptr) || !m_ptr->ml)
+    if (!m_ptr->is_valid() || !m_ptr->ml) {
         return nullptr;
+    }
 
     return m_ptr;
 }
@@ -536,7 +566,7 @@ static const monster_type *monster_on_floor_items(floor_type *floor_ptr, const g
  * @param y 参照する座標グリッドのy座標
  * @param x 参照する座標グリッドのx座標
  */
-static void display_floor_item_list(player_type *player_ptr, const int y, const int x)
+static void display_floor_item_list(PlayerType *player_ptr, const int y, const int x)
 {
     // Term の行数を取得。
     TERM_LEN term_h;
@@ -544,8 +574,9 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
         TERM_LEN term_w;
         term_get_size(&term_w, &term_h);
     }
-    if (term_h <= 0)
+    if (term_h <= 0) {
         return;
+    }
 
     term_clear();
     term_gotoxy(0, 0);
@@ -555,26 +586,28 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
     char line[1024];
 
     // 先頭行を書く。
-    if (player_bold(player_ptr, y, x))
+    auto is_hallucinated = player_ptr->effects()->hallucination()->is_hallucinated();
+    if (player_bold(player_ptr, y, x)) {
         sprintf(line, _("(X:%03d Y:%03d) あなたの足元のアイテム一覧", "Items at (%03d,%03d) under you"), x, y);
-    else if (const auto *m_ptr = monster_on_floor_items(floor_ptr, g_ptr); m_ptr != nullptr) {
-        if (player_ptr->hallucinated) {
+    } else if (const auto *m_ptr = monster_on_floor_items(floor_ptr, g_ptr); m_ptr != nullptr) {
+        if (is_hallucinated) {
             sprintf(line, _("(X:%03d Y:%03d) 何か奇妙な物の足元の発見済みアイテム一覧", "Found items at (%03d,%03d) under something strange"), x, y);
         } else {
-            const monster_race *const r_ptr = &r_info[m_ptr->ap_r_idx];
-            sprintf(line, _("(X:%03d Y:%03d) %sの足元の発見済みアイテム一覧", "Found items at (%03d,%03d) under %s"), x, y, r_ptr->name.c_str());
+            const monster_race *const r_ptr = &monraces_info[m_ptr->ap_r_idx];
+            sprintf(line, _("(X:%03d Y:%03d) %sの足元の発見済みアイテム一覧", "Found items at (%03d,%03d) under %s"), x, y, r_ptr->name.data());
         }
     } else {
-        const feature_type *const f_ptr = &f_info[g_ptr->feat];
-        concptr fn = f_ptr->name.c_str();
+        const TerrainType *const f_ptr = &terrains_info[g_ptr->feat];
+        concptr fn = f_ptr->name.data();
         char buf[512];
 
-        if (f_ptr->flags.has(FF::STORE) || (f_ptr->flags.has(FF::BLDG) && !floor_ptr->inside_arena))
+        if (f_ptr->flags.has(TerrainCharacteristics::STORE) || (f_ptr->flags.has(TerrainCharacteristics::BLDG) && !floor_ptr->inside_arena)) {
             sprintf(buf, _("%sの入口", "on the entrance of %s"), fn);
-        else if (f_ptr->flags.has(FF::WALL))
+        } else if (f_ptr->flags.has(TerrainCharacteristics::WALL)) {
             sprintf(buf, _("%sの中", "in %s"), fn);
-        else
+        } else {
             sprintf(buf, _("%s", "on %s"), fn);
+        }
         sprintf(line, _("(X:%03d Y:%03d) %sの上の発見済みアイテム一覧", "Found items at (X:%03d Y:%03d) %s"), x, y, buf);
     }
     term_addstr(-1, TERM_WHITE, line);
@@ -582,7 +615,7 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
     // (y,x) のアイテムを1行に1個ずつ書く。
     TERM_LEN term_y = 1;
     for (const auto o_idx : g_ptr->o_idx_list) {
-        object_type *const o_ptr = &floor_ptr->o_list[o_idx];
+        ObjectType *const o_ptr = &floor_ptr->o_list[o_idx];
 
         // 未発見アイテムおよび金は対象外。
         if (none_bits(o_ptr->marked, OM_FOUND) || o_ptr->tval == ItemKindType::GOLD) {
@@ -597,7 +630,7 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
 
         term_gotoxy(0, term_y);
 
-        if (player_ptr->hallucinated) {
+        if (is_hallucinated) {
             term_addstr(-1, TERM_WHITE, _("何か奇妙な物", "something strange"));
         } else {
             describe_flavor(player_ptr, line, o_ptr, 0);
@@ -612,17 +645,20 @@ static void display_floor_item_list(player_type *player_ptr, const int y, const 
 /*!
  * @brief (y,x) のアイテム一覧をサブウィンドウに表示する / display item at (y,x) in sub-windows
  */
-void fix_floor_item_list(player_type *player_ptr, const int y, const int x)
+void fix_floor_item_list(PlayerType *player_ptr, const int y, const int x)
 {
     for (int j = 0; j < 8; j++) {
-        if (!angband_term[j])
+        if (!angband_term[j]) {
             continue;
-        if (angband_term[j]->never_fresh)
+        }
+        if (angband_term[j]->never_fresh) {
             continue;
-        if (!(window_flag[j] & PW_FLOOR_ITEM_LIST))
+        }
+        if (!(window_flag[j] & PW_FLOOR_ITEM_LIST)) {
             continue;
+        }
 
-        term_type *old = Term;
+        term_type *old = game_term;
         term_activate(angband_term[j]);
 
         display_floor_item_list(player_ptr, y, x);
@@ -636,11 +672,12 @@ void fix_floor_item_list(player_type *player_ptr, const int y, const int x)
  * @brief サブウィンドウに所持品、装備品リストの表示を行う /
  * Flip "inven" and "equip" in any sub-windows
  */
-void toggle_inventory_equipment(player_type *player_ptr)
+void toggle_inventory_equipment(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        if (!angband_term[j])
+        if (!angband_term[j]) {
             continue;
+        }
 
         if (window_flag[j] & (PW_INVEN)) {
             window_flag[j] &= ~(PW_INVEN);

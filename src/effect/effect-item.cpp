@@ -15,7 +15,6 @@
 #include "object/object-mark-types.h"
 #include "perception/object-perception.h"
 #include "spell-kind/spells-perception.h"
-#include "spell/spell-types.h"
 #include "sv-definition/sv-other-types.h"
 #include "sv-definition/sv-scroll-types.h"
 #include "system/floor-type-definition.h"
@@ -39,9 +38,9 @@
  * @param typ 効果属性 / Type of damage to apply to monsters (and objects)
  * @return 何か一つでも効力があればTRUEを返す / TRUE if any "effects" of the projection were observed, else FALSE
  */
-bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION y, POSITION x, HIT_POINT dam, EFFECT_ID typ)
+bool affect_item(PlayerType *player_ptr, MONSTER_IDX who, POSITION r, POSITION y, POSITION x, int dam, AttributeType typ)
 {
-    grid_type *g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
+    auto *g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
 
     bool is_item_affected = false;
     bool known = player_has_los_bold(player_ptr, y, x);
@@ -51,12 +50,13 @@ bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION 
     for (auto it = g_ptr->o_idx_list.begin(); it != g_ptr->o_idx_list.end();) {
         const OBJECT_IDX this_o_idx = *it++;
 
-        if (auto pit = processed_list.find(this_o_idx); pit != processed_list.end())
+        if (auto pit = processed_list.find(this_o_idx); pit != processed_list.end()) {
             continue;
+        }
 
         processed_list.insert(this_o_idx);
 
-        object_type *o_ptr = &player_ptr->current_floor_ptr->o_list[this_o_idx];
+        auto *o_ptr = &player_ptr->current_floor_ptr->o_list[this_o_idx];
         bool ignore = false;
         bool do_kill = false;
         concptr note_kill = nullptr;
@@ -68,86 +68,94 @@ bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION 
         auto flags = object_flags(o_ptr);
         bool is_artifact = o_ptr->is_artifact();
         switch (typ) {
-        case GF_ACID: {
+        case AttributeType::ACID: {
             if (BreakerAcid().hates(o_ptr)) {
                 do_kill = true;
                 note_kill = _("融けてしまった！", (plural ? " melt!" : " melts!"));
-                if (flags.has(TR_IGNORE_ACID))
+                if (flags.has(TR_IGNORE_ACID)) {
                     ignore = true;
+                }
             }
 
             break;
         }
-        case GF_ELEC: {
+        case AttributeType::ELEC: {
             if (BreakerElec().hates(o_ptr)) {
                 do_kill = true;
                 note_kill = _("壊れてしまった！", (plural ? " are destroyed!" : " is destroyed!"));
-                if (flags.has(TR_IGNORE_ELEC))
+                if (flags.has(TR_IGNORE_ELEC)) {
                     ignore = true;
+                }
             }
 
             break;
         }
-        case GF_FIRE: {
+        case AttributeType::FIRE: {
             if (BreakerFire().hates(o_ptr)) {
                 do_kill = true;
                 note_kill = _("燃えてしまった！", (plural ? " burn up!" : " burns up!"));
-                if (flags.has(TR_IGNORE_FIRE))
+                if (flags.has(TR_IGNORE_FIRE)) {
                     ignore = true;
+                }
             }
 
             break;
         }
-        case GF_COLD: {
+        case AttributeType::COLD: {
             if (BreakerCold().hates(o_ptr)) {
                 note_kill = _("砕け散ってしまった！", (plural ? " shatter!" : " shatters!"));
                 do_kill = true;
-                if (flags.has(TR_IGNORE_COLD))
+                if (flags.has(TR_IGNORE_COLD)) {
                     ignore = true;
+                }
             }
 
             break;
         }
-        case GF_PLASMA: {
+        case AttributeType::PLASMA: {
             if (BreakerFire().hates(o_ptr)) {
                 do_kill = true;
                 note_kill = _("燃えてしまった！", (plural ? " burn up!" : " burns up!"));
-                if (flags.has(TR_IGNORE_FIRE))
+                if (flags.has(TR_IGNORE_FIRE)) {
                     ignore = true;
+                }
             }
 
             if (BreakerElec().hates(o_ptr)) {
                 ignore = false;
                 do_kill = true;
                 note_kill = _("壊れてしまった！", (plural ? " are destroyed!" : " is destroyed!"));
-                if (flags.has(TR_IGNORE_ELEC))
+                if (flags.has(TR_IGNORE_ELEC)) {
                     ignore = true;
+                }
             }
 
             break;
         }
-        case GF_METEOR: {
+        case AttributeType::METEOR: {
             if (BreakerFire().hates(o_ptr)) {
                 do_kill = true;
                 note_kill = _("燃えてしまった！", (plural ? " burn up!" : " burns up!"));
-                if (flags.has(TR_IGNORE_FIRE))
+                if (flags.has(TR_IGNORE_FIRE)) {
                     ignore = true;
+                }
             }
 
             if (BreakerCold().hates(o_ptr)) {
                 ignore = false;
                 do_kill = true;
                 note_kill = _("砕け散ってしまった！", (plural ? " shatter!" : " shatters!"));
-                if (flags.has(TR_IGNORE_COLD))
+                if (flags.has(TR_IGNORE_COLD)) {
                     ignore = true;
+                }
             }
 
             break;
         }
-        case GF_ICE:
-        case GF_SHARDS:
-        case GF_FORCE:
-        case GF_SOUND: {
+        case AttributeType::ICE:
+        case AttributeType::SHARDS:
+        case AttributeType::FORCE:
+        case AttributeType::SOUND: {
             if (BreakerCold().hates(o_ptr)) {
                 note_kill = _("砕け散ってしまった！", (plural ? " shatter!" : " shatters!"));
                 do_kill = true;
@@ -155,29 +163,30 @@ bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION 
 
             break;
         }
-        case GF_MANA:
-        case GF_SEEKER:
-        case GF_SUPER_RAY: {
+        case AttributeType::MANA:
+        case AttributeType::SEEKER:
+        case AttributeType::SUPER_RAY: {
             do_kill = true;
             note_kill = _("壊れてしまった！", (plural ? " are destroyed!" : " is destroyed!"));
             break;
         }
-        case GF_DISINTEGRATE: {
+        case AttributeType::DISINTEGRATE: {
             do_kill = true;
             note_kill = _("蒸発してしまった！", (plural ? " evaporate!" : " evaporates!"));
             break;
         }
-        case GF_CHAOS: {
+        case AttributeType::CHAOS: {
             do_kill = true;
             note_kill = _("壊れてしまった！", (plural ? " are destroyed!" : " is destroyed!"));
-            if (flags.has(TR_RES_CHAOS))
+            if (flags.has(TR_RES_CHAOS)) {
                 ignore = true;
-            else if ((o_ptr->tval == ItemKindType::SCROLL) && (o_ptr->sval == SV_SCROLL_CHAOS))
+            } else if ((o_ptr->tval == ItemKindType::SCROLL) && (o_ptr->sval == SV_SCROLL_CHAOS)) {
                 ignore = true;
+            }
             break;
         }
-        case GF_HOLY_FIRE:
-        case GF_HELL_FIRE: {
+        case AttributeType::HOLY_FIRE:
+        case AttributeType::HELL_FIRE: {
             if (o_ptr->is_cursed()) {
                 do_kill = true;
                 note_kill = _("壊れてしまった！", (plural ? " are destroyed!" : " is destroyed!"));
@@ -185,22 +194,24 @@ bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION 
 
             break;
         }
-        case GF_VOID: {
+        case AttributeType::VOID_MAGIC: {
             do_kill = true;
             note_kill = _("消滅してしまった！", (plural ? " vanish!" : " vanishes!"));
             break;
         }
-        case GF_IDENTIFY: {
+        case AttributeType::IDENTIFY: {
             identify_item(player_ptr, o_ptr);
             autopick_alter_item(player_ptr, (-this_o_idx), false);
             break;
         }
-        case GF_KILL_TRAP:
-        case GF_KILL_DOOR: {
-            if (o_ptr->tval != ItemKindType::CHEST)
+        case AttributeType::KILL_TRAP:
+        case AttributeType::KILL_DOOR: {
+            if (o_ptr->tval != ItemKindType::CHEST) {
                 break;
-            if (o_ptr->pval <= 0)
+            }
+            if (o_ptr->pval <= 0) {
                 break;
+            }
 
             o_ptr->pval = (0 - o_ptr->pval);
             object_known(o_ptr);
@@ -211,22 +222,25 @@ bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION 
 
             break;
         }
-        case GF_ANIM_DEAD: {
-            if (o_ptr->tval != ItemKindType::CORPSE)
+        case AttributeType::ANIM_DEAD: {
+            if (o_ptr->tval != ItemKindType::CORPSE) {
                 break;
+            }
 
             BIT_FLAGS mode = 0L;
-            if (!who || is_pet(&player_ptr->current_floor_ptr->m_list[who]))
+            if (!who || player_ptr->current_floor_ptr->m_list[who].is_pet()) {
                 mode |= PM_FORCE_PET;
+            }
 
             for (int i = 0; i < o_ptr->number; i++) {
+                auto corpse_r_idx = i2enum<MonsterRaceId>(o_ptr->pval);
                 if (((o_ptr->sval == SV_CORPSE) && (randint1(100) > 80)) || ((o_ptr->sval == SV_SKELETON) && (randint1(100) > 60))) {
                     if (!note_kill) {
                         note_kill = _("灰になった。", (plural ? " become dust." : " becomes dust."));
                     }
 
                     continue;
-                } else if (summon_named_creature(player_ptr, who, y, x, o_ptr->pval, mode)) {
+                } else if (summon_named_creature(player_ptr, who, y, x, corpse_r_idx, mode)) {
                     note_kill = _("生き返った。", " revived.");
                 } else if (!note_kill) {
                     note_kill = _("灰になった。", (plural ? " become dust." : " becomes dust."));
@@ -237,10 +251,13 @@ bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION 
             is_item_affected = true;
             break;
         }
+        default:
+            break;
         }
 
-        if (!do_kill)
+        if (!do_kill) {
             continue;
+        }
 
         GAME_TEXT o_name[MAX_NLEN];
         if (known && (o_ptr->marked & OM_FOUND)) {
@@ -249,14 +266,16 @@ bool affect_item(player_type *player_ptr, MONSTER_IDX who, POSITION r, POSITION 
         }
 
         if ((is_artifact || ignore)) {
-            if (known && (o_ptr->marked & OM_FOUND))
+            if (known && (o_ptr->marked & OM_FOUND)) {
                 msg_format(_("%sは影響を受けない！", (plural ? "The %s are unaffected!" : "The %s is unaffected!")), o_name);
+            }
 
             continue;
         }
 
-        if (known && (o_ptr->marked & OM_FOUND) && note_kill)
+        if (known && (o_ptr->marked & OM_FOUND) && note_kill) {
             msg_format(_("%sは%s", "The %s%s"), o_name, note_kill);
+        }
 
         KIND_OBJECT_IDX k_idx = o_ptr->k_idx;
         bool is_potion = o_ptr->is_potion();

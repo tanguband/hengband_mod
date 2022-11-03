@@ -1,44 +1,46 @@
 ﻿#pragma once
 
+#include "effect/attribute-types.h"
 #include "monster-attack/monster-attack-effect.h"
-#include "monster-attack/monster-attack-types.h"
+#include "monster-attack/monster-attack-table.h"
 #include "system/angband.h"
-#include "spell/spell-types.h"
+
+enum class BlowEffectType;
 
 /* monster-attack-monster type*/
 struct monster_type;
-typedef struct mam_type {
-    int effect_type;
-    MONRACE_IDX m_idx;
-    MONRACE_IDX t_idx;
+struct mam_type {
+    BlowEffectType attribute;
+    MONSTER_IDX m_idx;
+    MONSTER_IDX t_idx;
     monster_type *m_ptr;
     monster_type *t_ptr;
     GAME_TEXT m_name[MAX_NLEN];
     GAME_TEXT t_name[MAX_NLEN];
-    HIT_POINT damage;
+    int damage;
     bool see_m;
     bool see_t;
     bool see_either;
     POSITION y_saver;
     POSITION x_saver;
-    rbm_type method;
+    RaceBlowMethodType method;
     bool explode;
     bool touched;
     concptr act;
-    spells_type pt;
-    rbe_type effect;
+    AttributeType pt;
+    RaceBlowEffectType effect;
     ARMOUR_CLASS ac;
     DEPTH rlev;
     bool blinked;
     bool do_silly_attack;
-    HIT_POINT power;
+    int power;
     bool obvious;
     int d_dice;
     int d_side;
     bool known;
     bool fear;
     bool dead;
-} mam_type;
+};
 
-struct player_type;
-mam_type *initialize_mam_type(player_type *player_ptr, mam_type *mam_ptr, MONRACE_IDX m_idx, MONRACE_IDX t_idx);
+class PlayerType;
+mam_type *initialize_mam_type(PlayerType *player_ptr, mam_type *mam_ptr, MONSTER_IDX m_idx, MONSTER_IDX t_idx);

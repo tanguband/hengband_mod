@@ -4,15 +4,15 @@
  */
 
 #include "main/scene-table-floor.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "main/music-definitions-table.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/player-type-definition.h"
 
-using scene_feel_func = bool (*)(player_type *player_ptr, scene_type *value);
+using scene_feel_func = bool (*)(PlayerType *player_ptr, scene_type *value);
 
-static bool scene_basic(player_type *player_ptr, scene_type *value)
+static bool scene_basic(PlayerType *player_ptr, scene_type *value)
 {
     if (player_ptr->ambush_flag) {
         value->type = TERM_XTRA_MUSIC_BASIC;
@@ -41,22 +41,22 @@ static bool scene_basic(player_type *player_ptr, scene_type *value)
     return false;
 }
 
-static bool scene_quest(player_type *player_ptr, scene_type *value)
+static bool scene_quest(PlayerType *player_ptr, scene_type *value)
 {
-    const QUEST_IDX quest_id = quest_number(player_ptr, player_ptr->current_floor_ptr->dun_level);
-    const bool enable = (quest_id > 0);
+    const QuestId quest_id = quest_number(player_ptr, player_ptr->current_floor_ptr->dun_level);
+    const bool enable = (inside_quest(quest_id));
     if (enable) {
         value->type = TERM_XTRA_MUSIC_QUEST;
-        value->val = quest_id;
+        value->val = enum2i(quest_id);
     }
 
     return enable;
 }
 
-static bool scene_quest_basic(player_type *player_ptr, scene_type *value)
+static bool scene_quest_basic(PlayerType *player_ptr, scene_type *value)
 {
-    const QUEST_IDX quest_id = quest_number(player_ptr, player_ptr->current_floor_ptr->dun_level);
-    const bool enable = (quest_id > 0);
+    const QuestId quest_id = quest_number(player_ptr, player_ptr->current_floor_ptr->dun_level);
+    const bool enable = (inside_quest(quest_id));
     if (enable) {
         value->type = TERM_XTRA_MUSIC_BASIC;
         value->val = MUSIC_BASIC_QUEST;
@@ -65,9 +65,9 @@ static bool scene_quest_basic(player_type *player_ptr, scene_type *value)
     return enable;
 }
 
-static bool scene_town(player_type *player_ptr, scene_type *value)
+static bool scene_town(PlayerType *player_ptr, scene_type *value)
 {
-    const bool enable = !is_in_dungeon(player_ptr) && (player_ptr->town_num > 0);
+    const auto enable = !player_ptr->current_floor_ptr->is_in_dungeon() && (player_ptr->town_num > 0);
     if (enable) {
         value->type = TERM_XTRA_MUSIC_TOWN;
         value->val = player_ptr->town_num;
@@ -75,9 +75,9 @@ static bool scene_town(player_type *player_ptr, scene_type *value)
     return enable;
 }
 
-static bool scene_town_basic(player_type *player_ptr, scene_type *value)
+static bool scene_town_basic(PlayerType *player_ptr, scene_type *value)
 {
-    const bool enable = !is_in_dungeon(player_ptr) && (player_ptr->town_num > 0);
+    const auto enable = !player_ptr->current_floor_ptr->is_in_dungeon() && (player_ptr->town_num > 0);
     if (enable) {
         value->type = TERM_XTRA_MUSIC_BASIC;
         value->val = MUSIC_BASIC_TOWN;
@@ -85,37 +85,39 @@ static bool scene_town_basic(player_type *player_ptr, scene_type *value)
     return enable;
 }
 
-static bool scene_field(player_type *player_ptr, scene_type *value)
+static bool scene_field(PlayerType *player_ptr, scene_type *value)
 {
-    const bool enable = !is_in_dungeon(player_ptr);
+    const auto enable = !player_ptr->current_floor_ptr->is_in_dungeon();
     if (enable) {
         value->type = TERM_XTRA_MUSIC_BASIC;
 
-        if (player_ptr->lev >= 45)
+        if (player_ptr->lev >= 45) {
             value->val = MUSIC_BASIC_FIELD3;
-        else if (player_ptr->lev >= 25)
+        } else if (player_ptr->lev >= 25) {
             value->val = MUSIC_BASIC_FIELD2;
-        else
+        } else {
             value->val = MUSIC_BASIC_FIELD1;
+        }
     }
     return enable;
 }
 
-static bool scene_dungeon_feeling(player_type *player_ptr, scene_type *value)
+static bool scene_dungeon_feeling(PlayerType *player_ptr, scene_type *value)
 {
     const bool enable = (player_ptr->feeling >= 2) && (player_ptr->feeling <= 5);
     if (enable) {
         value->type = TERM_XTRA_MUSIC_BASIC;
 
-        if (player_ptr->feeling == 2)
+        if (player_ptr->feeling == 2) {
             value->val = MUSIC_BASIC_DUN_FEEL2;
-        else
+        } else {
             value->val = MUSIC_BASIC_DUN_FEEL1;
+        }
     }
     return enable;
 }
 
-static bool scene_dungeon(player_type *player_ptr, scene_type *value)
+static bool scene_dungeon(PlayerType *player_ptr, scene_type *value)
 {
     const bool enable = (player_ptr->dungeon_idx > 0);
     if (enable) {
@@ -125,24 +127,25 @@ static bool scene_dungeon(player_type *player_ptr, scene_type *value)
     return enable;
 }
 
-static bool scene_dungeon_basic(player_type *player_ptr, scene_type *value)
+static bool scene_dungeon_basic(PlayerType *player_ptr, scene_type *value)
 {
-    const bool enable = is_in_dungeon(player_ptr);
+    const auto enable = player_ptr->current_floor_ptr->is_in_dungeon();
     if (enable) {
         value->type = TERM_XTRA_MUSIC_BASIC;
 
         const auto dun_level = player_ptr->current_floor_ptr->dun_level;
-        if (dun_level >= 80)
+        if (dun_level >= 80) {
             value->val = MUSIC_BASIC_DUN_HIGH;
-        else if (dun_level >= 40)
+        } else if (dun_level >= 40) {
             value->val = MUSIC_BASIC_DUN_MED;
-        else
+        } else {
             value->val = MUSIC_BASIC_DUN_LOW;
+        }
     }
     return enable;
 }
 
-static bool scene_mute(player_type *player_ptr, scene_type *value)
+static bool scene_mute(PlayerType *player_ptr, scene_type *value)
 {
     (void)player_ptr;
     value->type = TERM_XTRA_MUSIC_MUTE;
@@ -188,7 +191,7 @@ int get_scene_floor_count()
  * @param list BGM選曲リスト
  * @param from_index リストの更新開始位置
  */
-void refresh_scene_floor(player_type *player_ptr, scene_type_list &list, int from_index)
+void refresh_scene_floor(PlayerType *player_ptr, scene_type_list &list, int from_index)
 {
     for (auto func : scene_floor_def_list) {
         scene_type &item = list[from_index];

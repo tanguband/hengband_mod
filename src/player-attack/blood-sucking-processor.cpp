@@ -25,14 +25,15 @@
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param pa_ptr 直接攻撃構造体への参照ポインタ
  */
-void decide_blood_sucking(player_type *player_ptr, player_attack_type *pa_ptr)
+void decide_blood_sucking(PlayerType *player_ptr, player_attack_type *pa_ptr)
 {
     bool is_blood_sucker = pa_ptr->flags.has(TR_VAMPIRIC);
     is_blood_sucker |= pa_ptr->chaos_effect == CE_VAMPIRIC;
     is_blood_sucker |= pa_ptr->mode == HISSATSU_DRAIN;
     is_blood_sucker |= SpellHex(player_ptr).is_spelling_specific(HEX_VAMP_BLADE);
-    if (!is_blood_sucker)
+    if (!is_blood_sucker) {
         return;
+    }
 
     pa_ptr->can_drain = monster_living(pa_ptr->m_ptr->r_idx);
 }
@@ -43,11 +44,13 @@ void decide_blood_sucking(player_type *player_ptr, player_attack_type *pa_ptr)
  */
 void calc_drain(player_attack_type *pa_ptr)
 {
-    if (pa_ptr->attack_damage <= 0)
+    if (pa_ptr->attack_damage <= 0) {
         pa_ptr->can_drain = false;
+    }
 
-    if (pa_ptr->drain_result > pa_ptr->m_ptr->hp)
+    if (pa_ptr->drain_result > pa_ptr->m_ptr->hp) {
         pa_ptr->drain_result = pa_ptr->m_ptr->hp;
+    }
 }
 
 /*!
@@ -56,32 +59,40 @@ void calc_drain(player_attack_type *pa_ptr)
  * @param pa_ptr 直接攻撃構造体への参照ポインタ
  * @param is_human モンスターが人間かどうか
  */
-static void drain_muramasa(player_type *player_ptr, player_attack_type *pa_ptr, const bool is_human)
+static void drain_muramasa(PlayerType *player_ptr, player_attack_type *pa_ptr, const bool is_human)
 {
-    if (!is_human)
+    if (!is_human) {
         return;
+    }
 
-    object_type *o_ptr = &player_ptr->inventory_list[INVEN_MAIN_HAND + pa_ptr->hand];
+    auto *o_ptr = &player_ptr->inventory_list[enum2i(INVEN_MAIN_HAND) + pa_ptr->hand];
     HIT_PROB to_h = o_ptr->to_h;
-    HIT_POINT to_d = o_ptr->to_d;
+    int to_d = o_ptr->to_d;
     bool flag = true;
-    for (int i = 0; i < to_h + 3; i++)
-        if (one_in_(4))
+    for (int i = 0; i < to_h + 3; i++) {
+        if (one_in_(4)) {
             flag = false;
+        }
+    }
 
-    if (flag)
+    if (flag) {
         to_h++;
+    }
 
     flag = true;
-    for (int i = 0; i < to_d + 3; i++)
-        if (one_in_(4))
+    for (int i = 0; i < to_d + 3; i++) {
+        if (one_in_(4)) {
             flag = false;
+        }
+    }
 
-    if (flag)
+    if (flag) {
         to_d++;
+    }
 
-    if ((o_ptr->to_h == to_h) && (o_ptr->to_d == to_d))
+    if ((o_ptr->to_h == to_h) && (o_ptr->to_d == to_d)) {
         return;
+    }
 
     msg_print(_("妖刀は血を吸って強くなった！", "Muramasa sucked blood, and became more powerful!"));
     o_ptr->to_h = to_h;
@@ -95,23 +106,26 @@ static void drain_muramasa(player_type *player_ptr, player_attack_type *pa_ptr, 
  * @param drain_msg 吸血をした旨のメッセージを表示するかどうか
  * @details 1行目の5がマジックナンバーで良く分からなかったので、取り敢えず元々あったコメントをベースに定数宣言しておいた
  */
-static void drain_result(player_type *player_ptr, player_attack_type *pa_ptr, bool *drain_msg)
+static void drain_result(PlayerType *player_ptr, player_attack_type *pa_ptr, bool *drain_msg)
 {
     const int real_drain = 5;
-    if (pa_ptr->drain_result <= real_drain)
+    if (pa_ptr->drain_result <= real_drain) {
         return;
+    }
 
     int drain_heal = damroll(2, pa_ptr->drain_result / 6);
 
-    if (SpellHex(player_ptr).is_spelling_specific(HEX_VAMP_BLADE))
+    if (SpellHex(player_ptr).is_spelling_specific(HEX_VAMP_BLADE)) {
         drain_heal *= 2;
+    }
 
     if (cheat_xtra) {
         msg_format(_("Draining left: %d", "Draining left: %d"), pa_ptr->drain_left);
     }
 
-    if (pa_ptr->drain_left == 0)
+    if (pa_ptr->drain_left == 0) {
         return;
+    }
 
     if (drain_heal < pa_ptr->drain_left) {
         pa_ptr->drain_left -= drain_heal;
@@ -137,23 +151,27 @@ static void drain_result(player_type *player_ptr, player_attack_type *pa_ptr, bo
  * @param drain_msg 吸血をした旨のメッセージを表示するかどうか
  * @details モンスターが死んだ場合、(ゲームのフレーバー的に)吸血しない
  */
-void process_drain(player_type *player_ptr, player_attack_type *pa_ptr, const bool is_human, bool *drain_msg)
+void process_drain(PlayerType *player_ptr, player_attack_type *pa_ptr, const bool is_human, bool *drain_msg)
 {
-    if (!pa_ptr->can_drain || (pa_ptr->drain_result <= 0))
+    if (!pa_ptr->can_drain || (pa_ptr->drain_result <= 0)) {
         return;
+    }
 
-    object_type *o_ptr = &player_ptr->inventory_list[INVEN_MAIN_HAND + pa_ptr->hand];
-    if (o_ptr->name1 == ART_MURAMASA)
+    auto *o_ptr = &player_ptr->inventory_list[enum2i(INVEN_MAIN_HAND) + pa_ptr->hand];
+    if (o_ptr->is_specific_artifact(FixedArtifactId::MURAMASA)) {
         drain_muramasa(player_ptr, pa_ptr, is_human);
-    else
+    } else {
         drain_result(player_ptr, pa_ptr, drain_msg);
+    }
 
     pa_ptr->m_ptr->maxhp -= (pa_ptr->attack_damage + 7) / 8;
-    if (pa_ptr->m_ptr->hp > pa_ptr->m_ptr->maxhp)
+    if (pa_ptr->m_ptr->hp > pa_ptr->m_ptr->maxhp) {
         pa_ptr->m_ptr->hp = pa_ptr->m_ptr->maxhp;
+    }
 
-    if (pa_ptr->m_ptr->maxhp < 1)
+    if (pa_ptr->m_ptr->maxhp < 1) {
         pa_ptr->m_ptr->maxhp = 1;
+    }
 
     pa_ptr->weak = true;
 }

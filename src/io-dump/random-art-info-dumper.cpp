@@ -19,7 +19,7 @@
  * @param art_ptr 記述内容を収めた構造体参照ポインタ
  * Fill in an object description structure for a given object
  */
-static void spoiler_print_randart(object_type *o_ptr, obj_desc_list *art_ptr)
+static void spoiler_print_randart(ObjectType *o_ptr, obj_desc_list *art_ptr)
 {
     pval_info_type *pval_ptr = &art_ptr->pval_info;
     char buf[80];
@@ -52,11 +52,12 @@ static void spoiler_print_randart(object_type *o_ptr, obj_desc_list *art_ptr)
  * @param o_ptr ランダムアーティファクトのオブジェクト構造体参照ポインタ
  * @param tval 出力したいランダムアーティファクトの種類
  */
-static void spoil_random_artifact_aux(player_type *player_ptr, object_type *o_ptr, ItemKindType tval)
+static void spoil_random_artifact_aux(PlayerType *player_ptr, ObjectType *o_ptr, ItemKindType tval)
 {
     obj_desc_list artifact;
-    if (!o_ptr->is_known() || !o_ptr->art_name || o_ptr->tval != tval)
+    if (!o_ptr->is_known() || !o_ptr->art_name || o_ptr->tval != tval) {
         return;
+    }
 
     random_artifact_analyze(player_ptr, o_ptr, &artifact);
     spoiler_print_randart(o_ptr, &artifact);
@@ -67,10 +68,10 @@ static void spoil_random_artifact_aux(player_type *player_ptr, object_type *o_pt
  * Create a list file for random artifacts
  * @param fname 出力ファイル名
  */
-void spoil_random_artifact(player_type *player_ptr, concptr fname)
+void spoil_random_artifact(PlayerType *player_ptr, concptr fname)
 {
     store_type *store_ptr;
-    object_type *q_ptr;
+    ObjectType *q_ptr;
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, fname);
     spoiler_file = angband_fopen(buf, "w");

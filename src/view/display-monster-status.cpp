@@ -31,17 +31,17 @@ concptr look_mon_desc(monster_type *m_ptr, BIT_FLAGS mode)
     concptr attitude;
     if (!(mode & 0x01)) {
         attitude = "";
-    } else if (is_pet(m_ptr)) {
+    } else if (m_ptr->is_pet()) {
         attitude = _(", ペット", ", pet");
-    } else if (is_friendly(m_ptr)) {
+    } else if (m_ptr->is_friendly()) {
         attitude = _(", 友好的", ", friendly");
     } else {
         attitude = _("", "");
     }
 
-    concptr clone = m_ptr->mflag2.has(MFLAG2::CLONED) ? ", clone" : "";
-    monster_race *ap_r_ptr = &r_info[m_ptr->ap_r_idx];
-    if (ap_r_ptr->r_tkills && m_ptr->mflag2.has_not(MFLAG2::KAGE)) {
+    concptr clone = m_ptr->mflag2.has(MonsterConstantFlagType::CLONED) ? ", clone" : "";
+    monster_race *ap_r_ptr = &monraces_info[m_ptr->ap_r_idx];
+    if (ap_r_ptr->r_tkills && m_ptr->mflag2.has_not(MonsterConstantFlagType::KAGE)) {
         return format(_("レベル%d, %s%s%s", "Level %d, %s%s%s"), ap_r_ptr->level, desc, attitude, clone);
     }
 

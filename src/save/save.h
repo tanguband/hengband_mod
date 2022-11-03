@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-enum save_type {
-	SAVE_TYPE_CLOSE_GAME = 0,
-	SAVE_TYPE_CONTINUE_GAME = 1,
-	SAVE_TYPE_DEBUG = 2
+enum class SaveType {
+    CLOSE_GAME,
+    CONTINUE_GAME,
+    DEBUG
 };
 
-struct player_type;
-bool save_player(player_type *player_ptr, save_type type);
+class PlayerType;
+bool save_player(PlayerType *player_ptr, SaveType type);

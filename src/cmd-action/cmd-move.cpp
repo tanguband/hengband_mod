@@ -9,7 +9,6 @@
 #include "core/player-redraw-types.h"
 #include "core/player-update-types.h"
 #include "core/stuff-handler.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "floor/cave.h"
 #include "floor/floor-mode-changer.h"
@@ -19,13 +18,12 @@
 #include "game-option/map-screen-options.h"
 #include "game-option/play-record-options.h"
 #include "game-option/special-options.h"
-#include "grid/feature.h"
 #include "info-reader/fixed-map-parser.h"
 #include "io/input-key-requester.h"
 #include "io/write-diary.h"
-#include "mind/mind-ninja.h"
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
+#include "mind/mind-ninja.h"
 #include "player-base/player-class.h"
 #include "player-info/samurai-data-type.h"
 #include "player-status/player-energy.h"
@@ -36,9 +34,11 @@
 #include "spell-realm/spells-hex.h"
 #include "spell-realm/spells-song.h"
 #include "status/action-setter.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "target/target-getter.h"
 #include "timed-effect/player-cut.h"
 #include "timed-effect/player-stun.h"
@@ -51,13 +51,19 @@
  * @param down_stair TRUEならば階段を降りる処理、FALSEなら階段を昇る処理による内容
  * @return フロア移動を実際に行うならTRUE、キャンセルする場合はFALSE
  */
-static bool confirm_leave_level(player_type *player_ptr, bool down_stair)
+static bool confirm_leave_level(PlayerType *player_ptr, bool down_stair)
 {
-    quest_type *q_ptr = &quest[player_ptr->current_floor_ptr->inside_quest];
-    if (confirm_quest && player_ptr->current_floor_ptr->inside_quest
-        && (q_ptr->type == QuestKindType::RANDOM || (q_ptr->flags & QUEST_FLAG_ONCE && q_ptr->status != QuestStatusType::COMPLETED)
-            || (q_ptr->flags & QUEST_FLAG_TOWER
-                && ((q_ptr->status != QuestStatusType::STAGE_COMPLETED) || (down_stair && (quest[QUEST_TOWER1].status != QuestStatusType::COMPLETED)))))) {
+    const auto &quest_list = QuestList::get_instance();
+    const auto *q_ptr = &quest_list[player_ptr->current_floor_ptr->quest_number];
+
+    auto caution_in_tower = any_bits(q_ptr->flags, QUEST_FLAG_TOWER);
+    caution_in_tower &= q_ptr->status != QuestStatusType::STAGE_COMPLETED || (down_stair && (quest_list[QuestId::TOWER1].status != QuestStatusType::COMPLETED));
+
+    auto caution_in_quest = q_ptr->type == QuestKindType::RANDOM;
+    caution_in_quest |= q_ptr->flags & QUEST_FLAG_ONCE && q_ptr->status != QuestStatusType::COMPLETED;
+    caution_in_quest |= caution_in_tower;
+
+    if (confirm_quest && inside_quest(player_ptr->current_floor_ptr->quest_number) && caution_in_quest) {
         msg_print(_("この階を一度去ると二度と戻って来られません。", "You can't come back here once you leave this floor."));
         return get_check(_("本当にこの階を去りますか？", "Really leave this floor? "));
     }
@@ -68,43 +74,49 @@ static bool confirm_leave_level(player_type *player_ptr, bool down_stair)
 /*!
  * @brief 階段を使って階層を昇る処理 / Go up one level
  */
-void do_cmd_go_up(player_type *player_ptr)
+void do_cmd_go_up(PlayerType *player_ptr)
 {
+    auto &quest_list = QuestList::get_instance();
     bool go_up = false;
-    grid_type *g_ptr = &player_ptr->current_floor_ptr->grid_array[player_ptr->y][player_ptr->x];
-    feature_type *f_ptr = &f_info[g_ptr->feat];
+    auto *g_ptr = &player_ptr->current_floor_ptr->grid_array[player_ptr->y][player_ptr->x];
+    auto *f_ptr = &terrains_info[g_ptr->feat];
     int up_num = 0;
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU });
 
-    if (f_ptr->flags.has_not(FF::LESS)) {
+    if (f_ptr->flags.has_not(TerrainCharacteristics::LESS)) {
         msg_print(_("ここには上り階段が見当たらない。", "I see no up staircase here."));
         return;
     }
 
-    if (f_ptr->flags.has(FF::QUEST)) {
-        if (!confirm_leave_level(player_ptr, false))
+    const auto &floor_ptr = player_ptr->current_floor_ptr;
+    if (f_ptr->flags.has(TerrainCharacteristics::QUEST)) {
+        if (!confirm_leave_level(player_ptr, false)) {
             return;
+        }
 
-        if (is_echizen(player_ptr))
+        if (is_echizen(player_ptr)) {
             msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
-        else
+        } else {
             msg_print(_("上の階に登った。", "You enter the up staircase."));
+        }
 
         sound(SOUND_STAIRWAY);
 
         leave_quest_check(player_ptr);
-        player_ptr->current_floor_ptr->inside_quest = g_ptr->special;
-        if (quest[player_ptr->current_floor_ptr->inside_quest].status == QuestStatusType::UNTAKEN) {
-            if (quest[player_ptr->current_floor_ptr->inside_quest].type != QuestKindType::RANDOM) {
+        floor_ptr->quest_number = i2enum<QuestId>(g_ptr->special);
+        const auto quest_number = floor_ptr->quest_number;
+        auto &q_ref = quest_list[quest_number];
+        if (q_ref.status == QuestStatusType::UNTAKEN) {
+            if (q_ref.type != QuestKindType::RANDOM) {
                 init_flags = INIT_ASSIGN;
-                parse_fixed_map(player_ptr, "q_info.txt", 0, 0, 0, 0);
+                parse_fixed_map(player_ptr, QUEST_DEFINITION_LIST, 0, 0, 0, 0);
             }
 
-            quest[player_ptr->current_floor_ptr->inside_quest].status = QuestStatusType::TAKEN;
+            q_ref.status = QuestStatusType::TAKEN;
         }
 
-        if (!player_ptr->current_floor_ptr->inside_quest) {
-            player_ptr->current_floor_ptr->dun_level = 0;
+        if (!inside_quest(quest_number)) {
+            floor_ptr->dun_level = 0;
             player_ptr->word_recall = 0;
         }
 
@@ -115,31 +127,37 @@ void do_cmd_go_up(player_type *player_ptr)
         return;
     }
 
-    if (!is_in_dungeon(player_ptr))
+    if (!floor_ptr->is_in_dungeon()) {
         go_up = true;
-    else
+    } else {
         go_up = confirm_leave_level(player_ptr, false);
+    }
 
-    if (!go_up)
+    if (!go_up) {
         return;
+    }
 
     PlayerEnergy(player_ptr).set_player_turn_energy(100);
 
-    if (autosave_l)
+    if (autosave_l) {
         do_cmd_save_game(player_ptr, true);
-
-    if (player_ptr->current_floor_ptr->inside_quest && quest[player_ptr->current_floor_ptr->inside_quest].type == QuestKindType::RANDOM) {
-        leave_quest_check(player_ptr);
-        player_ptr->current_floor_ptr->inside_quest = 0;
     }
 
-    if (player_ptr->current_floor_ptr->inside_quest && quest[player_ptr->current_floor_ptr->inside_quest].type != QuestKindType::RANDOM) {
+    const auto quest_number = player_ptr->current_floor_ptr->quest_number;
+    auto &q_ref = quest_list[quest_number];
+
+    if (inside_quest(quest_number) && q_ref.type == QuestKindType::RANDOM) {
         leave_quest_check(player_ptr);
-        player_ptr->current_floor_ptr->inside_quest = g_ptr->special;
+        player_ptr->current_floor_ptr->quest_number = QuestId::NONE;
+    }
+
+    if (inside_quest(quest_number) && q_ref.type != QuestKindType::RANDOM) {
+        leave_quest_check(player_ptr);
+        player_ptr->current_floor_ptr->quest_number = i2enum<QuestId>(g_ptr->special);
         player_ptr->current_floor_ptr->dun_level = 0;
         up_num = 0;
     } else {
-        if (f_ptr->flags.has(FF::SHAFT)) {
+        if (f_ptr->flags.has(TerrainCharacteristics::SHAFT)) {
             prepare_change_floor_mode(player_ptr, CFM_SAVE_FLOORS | CFM_UP | CFM_SHAFT);
             up_num = 2;
         } else {
@@ -147,24 +165,28 @@ void do_cmd_go_up(player_type *player_ptr)
             up_num = 1;
         }
 
-        if (player_ptr->current_floor_ptr->dun_level - up_num < d_info[player_ptr->dungeon_idx].mindepth)
+        if (player_ptr->current_floor_ptr->dun_level - up_num < dungeons_info[player_ptr->dungeon_idx].mindepth) {
             up_num = player_ptr->current_floor_ptr->dun_level;
+        }
     }
 
-    if (record_stair)
+    if (record_stair) {
         exe_write_diary(player_ptr, DIARY_STAIR, 0 - up_num, _("階段を上った", "climbed up the stairs to"));
+    }
 
     if (up_num == player_ptr->current_floor_ptr->dun_level) {
-        if (is_echizen(player_ptr))
+        if (is_echizen(player_ptr)) {
             msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
-        else
+        } else {
             msg_print(_("地上に戻った。", "You go back to the surface."));
+        }
         player_ptr->word_recall = 0;
     } else {
-        if (is_echizen(player_ptr))
+        if (is_echizen(player_ptr)) {
             msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
-        else
+        } else {
             msg_print(_("階段を上って新たなる迷宮へと足を踏み入れた。", "You enter a maze of up staircases."));
+        }
     }
 
     sound(SOUND_STAIRWAY);
@@ -176,52 +198,59 @@ void do_cmd_go_up(player_type *player_ptr)
  * @brief 階段を使って階層を降りる処理 / Go down one level
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void do_cmd_go_down(player_type *player_ptr)
+void do_cmd_go_down(PlayerType *player_ptr)
 {
     bool fall_trap = false;
     int down_num = 0;
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU });
 
-    grid_type *g_ptr = &player_ptr->current_floor_ptr->grid_array[player_ptr->y][player_ptr->x];
-    feature_type *f_ptr = &f_info[g_ptr->feat];
-    if (f_ptr->flags.has_not(FF::MORE)) {
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    auto *g_ptr = &floor_ptr->grid_array[player_ptr->y][player_ptr->x];
+    auto *f_ptr = &terrains_info[g_ptr->feat];
+    if (f_ptr->flags.has_not(TerrainCharacteristics::MORE)) {
         msg_print(_("ここには下り階段が見当たらない。", "I see no down staircase here."));
         return;
     }
 
-    if (f_ptr->flags.has(FF::TRAP))
+    if (f_ptr->flags.has(TerrainCharacteristics::TRAP)) {
         fall_trap = true;
+    }
 
-    if (f_ptr->flags.has(FF::QUEST_ENTER)) {
+    if (f_ptr->flags.has(TerrainCharacteristics::QUEST_ENTER)) {
         do_cmd_quest(player_ptr);
         return;
     }
 
-    if (f_ptr->flags.has(FF::QUEST)) {
-        if (!confirm_leave_level(player_ptr, true))
+    if (f_ptr->flags.has(TerrainCharacteristics::QUEST)) {
+        auto &quest_list = QuestList::get_instance();
+        if (!confirm_leave_level(player_ptr, true)) {
             return;
+        }
 
-        if (is_echizen(player_ptr))
+        if (is_echizen(player_ptr)) {
             msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
-        else
+        } else {
             msg_print(_("下の階に降りた。", "You enter the down staircase."));
+        }
 
         sound(SOUND_STAIRWAY);
 
         leave_quest_check(player_ptr);
         leave_tower_check(player_ptr);
-        player_ptr->current_floor_ptr->inside_quest = g_ptr->special;
-        if (quest[player_ptr->current_floor_ptr->inside_quest].status == QuestStatusType::UNTAKEN) {
-            if (quest[player_ptr->current_floor_ptr->inside_quest].type != QuestKindType::RANDOM) {
+        floor_ptr->quest_number = i2enum<QuestId>(g_ptr->special);
+
+        auto &current_quest = quest_list[floor_ptr->quest_number];
+        if (current_quest.status == QuestStatusType::UNTAKEN) {
+            if (current_quest.type != QuestKindType::RANDOM) {
                 init_flags = INIT_ASSIGN;
-                parse_fixed_map(player_ptr, "q_info.txt", 0, 0, 0, 0);
+                parse_fixed_map(player_ptr, QUEST_DEFINITION_LIST, 0, 0, 0, 0);
             }
 
-            quest[player_ptr->current_floor_ptr->inside_quest].status = QuestStatusType::TAKEN;
+            current_quest.status = QuestStatusType::TAKEN;
         }
 
-        if (!player_ptr->current_floor_ptr->inside_quest) {
-            player_ptr->current_floor_ptr->dun_level = 0;
+        if (!inside_quest(floor_ptr->quest_number)) {
+            floor_ptr->dun_level = 0;
             player_ptr->word_recall = 0;
         }
 
@@ -233,18 +262,20 @@ void do_cmd_go_down(player_type *player_ptr)
     }
 
     DUNGEON_IDX target_dungeon = 0;
-    if (!is_in_dungeon(player_ptr)) {
-        target_dungeon = f_ptr->flags.has(FF::ENTRANCE) ? g_ptr->special : DUNGEON_ANGBAND;
+    if (!floor_ptr->is_in_dungeon()) {
+        target_dungeon = f_ptr->flags.has(TerrainCharacteristics::ENTRANCE) ? g_ptr->special : DUNGEON_ANGBAND;
         if (ironman_downward && (target_dungeon != DUNGEON_ANGBAND)) {
             msg_print(_("ダンジョンの入口は塞がれている！", "The entrance of this dungeon is closed!"));
             return;
         }
 
         if (!max_dlv[target_dungeon]) {
-            msg_format(_("ここには%sの入り口(%d階相当)があります", "There is the entrance of %s (Danger level: %d)"), d_info[target_dungeon].name.c_str(),
-                d_info[target_dungeon].mindepth);
-            if (!get_check(_("本当にこのダンジョンに入りますか？", "Do you really get in this dungeon? ")))
+            const auto mes = _("ここには%sの入り口(%d階相当)があります", "There is the entrance of %s (Danger level: %d)");
+            const auto &dungeon = dungeons_info[target_dungeon];
+            msg_format(mes, dungeon.name.data(), dungeon.mindepth);
+            if (!get_check(_("本当にこのダンジョンに入りますか？", "Do you really get in this dungeon? "))) {
                 return;
+            }
         }
 
         player_ptr->oldpx = player_ptr->x;
@@ -254,36 +285,40 @@ void do_cmd_go_down(player_type *player_ptr)
     }
 
     PlayerEnergy(player_ptr).set_player_turn_energy(100);
-    if (autosave_l)
+    if (autosave_l) {
         do_cmd_save_game(player_ptr, true);
+    }
 
-    if (f_ptr->flags.has(FF::SHAFT))
+    if (f_ptr->flags.has(TerrainCharacteristics::SHAFT)) {
         down_num += 2;
-    else
+    } else {
         down_num += 1;
+    }
 
-    if (!is_in_dungeon(player_ptr)) {
+    if (!floor_ptr->is_in_dungeon()) {
         player_ptr->enter_dungeon = true;
-        down_num = d_info[player_ptr->dungeon_idx].mindepth;
+        down_num = dungeons_info[player_ptr->dungeon_idx].mindepth;
     }
 
     if (record_stair) {
-        if (fall_trap)
+        if (fall_trap) {
             exe_write_diary(player_ptr, DIARY_STAIR, down_num, _("落とし戸に落ちた", "fell through a trap door"));
-        else
+        } else {
             exe_write_diary(player_ptr, DIARY_STAIR, down_num, _("階段を下りた", "climbed down the stairs to"));
+        }
     }
 
     if (fall_trap) {
         msg_print(_("わざと落とし戸に落ちた。", "You deliberately jump through the trap door."));
     } else {
         if (target_dungeon) {
-            msg_format(_("%sへ入った。", "You entered %s."), d_info[player_ptr->dungeon_idx].text.c_str());
+            msg_format(_("%sへ入った。", "You entered %s."), dungeons_info[player_ptr->dungeon_idx].text.data());
         } else {
-            if (is_echizen(player_ptr))
+            if (is_echizen(player_ptr)) {
                 msg_print(_("なんだこの階段は！", "What's this STAIRWAY!"));
-            else
+            } else {
                 msg_print(_("階段を下りて新たなる迷宮へと足を踏み入れた。", "You enter a maze of down staircases."));
+            }
         }
 
         sound(SOUND_STAIRWAY);
@@ -296,10 +331,11 @@ void do_cmd_go_down(player_type *player_ptr)
         return;
     }
 
-    if (f_ptr->flags.has(FF::SHAFT))
+    if (f_ptr->flags.has(TerrainCharacteristics::SHAFT)) {
         prepare_change_floor_mode(player_ptr, CFM_SAVE_FLOORS | CFM_DOWN | CFM_SHAFT);
-    else
+    } else {
         prepare_change_floor_mode(player_ptr, CFM_SAVE_FLOORS | CFM_DOWN);
+    }
 }
 
 /*!
@@ -308,7 +344,7 @@ void do_cmd_go_down(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param pickup アイテムの自動拾いを行うならTRUE
  */
-void do_cmd_walk(player_type *player_ptr, bool pickup)
+void do_cmd_walk(PlayerType *player_ptr, bool pickup)
 {
     if (command_arg) {
         command_rep = command_arg - 1;
@@ -322,7 +358,7 @@ void do_cmd_walk(player_type *player_ptr, bool pickup)
         PlayerEnergy energy(player_ptr);
         energy.set_player_turn_energy(100);
         if (dir != 5) {
-            PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
+            PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU });
         }
 
         if (player_ptr->wild_mode) {
@@ -338,10 +374,11 @@ void do_cmd_walk(player_type *player_ptr, bool pickup)
         more = true;
     }
 
-    if (player_ptr->wild_mode && !cave_has_flag_bold(player_ptr->current_floor_ptr, player_ptr->y, player_ptr->x, FF::TOWN)) {
+    if (player_ptr->wild_mode && !cave_has_flag_bold(player_ptr->current_floor_ptr, player_ptr->y, player_ptr->x, TerrainCharacteristics::TOWN)) {
         int tmp = 120 + player_ptr->lev * 10 - wilderness[player_ptr->y][player_ptr->x].level + 5;
-        if (tmp < 1)
+        if (tmp < 1) {
             tmp = 1;
+        }
 
         if (((wilderness[player_ptr->y][player_ptr->x].level + 5) > (player_ptr->lev / 2)) && randint0(tmp) < (21 - player_ptr->skill_stl)) {
             msg_print(_("襲撃だ！", "You are ambushed !"));
@@ -352,8 +389,9 @@ void do_cmd_walk(player_type *player_ptr, bool pickup)
         }
     }
 
-    if (!more)
+    if (!more) {
         disturb(player_ptr, false, false);
+    }
 }
 
 /*!
@@ -361,13 +399,14 @@ void do_cmd_walk(player_type *player_ptr, bool pickup)
  * Start running.
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void do_cmd_run(player_type *player_ptr)
+void do_cmd_run(PlayerType *player_ptr)
 {
     DIRECTION dir;
-    if (cmd_limit_confused(player_ptr))
+    if (cmd_limit_confused(player_ptr)) {
         return;
+    }
 
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU });
 
     if (get_rep_dir(player_ptr, &dir, false)) {
         player_ptr->running = (command_arg ? command_arg : 1000);
@@ -382,7 +421,7 @@ void do_cmd_run(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param pickup アイテムの自動拾いを行うならTRUE
  */
-void do_cmd_stay(player_type *player_ptr, bool pickup)
+void do_cmd_stay(PlayerType *player_ptr, bool pickup)
 {
     uint32_t mpe_mode = MPE_STAYING | MPE_ENERGY_USE;
     if (command_arg) {
@@ -392,8 +431,9 @@ void do_cmd_stay(player_type *player_ptr, bool pickup)
     }
 
     PlayerEnergy(player_ptr).set_player_turn_energy(100);
-    if (pickup)
+    if (pickup) {
         mpe_mode |= MPE_DO_PICKUP;
+    }
 
     (void)move_player_effect(player_ptr, player_ptr->y, player_ptr->x, mpe_mode);
 }
@@ -403,11 +443,12 @@ void do_cmd_stay(player_type *player_ptr, bool pickup)
  * Resting allows a player to safely restore his hp	-RAK-
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void do_cmd_rest(player_type *player_ptr)
+void do_cmd_rest(PlayerType *player_ptr)
 {
     set_action(player_ptr, ACTION_NONE);
-    if ((player_ptr->pclass == PlayerClassType::BARD) && ((get_singing_song_effect(player_ptr) != 0) || (get_interrupting_song_effect(player_ptr) != 0)))
+    if (PlayerClass(player_ptr).equals(PlayerClassType::BARD) && ((get_singing_song_effect(player_ptr) != 0) || (get_interrupting_song_effect(player_ptr) != 0))) {
         stop_singing(player_ptr);
+    }
 
     SpellHex spell_hex(player_ptr);
     if (spell_hex.is_spelling_any()) {
@@ -418,8 +459,9 @@ void do_cmd_rest(player_type *player_ptr)
         concptr p = _("休憩 (0-9999, '*' で HP/MP全快, '&' で必要なだけ): ", "Rest (0-9999, '*' for HP/SP, '&' as needed): ");
         char out_val[80];
         strcpy(out_val, "&");
-        if (!get_string(p, out_val, 4))
+        if (!get_string(p, out_val, 4)) {
             return;
+        }
 
         if (out_val[0] == '&') {
             command_arg = COMMAND_ARG_REST_UNTIL_DONE;
@@ -427,27 +469,26 @@ void do_cmd_rest(player_type *player_ptr)
             command_arg = COMMAND_ARG_REST_FULL_HEALING;
         } else {
             command_arg = (COMMAND_ARG)atoi(out_val);
-            if (command_arg <= 0)
+            if (command_arg <= 0) {
                 return;
+            }
         }
     }
 
-    if (command_arg > 9999)
+    if (command_arg > 9999) {
         command_arg = 9999;
+    }
 
     set_superstealth(player_ptr, false);
 
     PlayerEnergy(player_ptr).set_player_turn_energy(100);
-    if (command_arg > 100)
+    if (command_arg > 100) {
         chg_virtue(player_ptr, V_DILIGENCE, -1);
+    }
 
-    auto effects = player_ptr->effects();
-    auto is_stunned = effects->stun()->is_stunned();
-    auto is_cut = effects->cut()->is_cut();
-    if ((player_ptr->chp == player_ptr->mhp) && (player_ptr->csp == player_ptr->msp) && !player_ptr->blind && !player_ptr->confused
-        && !player_ptr->poisoned && !player_ptr->afraid && !is_stunned && !is_cut && !player_ptr->slow && !player_ptr->paralyzed
-        && !player_ptr->hallucinated && !player_ptr->word_recall && !player_ptr->alter_reality)
+    if (player_ptr->is_fully_healthy()) {
         chg_virtue(player_ptr, V_DILIGENCE, -1);
+    }
 
     player_ptr->resting = command_arg;
     player_ptr->action = ACTION_REST;

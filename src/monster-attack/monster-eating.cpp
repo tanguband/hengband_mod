@@ -14,43 +14,52 @@
 #include "inventory/inventory-object.h"
 #include "inventory/inventory-slot-types.h"
 #include "mind/mind-mirror-master.h"
-#include "monster-attack/monster-attack-util.h"
+#include "monster-attack/monster-attack-player.h"
 #include "monster/monster-status.h"
 #include "object/object-info.h"
-#include "object/object-kind.h"
 #include "object/object-mark-types.h"
 #include "player-base/player-race.h"
+#include "player-info/race-info.h"
 #include "player/digestion-processor.h"
 #include "player/player-status-flags.h"
 #include "player/player-status-table.h"
 #include "status/experience.h"
+#include "system/baseitem-info-definition.h"
 #include "system/floor-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
+#include "timed-effect/player-blindness.h"
+#include "timed-effect/player-paralysis.h"
+#include "timed-effect/timed-effects.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 #include "world/world-object.h"
 
-void process_eat_gold(player_type *player_ptr, monap_type *monap_ptr)
+void process_eat_gold(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
-    if (!player_ptr->paralyzed && (randint0(100) < (adj_dex_safe[player_ptr->stat_index[A_DEX]] + player_ptr->lev))) {
+    auto is_paralyzed = player_ptr->effects()->paralysis()->is_paralyzed();
+    if (!is_paralyzed && (randint0(100) < (adj_dex_safe[player_ptr->stat_index[A_DEX]] + player_ptr->lev))) {
         msg_print(_("しかし素早く財布を守った！", "You quickly protect your money pouch!"));
-        if (randint0(3))
+        if (randint0(3)) {
             monap_ptr->blinked = true;
+        }
 
         return;
     }
 
     PRICE gold = (player_ptr->au / 10) + randint1(25);
-    if (gold < 2)
+    if (gold < 2) {
         gold = 2;
+    }
 
-    if (gold > 5000)
+    if (gold > 5000) {
         gold = (player_ptr->au / 20) + randint1(3000);
+    }
 
-    if (gold > player_ptr->au)
+    if (gold > player_ptr->au) {
         gold = player_ptr->au;
+    }
 
     player_ptr->au -= gold;
     if (gold <= 0) {
@@ -76,15 +85,18 @@ void process_eat_gold(player_type *player_ptr, monap_type *monap_ptr)
  * @monap_ptr モンスターからモンスターへの直接攻撃構造体への参照ポインタ
  * @return 盗まれたらTRUE、何も盗まれなかったらFALSE
  */
-bool check_eat_item(player_type *player_ptr, monap_type *monap_ptr)
+bool check_eat_item(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
-    if (monster_confused_remaining(monap_ptr->m_ptr))
+    if (monap_ptr->m_ptr->is_confused()) {
         return false;
+    }
 
-    if (player_ptr->is_dead || check_multishadow(player_ptr))
+    if (player_ptr->is_dead || check_multishadow(player_ptr)) {
         return false;
+    }
 
-    if (!player_ptr->paralyzed && (randint0(100) < (adj_dex_safe[player_ptr->stat_index[A_DEX]] + player_ptr->lev))) {
+    auto is_paralyzed = player_ptr->effects()->paralysis()->is_paralyzed();
+    if (!is_paralyzed && (randint0(100) < (adj_dex_safe[player_ptr->stat_index[A_DEX]] + player_ptr->lev))) {
         msg_print(_("しかしあわててザックを取り返した！", "You grab hold of your backpack!"));
         monap_ptr->blinked = true;
         monap_ptr->obvious = true;
@@ -99,12 +111,13 @@ bool check_eat_item(player_type *player_ptr, monap_type *monap_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @monap_ptr モンスターからモンスターへの直接攻撃構造体への参照ポインタ
  */
-static void move_item_to_monster(player_type *player_ptr, monap_type *monap_ptr, const OBJECT_IDX o_idx)
+static void move_item_to_monster(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr, const OBJECT_IDX o_idx)
 {
-    if (o_idx == 0)
+    if (o_idx == 0) {
         return;
+    }
 
-    object_type *j_ptr;
+    ObjectType *j_ptr;
     j_ptr = &player_ptr->current_floor_ptr->o_list[o_idx];
     j_ptr->copy_from(monap_ptr->o_ptr);
     j_ptr->number = 1;
@@ -124,17 +137,19 @@ static void move_item_to_monster(player_type *player_ptr, monap_type *monap_ptr,
  * @monap_ptr モンスターからモンスターへの直接攻撃構造体への参照ポインタ
  * @details eatとあるがお金や食べ物と違ってなくならない、盗んだモンスターを倒せば取り戻せる
  */
-void process_eat_item(player_type *player_ptr, monap_type *monap_ptr)
+void process_eat_item(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
     for (int i = 0; i < 10; i++) {
         OBJECT_IDX o_idx;
         INVENTORY_IDX i_idx = (INVENTORY_IDX)randint0(INVEN_PACK);
         monap_ptr->o_ptr = &player_ptr->inventory_list[i_idx];
-        if (!monap_ptr->o_ptr->k_idx)
+        if (!monap_ptr->o_ptr->k_idx) {
             continue;
+        }
 
-        if (monap_ptr->o_ptr->is_artifact())
+        if (monap_ptr->o_ptr->is_artifact()) {
             continue;
+        }
 
         describe_flavor(player_ptr, monap_ptr->o_name, monap_ptr->o_ptr, OD_OMIT_PREFIX);
 #ifdef JP
@@ -153,16 +168,18 @@ void process_eat_item(player_type *player_ptr, monap_type *monap_ptr)
     }
 }
 
-void process_eat_food(player_type *player_ptr, monap_type *monap_ptr)
+void process_eat_food(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
     for (int i = 0; i < 10; i++) {
         INVENTORY_IDX i_idx = (INVENTORY_IDX)randint0(INVEN_PACK);
         monap_ptr->o_ptr = &player_ptr->inventory_list[i_idx];
-        if (!monap_ptr->o_ptr->k_idx)
+        if (!monap_ptr->o_ptr->k_idx) {
             continue;
+        }
 
-        if ((monap_ptr->o_ptr->tval != ItemKindType::FOOD) && !((monap_ptr->o_ptr->tval == ItemKindType::CORPSE) && (monap_ptr->o_ptr->sval)))
+        if ((monap_ptr->o_ptr->tval != ItemKindType::FOOD) && !((monap_ptr->o_ptr->tval == ItemKindType::CORPSE) && (monap_ptr->o_ptr->sval))) {
             continue;
+        }
 
         describe_flavor(player_ptr, monap_ptr->o_name, monap_ptr->o_ptr, (OD_OMIT_PREFIX | OD_NAME_ONLY));
 #ifdef JP
@@ -177,16 +194,18 @@ void process_eat_food(player_type *player_ptr, monap_type *monap_ptr)
     }
 }
 
-void process_eat_lite(player_type *player_ptr, monap_type *monap_ptr)
+void process_eat_lite(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
-    if ((monap_ptr->o_ptr->xtra4 <= 0) || monap_ptr->o_ptr->is_fixed_artifact())
+    if ((monap_ptr->o_ptr->fuel <= 0) || monap_ptr->o_ptr->is_fixed_artifact()) {
         return;
+    }
 
-    monap_ptr->o_ptr->xtra4 -= (int16_t)(250 + randint1(250));
-    if (monap_ptr->o_ptr->xtra4 < 1)
-        monap_ptr->o_ptr->xtra4 = 1;
+    monap_ptr->o_ptr->fuel -= 250 + randint1(250);
+    if (monap_ptr->o_ptr->fuel < 1) {
+        monap_ptr->o_ptr->fuel = 1;
+    }
 
-    if (!player_ptr->blind) {
+    if (!player_ptr->effects()->blindness()->is_blind()) {
         msg_print(_("明かりが暗くなってしまった。", "Your light dims."));
         monap_ptr->obvious = true;
     }
@@ -202,37 +221,44 @@ void process_eat_lite(player_type *player_ptr, monap_type *monap_ptr)
  * @details 魔道具使用能力向上フラグがあれば、吸収量は全部ではない
  * 詳細はOSDN #40911の議論を参照のこと
  */
-bool process_un_power(player_type *player_ptr, monap_type *monap_ptr)
+bool process_un_power(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
-    if (((monap_ptr->o_ptr->tval != ItemKindType::STAFF) && (monap_ptr->o_ptr->tval != ItemKindType::WAND)) || (monap_ptr->o_ptr->pval == 0))
+    if (((monap_ptr->o_ptr->tval != ItemKindType::STAFF) && (monap_ptr->o_ptr->tval != ItemKindType::WAND)) || (monap_ptr->o_ptr->pval == 0)) {
         return false;
+    }
 
     bool is_magic_mastery = has_magic_mastery(player_ptr) != 0;
-    object_kind *kind_ptr = &k_info[monap_ptr->o_ptr->k_idx];
+    BaseItemInfo *kind_ptr = &baseitems_info[monap_ptr->o_ptr->k_idx];
     PARAMETER_VALUE pval = kind_ptr->pval;
     DEPTH level = monap_ptr->rlev;
-    HIT_POINT drain = is_magic_mastery ? std::min<short>(pval, pval * level / 400 + pval * randint1(level) / 400) : pval;
-    if (drain <= 0)
+    auto drain = is_magic_mastery ? std::min<short>(pval, pval * level / 400 + pval * randint1(level) / 400) : pval;
+    drain = std::min(drain, monap_ptr->o_ptr->pval);
+    if (drain <= 0) {
         return false;
+    }
 
     msg_print(_("ザックからエネルギーが吸い取られた！", "Energy was drained from your pack!"));
-    if (is_magic_mastery)
+    if (is_magic_mastery && (drain != monap_ptr->o_ptr->pval)) {
         msg_print(_("しかし、あなたの魔法を操る力がその一部を取り返した！", "However, your skill of magic mastery got back the part of energy!"));
+    }
 
     monap_ptr->obvious = true;
-    HIT_POINT recovery = drain * kind_ptr->level;
+    int recovery = drain * kind_ptr->level;
 
-    if (monap_ptr->o_ptr->tval == ItemKindType::STAFF)
+    if (monap_ptr->o_ptr->tval == ItemKindType::STAFF) {
         recovery *= monap_ptr->o_ptr->number;
+    }
 
     recovery = std::min(recovery, monap_ptr->m_ptr->maxhp - monap_ptr->m_ptr->hp);
     monap_ptr->m_ptr->hp += recovery;
 
-    if (player_ptr->health_who == monap_ptr->m_idx)
+    if (player_ptr->health_who == monap_ptr->m_idx) {
         player_ptr->redraw |= PR_HEALTH;
+    }
 
-    if (player_ptr->riding == monap_ptr->m_idx)
+    if (player_ptr->riding == monap_ptr->m_idx) {
         player_ptr->redraw |= PR_UHEALTH;
+    }
 
     monap_ptr->o_ptr->pval = !is_magic_mastery || (monap_ptr->o_ptr->pval == 1) ? 0 : monap_ptr->o_ptr->pval - drain;
     player_ptr->update |= PU_COMBINE | PU_REORDER;
@@ -240,10 +266,10 @@ bool process_un_power(player_type *player_ptr, monap_type *monap_ptr)
     return true;
 }
 
-bool check_drain_hp(player_type *player_ptr, const int32_t d)
+bool check_drain_hp(PlayerType *player_ptr, const int32_t d)
 {
     bool resist_drain = !drain_exp(player_ptr, d, d / 10, 50);
-    if (player_ptr->mimic_form) {
+    if (player_ptr->mimic_form != MimicKindType::NONE) {
         return PlayerRace(player_ptr).is_mimic_nonliving() ? true : resist_drain;
     }
 
@@ -261,27 +287,32 @@ bool check_drain_hp(player_type *player_ptr, const int32_t d)
     }
 }
 
-void process_drain_life(player_type *player_ptr, monap_type *monap_ptr, const bool resist_drain)
+void process_drain_life(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr, const bool resist_drain)
 {
-    if ((monap_ptr->damage <= 5) || resist_drain)
+    if ((monap_ptr->damage <= 5) || resist_drain) {
         return;
+    }
 
     bool did_heal = monap_ptr->m_ptr->hp < monap_ptr->m_ptr->maxhp;
     monap_ptr->m_ptr->hp += damroll(4, monap_ptr->damage / 6);
-    if (monap_ptr->m_ptr->hp > monap_ptr->m_ptr->maxhp)
+    if (monap_ptr->m_ptr->hp > monap_ptr->m_ptr->maxhp) {
         monap_ptr->m_ptr->hp = monap_ptr->m_ptr->maxhp;
+    }
 
-    if (player_ptr->health_who == monap_ptr->m_idx)
+    if (player_ptr->health_who == monap_ptr->m_idx) {
         player_ptr->redraw |= (PR_HEALTH);
+    }
 
-    if (player_ptr->riding == monap_ptr->m_idx)
+    if (player_ptr->riding == monap_ptr->m_idx) {
         player_ptr->redraw |= (PR_UHEALTH);
+    }
 
-    if (monap_ptr->m_ptr->ml && did_heal)
+    if (monap_ptr->m_ptr->ml && did_heal) {
         msg_format(_("%sは体力を回復したようだ。", "%^s appears healthier."), monap_ptr->m_name);
+    }
 }
 
-void process_drain_mana(player_type *player_ptr, monap_type *monap_ptr)
+void process_drain_mana(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
     if (check_multishadow(player_ptr)) {
         msg_print(_("攻撃は幻影に命中し、あなたには届かなかった。", "The attack hits Shadow, but you are unharmed!"));
@@ -304,7 +335,7 @@ void process_drain_mana(player_type *player_ptr, monap_type *monap_ptr)
  * @monap_ptr モンスターからモンスターへの直接攻撃構造体への参照ポインタ
  * @details 空腹、衰弱の一歩手前で止める優しさは残す。
  */
-void process_monster_attack_hungry(player_type *player_ptr, monap_type *monap_ptr)
+void process_monster_attack_hungry(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr)
 {
     msg_format(_("あなたは腹が減った！", "You feel hungry!"));
     auto subtracted_food = static_cast<int16_t>(player_ptr->food - monap_ptr->damage);

@@ -1,5 +1,4 @@
 ﻿#include "window/main-window-stat-poster.h"
-#include "game-option/game-play-options.h"
 #include "io/input-key-requester.h"
 #include "mind/stances-table.h"
 #include "monster/monster-status.h"
@@ -23,11 +22,19 @@
 #include "system/player-type-definition.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
+#include "timed-effect/player-blindness.h"
+#include "timed-effect/player-confusion.h"
 #include "timed-effect/player-cut.h"
+#include "timed-effect/player-deceleration.h"
+#include "timed-effect/player-fear.h"
+#include "timed-effect/player-hallucination.h"
+#include "timed-effect/player-paralysis.h"
+#include "timed-effect/player-poison.h"
 #include "timed-effect/player-stun.h"
 #include "timed-effect/timed-effects.h"
 #include "view/status-bars-table.h"
 #include "window/main-window-row-column.h"
+#include "world/world.h"
 
 /*!
  * @brief 32ビット変数配列の指定位置のビットフラグを1にする。
@@ -46,7 +53,7 @@
  * @brief プレイヤー能力値を描画する / Print character stat in given row, column
  * @param stat 描画するステータスのID
  */
-void print_stat(player_type *player_ptr, int stat)
+void print_stat(PlayerType *player_ptr, int stat)
 {
     GAME_TEXT tmp[32];
     if (player_ptr->stat_cur[stat] < player_ptr->stat_max[stat]) {
@@ -59,8 +66,9 @@ void print_stat(player_type *player_ptr, int stat)
         c_put_str(TERM_L_GREEN, tmp, ROW_STAT + stat, COL_STAT + 6);
     }
 
-    if (player_ptr->stat_max[stat] != player_ptr->stat_max_max[stat])
+    if (player_ptr->stat_max[stat] != player_ptr->stat_max_max[stat]) {
         return;
+    }
 
 #ifdef JP
     /* 日本語にかぶらないように表示位置を変更 */
@@ -73,7 +81,7 @@ void print_stat(player_type *player_ptr, int stat)
 /*!
  * @brief プレイヤーの負傷状態を表示する
  */
-void print_cut(player_type *player_ptr)
+void print_cut(PlayerType *player_ptr)
 {
     auto player_cut = player_ptr->effects()->cut();
     if (!player_cut->is_cut()) {
@@ -89,7 +97,7 @@ void print_cut(player_type *player_ptr)
  * @brief プレイヤーの朦朧状態を表示する
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void print_stun(player_type *player_ptr)
+void print_stun(PlayerType *player_ptr)
 {
     auto player_stun = player_ptr->effects()->stun();
     if (!player_stun->is_stunned()) {
@@ -105,10 +113,11 @@ void print_stun(player_type *player_ptr)
  * @brief プレイヤーの空腹状態を表示する / Prints status of hunger
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void print_hunger(player_type *player_ptr)
+void print_hunger(PlayerType *player_ptr)
 {
-    if (allow_debug_options && player_ptr->current_floor_ptr->inside_arena)
+    if (w_ptr->wizard && player_ptr->current_floor_ptr->inside_arena) {
         return;
+    }
 
     if (player_ptr->food < PY_FOOD_FAINT) {
         c_put_str(TERM_RED, _("衰弱  ", "Weak  "), ROW_HUNGRY, COL_HUNGRY);
@@ -146,7 +155,7 @@ void print_hunger(player_type *player_ptr)
  * This function was a major bottleneck when resting, so a lot of
  * the text formatting code was optimized in place below.
  */
-void print_state(player_type *player_ptr)
+void print_state(PlayerType *player_ptr)
 {
     TERM_COLOR attr = TERM_WHITE;
     GAME_TEXT text[16];
@@ -181,8 +190,9 @@ void print_state(player_type *player_ptr)
     case ACTION_LEARN: {
         strcpy(text, _("学習", "lear"));
         auto bluemage_data = PlayerClass(player_ptr).get_specific_data<bluemage_data_type>();
-        if (bluemage_data->new_magic_learned)
+        if (bluemage_data->new_magic_learned) {
             attr = TERM_L_RED;
+        }
         break;
     }
     case ACTION_FISH: {
@@ -191,18 +201,18 @@ void print_state(player_type *player_ptr)
     }
     case ACTION_MONK_STANCE: {
         if (auto stance = PlayerClass(player_ptr).get_monk_stance();
-            stance != MonkStance::NONE) {
+            stance != MonkStanceType::NONE) {
             switch (stance) {
-            case MonkStance::GENBU:
+            case MonkStanceType::GENBU:
                 attr = TERM_GREEN;
                 break;
-            case MonkStance::BYAKKO:
+            case MonkStanceType::BYAKKO:
                 attr = TERM_WHITE;
                 break;
-            case MonkStance::SEIRYU:
+            case MonkStanceType::SEIRYU:
                 attr = TERM_L_BLUE;
                 break;
-            case MonkStance::SUZAKU:
+            case MonkStanceType::SUZAKU:
                 attr = TERM_L_RED;
                 break;
             default:
@@ -214,7 +224,7 @@ void print_state(player_type *player_ptr)
     }
     case ACTION_SAMURAI_STANCE: {
         if (auto stance = PlayerClass(player_ptr).get_samurai_stance();
-            stance != SamuraiStance::NONE) {
+            stance != SamuraiStanceType::NONE) {
             strcpy(text, samurai_stances[enum2i(stance) - 1].desc);
         }
         break;
@@ -241,54 +251,59 @@ void print_state(player_type *player_ptr)
 }
 
 /*!
- * @brief プレイヤーの行動速度を表示する / Prints the speed_value of a character.			-CJS-
+ * @brief プレイヤーの行動速度を表示する
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void print_speed(player_type *player_ptr)
+void print_speed(PlayerType *player_ptr)
 {
     TERM_LEN wid, hgt;
     term_get_size(&wid, &hgt);
     TERM_LEN col_speed = wid + COL_SPEED;
     TERM_LEN row_speed = hgt + ROW_SPEED;
 
-    int speed_value = player_ptr->pspeed - 110;
-
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    const auto speed = player_ptr->pspeed - STANDARD_SPEED;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     bool is_player_fast = is_fast(player_ptr);
     char buf[32] = "";
     TERM_COLOR attr = TERM_WHITE;
-    if (speed_value > 0) {
+    if (speed > 0) {
+        auto is_slow = player_ptr->effects()->deceleration()->is_slow();
         if (player_ptr->riding) {
-            monster_type *m_ptr = &floor_ptr->m_list[player_ptr->riding];
-            if (monster_fast_remaining(m_ptr) && !monster_slow_remaining(m_ptr))
+            auto *m_ptr = &floor_ptr->m_list[player_ptr->riding];
+            if (m_ptr->is_accelerated() && !m_ptr->is_decelerated()) {
                 attr = TERM_L_BLUE;
-            else if (monster_slow_remaining(m_ptr) && !monster_fast_remaining(m_ptr))
+            } else if (m_ptr->is_decelerated() && !m_ptr->is_accelerated()) {
                 attr = TERM_VIOLET;
-            else
+            } else {
                 attr = TERM_GREEN;
-        } else if ((is_player_fast && !player_ptr->slow) || player_ptr->lightspeed)
+            }
+        } else if ((is_player_fast && !is_slow) || player_ptr->lightspeed) {
             attr = TERM_YELLOW;
-        else if (player_ptr->slow && !is_player_fast)
+        } else if (is_slow && !is_player_fast) {
             attr = TERM_VIOLET;
-        else
+        } else {
             attr = TERM_L_GREEN;
-        sprintf(buf, "%s(+%d)", (player_ptr->riding ? _("乗馬", "Ride") : _("加速", "Fast")), speed_value);
-    } else if (speed_value < 0) {
+        }
+        sprintf(buf, "%s(+%d)", (player_ptr->riding ? _("乗馬", "Ride") : _("加速", "Fast")), speed);
+    } else if (speed < 0) {
+        auto is_slow = player_ptr->effects()->deceleration()->is_slow();
         if (player_ptr->riding) {
-            monster_type *m_ptr = &floor_ptr->m_list[player_ptr->riding];
-            if (monster_fast_remaining(m_ptr) && !monster_slow_remaining(m_ptr))
+            auto *m_ptr = &floor_ptr->m_list[player_ptr->riding];
+            if (m_ptr->is_accelerated() && !m_ptr->is_decelerated()) {
                 attr = TERM_L_BLUE;
-            else if (monster_slow_remaining(m_ptr) && !monster_fast_remaining(m_ptr))
+            } else if (m_ptr->is_decelerated() && !m_ptr->is_accelerated()) {
                 attr = TERM_VIOLET;
-            else
+            } else {
                 attr = TERM_RED;
-        } else if (is_player_fast && !player_ptr->slow)
+            }
+        } else if (is_player_fast && !is_slow) {
             attr = TERM_YELLOW;
-        else if (player_ptr->slow && !is_player_fast)
+        } else if (is_slow && !is_player_fast) {
             attr = TERM_VIOLET;
-        else
+        } else {
             attr = TERM_L_UMBER;
-        sprintf(buf, "%s(%d)", (player_ptr->riding ? _("乗馬", "Ride") : _("減速", "Slow")), speed_value);
+        }
+        sprintf(buf, "%s(%d)", (player_ptr->riding ? _("乗馬", "Ride") : _("減速", "Slow")), speed);
     } else if (player_ptr->riding) {
         attr = TERM_GREEN;
         strcpy(buf, _("乗馬中", "Riding"));
@@ -301,7 +316,7 @@ void print_speed(player_type *player_ptr)
  * @brief プレイヤーの呪文学習可能状態を表示する
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void print_study(player_type *player_ptr)
+void print_study(PlayerType *player_ptr)
 {
     TERM_LEN wid, hgt;
     term_get_size(&wid, &hgt);
@@ -319,17 +334,19 @@ void print_study(player_type *player_ptr)
  * @brief プレイヤーのものまね可能状態を表示する
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void print_imitation(player_type *player_ptr)
+void print_imitation(PlayerType *player_ptr)
 {
     TERM_LEN wid, hgt;
     term_get_size(&wid, &hgt);
     TERM_LEN col_study = wid + COL_STUDY;
     TERM_LEN row_study = hgt + ROW_STUDY;
 
-    if (player_ptr->pclass != PlayerClassType::IMITATOR)
+    PlayerClass pc(player_ptr);
+    if (!pc.equals(PlayerClassType::IMITATOR)) {
         return;
+    }
 
-    auto mane_data = PlayerClass(player_ptr).get_specific_data<mane_data_type>();
+    auto mane_data = pc.get_specific_data<mane_data_type>();
 
     if (mane_data->mane_list.size() == 0) {
         put_str("    ", row_study, col_study);
@@ -345,7 +362,7 @@ void print_imitation(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @bar_flags 表示可否を決めるためのフラグ群
  */
-static void add_hex_status_flags(player_type *player_ptr, BIT_FLAGS *bar_flags)
+static void add_hex_status_flags(PlayerType *player_ptr, BIT_FLAGS *bar_flags)
 {
     if (player_ptr->realm1 != REALM_HEX) {
         return;
@@ -413,8 +430,7 @@ static void add_hex_status_flags(player_type *player_ptr, BIT_FLAGS *bar_flags)
         ADD_BAR_FLAG(BAR_ANTIMAGIC);
     }
 
-    if (spell_hex.is_spelling_specific(HEX_CURE_LIGHT) || spell_hex.is_spelling_specific(HEX_CURE_SERIOUS)
-        || spell_hex.is_spelling_specific(HEX_CURE_CRITICAL)) {
+    if (spell_hex.is_spelling_specific(HEX_CURE_LIGHT) || spell_hex.is_spelling_specific(HEX_CURE_SERIOUS) || spell_hex.is_spelling_specific(HEX_CURE_CRITICAL)) {
         ADD_BAR_FLAG(BAR_CURE);
     }
 
@@ -433,7 +449,7 @@ static void add_hex_status_flags(player_type *player_ptr, BIT_FLAGS *bar_flags)
 /*!
  * @brief 下部に状態表示を行う / Show status bar
  */
-void print_status(player_type *player_ptr)
+void print_status(PlayerType *player_ptr)
 {
     TERM_LEN wid, hgt;
     term_get_size(&wid, &hgt);
@@ -445,26 +461,34 @@ void print_status(player_type *player_ptr)
     BIT_FLAGS bar_flags[3];
     bar_flags[0] = bar_flags[1] = bar_flags[2] = 0L;
 
-    if (player_ptr->tsuyoshi)
+    auto effects = player_ptr->effects();
+    if (player_ptr->tsuyoshi) {
         ADD_BAR_FLAG(BAR_TSUYOSHI);
+    }
 
-    if (player_ptr->hallucinated)
+    if (effects->hallucination()->is_hallucinated()) {
         ADD_BAR_FLAG(BAR_HALLUCINATION);
+    }
 
-    if (player_ptr->blind)
+    if (player_ptr->effects()->blindness()->is_blind()) {
         ADD_BAR_FLAG(BAR_BLINDNESS);
+    }
 
-    if (player_ptr->paralyzed)
+    if (effects->paralysis()->is_paralyzed()) {
         ADD_BAR_FLAG(BAR_PARALYZE);
+    }
 
-    if (player_ptr->confused)
+    if (effects->confusion()->is_confused()) {
         ADD_BAR_FLAG(BAR_CONFUSE);
+    }
 
-    if (player_ptr->poisoned)
+    if (effects->poison()->is_poisoned()) {
         ADD_BAR_FLAG(BAR_POISONED);
+    }
 
-    if (player_ptr->tim_invis)
+    if (player_ptr->tim_invis) {
         ADD_BAR_FLAG(BAR_SENSEUNSEEN);
+    }
 
     auto sniper_data = PlayerClass(player_ptr).get_specific_data<sniper_data_type>();
     if (sniper_data && (sniper_data->concent >= CONCENT_RADAR_THRESHOLD)) {
@@ -472,135 +496,190 @@ void print_status(player_type *player_ptr)
         ADD_BAR_FLAG(BAR_NIGHTSIGHT);
     }
 
-    if (is_time_limit_esp(player_ptr))
+    if (is_time_limit_esp(player_ptr)) {
         ADD_BAR_FLAG(BAR_TELEPATHY);
+    }
 
-    if (player_ptr->tim_regen)
+    if (player_ptr->tim_regen) {
         ADD_BAR_FLAG(BAR_REGENERATION);
+    }
 
-    if (player_ptr->tim_infra)
+    if (player_ptr->tim_infra) {
         ADD_BAR_FLAG(BAR_INFRAVISION);
+    }
 
-    if (player_ptr->protevil)
+    if (player_ptr->protevil) {
         ADD_BAR_FLAG(BAR_PROTEVIL);
+    }
 
-    if (is_invuln(player_ptr))
+    if (is_invuln(player_ptr)) {
         ADD_BAR_FLAG(BAR_INVULN);
+    }
 
-    if (player_ptr->wraith_form)
+    if (player_ptr->wraith_form) {
         ADD_BAR_FLAG(BAR_WRAITH);
+    }
 
-    if (player_ptr->tim_pass_wall)
+    if (player_ptr->tim_pass_wall) {
         ADD_BAR_FLAG(BAR_PASSWALL);
+    }
 
-    if (player_ptr->tim_reflect)
+    if (player_ptr->tim_reflect) {
         ADD_BAR_FLAG(BAR_REFLECTION);
+    }
 
-    if (is_hero(player_ptr))
+    if (is_hero(player_ptr)) {
         ADD_BAR_FLAG(BAR_HEROISM);
+    }
 
-    if (is_shero(player_ptr))
+    if (is_shero(player_ptr)) {
         ADD_BAR_FLAG(BAR_BERSERK);
+    }
 
-    if (is_blessed(player_ptr))
+    if (is_blessed(player_ptr)) {
         ADD_BAR_FLAG(BAR_BLESSED);
+    }
 
-    if (player_ptr->magicdef)
+    if (player_ptr->magicdef) {
         ADD_BAR_FLAG(BAR_MAGICDEFENSE);
+    }
 
-    if (player_ptr->tsubureru)
+    if (player_ptr->tsubureru) {
         ADD_BAR_FLAG(BAR_EXPAND);
+    }
 
-    if (player_ptr->shield)
+    if (player_ptr->shield) {
         ADD_BAR_FLAG(BAR_STONESKIN);
+    }
 
     auto ninja_data = PlayerClass(player_ptr).get_specific_data<ninja_data_type>();
-    if (ninja_data && ninja_data->kawarimi)
+    if (ninja_data && ninja_data->kawarimi) {
         ADD_BAR_FLAG(BAR_KAWARIMI);
+    }
 
-    if (player_ptr->special_defense & DEFENSE_ACID)
+    if (player_ptr->special_defense & DEFENSE_ACID) {
         ADD_BAR_FLAG(BAR_IMMACID);
-    if (is_oppose_acid(player_ptr))
+    }
+
+    if (is_oppose_acid(player_ptr)) {
         ADD_BAR_FLAG(BAR_RESACID);
+    }
 
-    if (player_ptr->special_defense & DEFENSE_ELEC)
+    if (player_ptr->special_defense & DEFENSE_ELEC) {
         ADD_BAR_FLAG(BAR_IMMELEC);
-    if (is_oppose_elec(player_ptr))
+    }
+
+    if (is_oppose_elec(player_ptr)) {
         ADD_BAR_FLAG(BAR_RESELEC);
+    }
 
-    if (player_ptr->special_defense & DEFENSE_FIRE)
+    if (player_ptr->special_defense & DEFENSE_FIRE) {
         ADD_BAR_FLAG(BAR_IMMFIRE);
-    if (is_oppose_fire(player_ptr))
+    }
+
+    if (is_oppose_fire(player_ptr)) {
         ADD_BAR_FLAG(BAR_RESFIRE);
+    }
 
-    if (player_ptr->special_defense & DEFENSE_COLD)
+    if (player_ptr->special_defense & DEFENSE_COLD) {
         ADD_BAR_FLAG(BAR_IMMCOLD);
-    if (is_oppose_cold(player_ptr))
+    }
+
+    if (is_oppose_cold(player_ptr)) {
         ADD_BAR_FLAG(BAR_RESCOLD);
+    }
 
-    if (is_oppose_pois(player_ptr))
+    if (is_oppose_pois(player_ptr)) {
         ADD_BAR_FLAG(BAR_RESPOIS);
+    }
 
-    if (player_ptr->word_recall)
+    if (player_ptr->word_recall) {
         ADD_BAR_FLAG(BAR_RECALL);
+    }
 
-    if (player_ptr->alter_reality)
+    if (player_ptr->alter_reality) {
         ADD_BAR_FLAG(BAR_ALTER);
+    }
 
-    if (player_ptr->afraid)
+    if (effects->fear()->is_fearful()) {
         ADD_BAR_FLAG(BAR_AFRAID);
+    }
 
-    if (player_ptr->tim_res_time)
+    if (player_ptr->tim_res_time) {
         ADD_BAR_FLAG(BAR_RESTIME);
+    }
 
-    if (player_ptr->multishadow)
+    if (player_ptr->multishadow) {
         ADD_BAR_FLAG(BAR_MULTISHADOW);
+    }
 
-    if (player_ptr->special_attack & ATTACK_CONFUSE)
+    if (player_ptr->special_attack & ATTACK_CONFUSE) {
         ADD_BAR_FLAG(BAR_ATTKCONF);
+    }
 
-    if (player_ptr->resist_magic)
+    if (player_ptr->resist_magic) {
         ADD_BAR_FLAG(BAR_REGMAGIC);
+    }
 
-    if (player_ptr->ult_res)
+    if (player_ptr->ult_res) {
         ADD_BAR_FLAG(BAR_ULTIMATE);
+    }
 
-    if (player_ptr->tim_levitation)
+    if (player_ptr->tim_levitation) {
         ADD_BAR_FLAG(BAR_LEVITATE);
+    }
 
-    if (player_ptr->tim_res_nether)
+    if (player_ptr->tim_res_nether) {
         ADD_BAR_FLAG(BAR_RESNETH);
+    }
 
-    if (player_ptr->dustrobe)
+    if (player_ptr->dustrobe) {
         ADD_BAR_FLAG(BAR_DUSTROBE);
+    }
 
-    if (player_ptr->special_attack & ATTACK_FIRE)
+    if (player_ptr->special_attack & ATTACK_FIRE) {
         ADD_BAR_FLAG(BAR_ATTKFIRE);
-    if (player_ptr->special_attack & ATTACK_COLD)
+    }
+
+    if (player_ptr->special_attack & ATTACK_COLD) {
         ADD_BAR_FLAG(BAR_ATTKCOLD);
-    if (player_ptr->special_attack & ATTACK_ELEC)
+    }
+
+    if (player_ptr->special_attack & ATTACK_ELEC) {
         ADD_BAR_FLAG(BAR_ATTKELEC);
-    if (player_ptr->special_attack & ATTACK_ACID)
+    }
+
+    if (player_ptr->special_attack & ATTACK_ACID) {
         ADD_BAR_FLAG(BAR_ATTKACID);
-    if (player_ptr->special_attack & ATTACK_POIS)
+    }
+
+    if (player_ptr->special_attack & ATTACK_POIS) {
         ADD_BAR_FLAG(BAR_ATTKPOIS);
-    if (ninja_data && ninja_data->s_stealth)
+    }
+
+    if (ninja_data && ninja_data->s_stealth) {
         ADD_BAR_FLAG(BAR_SUPERSTEALTH);
+    }
 
-    if (player_ptr->tim_sh_fire)
+    if (player_ptr->tim_sh_fire) {
         ADD_BAR_FLAG(BAR_SHFIRE);
+    }
 
-    if (is_time_limit_stealth(player_ptr))
+    if (is_time_limit_stealth(player_ptr)) {
         ADD_BAR_FLAG(BAR_STEALTH);
+    }
 
-    if (player_ptr->tim_sh_touki)
+    if (player_ptr->tim_sh_touki) {
         ADD_BAR_FLAG(BAR_TOUKI);
+    }
 
-    if (player_ptr->tim_sh_holy)
+    if (player_ptr->tim_sh_holy) {
         ADD_BAR_FLAG(BAR_SHHOLY);
+    }
 
-    if (player_ptr->tim_eyeeye)
+    if (player_ptr->tim_eyeeye) {
         ADD_BAR_FLAG(BAR_EYEEYE);
+    }
 
     add_hex_status_flags(player_ptr, bar_flags);
     TERM_LEN col = 0, num = 0;
@@ -630,21 +709,26 @@ void print_status(player_type *player_ptr)
 
     col = (max_col_statbar - col) / 2;
     for (int i = 0; stat_bars[i].sstr; i++) {
-        if (!IS_BAR_FLAG(i))
+        if (!IS_BAR_FLAG(i)) {
             continue;
+        }
 
         concptr str;
-        if (space == 2)
+        if (space == 2) {
             str = stat_bars[i].lstr;
-        else
+        } else {
             str = stat_bars[i].sstr;
+        }
 
         c_put_str(stat_bars[i].attr, str, row_statbar, col);
         col += strlen(str);
-        if (space > 0)
+        if (space > 0) {
             col++;
-        if (col > max_col_statbar)
+        }
+
+        if (col > max_col_statbar) {
             break;
+        }
     }
 }
 
@@ -652,7 +736,7 @@ void print_status(player_type *player_ptr)
  * @brief プレイヤーのステータスを一括表示する（下部分） / Display extra info (mostly below map)
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void print_frame_extra(player_type *player_ptr)
+void print_frame_extra(PlayerType *player_ptr)
 {
     print_cut(player_ptr);
     print_stun(player_ptr);

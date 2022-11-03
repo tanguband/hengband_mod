@@ -1,7 +1,6 @@
 ﻿#include "target/target-preparation.h"
 #include "floor/cave.h"
 #include "game-option/input-options.h"
-#include "grid/feature.h"
 #include "grid/grid.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
@@ -15,8 +14,11 @@
 #include "system/monster-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "target/projection-path-calculator.h"
 #include "target/target-types.h"
+#include "timed-effect/player-hallucination.h"
+#include "timed-effect/timed-effects.h"
 #include "util/bit-flags-calculator.h"
 #include "util/sort.h"
 #include "window/main-window-util.h"
@@ -38,24 +40,29 @@
  * Future versions may restrict the ability to target "trappers"
  * and "mimics", but the semantics is a little bit weird.
  */
-bool target_able(player_type *player_ptr, MONSTER_IDX m_idx)
+bool target_able(PlayerType *player_ptr, MONSTER_IDX m_idx)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    monster_type *m_ptr = &floor_ptr->m_list[m_idx];
-    if (!monster_is_valid(m_ptr))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    auto *m_ptr = &floor_ptr->m_list[m_idx];
+    if (!m_ptr->is_valid()) {
         return false;
+    }
 
-    if (player_ptr->hallucinated)
+    if (player_ptr->effects()->hallucination()->is_hallucinated()) {
         return false;
+    }
 
-    if (!m_ptr->ml)
+    if (!m_ptr->ml) {
         return false;
+    }
 
-    if (player_ptr->riding && (player_ptr->riding == m_idx))
+    if (player_ptr->riding && (player_ptr->riding == m_idx)) {
         return true;
+    }
 
-    if (!projectable(player_ptr, player_ptr->y, player_ptr->x, m_ptr->fy, m_ptr->fx))
+    if (!projectable(player_ptr, player_ptr->y, player_ptr->x, m_ptr->fy, m_ptr->fx)) {
         return false;
+    }
 
     return true;
 }
@@ -63,39 +70,46 @@ bool target_able(player_type *player_ptr, MONSTER_IDX m_idx)
 /*
  * Determine if a given location is "interesting"
  */
-static bool target_set_accept(player_type *player_ptr, POSITION y, POSITION x)
+static bool target_set_accept(PlayerType *player_ptr, POSITION y, POSITION x)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (!(in_bounds(floor_ptr, y, x)))
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (!(in_bounds(floor_ptr, y, x))) {
         return false;
+    }
 
-    if (player_bold(player_ptr, y, x))
+    if (player_bold(player_ptr, y, x)) {
         return true;
+    }
 
-    if (player_ptr->hallucinated)
+    if (player_ptr->effects()->hallucination()->is_hallucinated()) {
         return false;
+    }
 
     grid_type *g_ptr;
     g_ptr = &floor_ptr->grid_array[y][x];
     if (g_ptr->m_idx) {
-        monster_type *m_ptr = &floor_ptr->m_list[g_ptr->m_idx];
-        if (m_ptr->ml)
+        auto *m_ptr = &floor_ptr->m_list[g_ptr->m_idx];
+        if (m_ptr->ml) {
             return true;
+        }
     }
 
     for (const auto this_o_idx : g_ptr->o_idx_list) {
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &floor_ptr->o_list[this_o_idx];
-        if (o_ptr->marked & OM_FOUND)
+        if (o_ptr->marked & OM_FOUND) {
             return true;
+        }
     }
 
     if (g_ptr->is_mark()) {
-        if (g_ptr->is_object())
+        if (g_ptr->is_object()) {
             return true;
+        }
 
-        if (f_info[g_ptr->get_feat_mimic()].flags.has(FF::NOTICE))
+        if (terrains_info[g_ptr->get_feat_mimic()].flags.has(TerrainCharacteristics::NOTICE)) {
             return true;
+        }
     }
 
     return false;
@@ -110,7 +124,7 @@ static bool target_set_accept(player_type *player_ptr, POSITION y, POSITION x)
  *
  * ys, xs は処理開始時にクリアされる。
  */
-void target_set_prepare(player_type *player_ptr, std::vector<POSITION> &ys, std::vector<POSITION> &xs, const BIT_FLAGS mode)
+void target_set_prepare(PlayerType *player_ptr, std::vector<POSITION> &ys, std::vector<POSITION> &xs, const BIT_FLAGS mode)
 {
     POSITION min_hgt, max_hgt, min_wid, max_wid;
     if (mode & TARGET_KILL) {
@@ -130,16 +144,19 @@ void target_set_prepare(player_type *player_ptr, std::vector<POSITION> &ys, std:
 
     for (POSITION y = min_hgt; y <= max_hgt; y++) {
         for (POSITION x = min_wid; x <= max_wid; x++) {
-            grid_type *g_ptr;
-            if (!target_set_accept(player_ptr, y, x))
+            if (!target_set_accept(player_ptr, y, x)) {
                 continue;
+            }
 
-            g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
-            if ((mode & (TARGET_KILL)) && !target_able(player_ptr, g_ptr->m_idx))
+            const auto &g_ref = player_ptr->current_floor_ptr->grid_array[y][x];
+            if ((mode & (TARGET_KILL)) && !target_able(player_ptr, g_ref.m_idx)) {
                 continue;
+            }
 
-            if ((mode & (TARGET_KILL)) && !target_pet && is_pet(&player_ptr->current_floor_ptr->m_list[g_ptr->m_idx]))
+            const auto &m_ref = player_ptr->current_floor_ptr->m_list[g_ref.m_idx];
+            if ((mode & (TARGET_KILL)) && !target_pet && m_ref.is_pet()) {
                 continue;
+            }
 
             ys.emplace_back(y);
             xs.emplace_back(x);
@@ -154,30 +171,34 @@ void target_set_prepare(player_type *player_ptr, std::vector<POSITION> &ys, std:
 
     // 乗っているモンスターがターゲットリストの先頭にならないようにする調整。
 
-    if (player_ptr->riding == 0 || !target_pet || (size(ys) <= 1) || !(mode & (TARGET_KILL)))
+    if (player_ptr->riding == 0 || !target_pet || (size(ys) <= 1) || !(mode & (TARGET_KILL))) {
         return;
+    }
 
     // 0 番目と 1 番目を入れ替える。
     std::swap(ys[0], ys[1]);
     std::swap(xs[0], xs[1]);
 }
 
-void target_sensing_monsters_prepare(player_type *player_ptr, std::vector<MONSTER_IDX> &monster_list)
+void target_sensing_monsters_prepare(PlayerType *player_ptr, std::vector<MONSTER_IDX> &monster_list)
 {
     monster_list.clear();
 
     // 幻覚時は正常に感知できない
-    if (player_ptr->hallucinated)
+    if (player_ptr->effects()->hallucination()->is_hallucinated()) {
         return;
+    }
 
     for (MONSTER_IDX i = 1; i < player_ptr->current_floor_ptr->m_max; i++) {
-        monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
-        if (!monster_is_valid(m_ptr) || !m_ptr->ml || is_pet(m_ptr))
+        auto *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
+        if (!m_ptr->is_valid() || !m_ptr->ml || m_ptr->is_pet()) {
             continue;
+        }
 
         // 感知魔法/スキルやESPで感知していない擬態モンスターはモンスター一覧に表示しない
-        if (is_mimicry(m_ptr) && m_ptr->mflag2.has_none_of({ MFLAG2::MARK, MFLAG2::SHOW }) && m_ptr->mflag.has_not(MFLAG::ESP))
+        if (m_ptr->is_mimicry() && m_ptr->mflag2.has_none_of({ MonsterConstantFlagType::MARK, MonsterConstantFlagType::SHOW }) && m_ptr->mflag.has_not(MonsterTemporaryFlagType::ESP)) {
             continue;
+        }
 
         monster_list.push_back(i);
     }
@@ -185,24 +206,28 @@ void target_sensing_monsters_prepare(player_type *player_ptr, std::vector<MONSTE
     auto comp_importance = [floor_ptr = player_ptr->current_floor_ptr](MONSTER_IDX idx1, MONSTER_IDX idx2) {
         auto m_ptr1 = &floor_ptr->m_list[idx1];
         auto m_ptr2 = &floor_ptr->m_list[idx2];
-        auto ap_r_ptr1 = &r_info[m_ptr1->ap_r_idx];
-        auto ap_r_ptr2 = &r_info[m_ptr2->ap_r_idx];
+        auto ap_r_ptr1 = &monraces_info[m_ptr1->ap_r_idx];
+        auto ap_r_ptr2 = &monraces_info[m_ptr2->ap_r_idx];
 
         /* Unique monsters first */
-        if (any_bits(ap_r_ptr1->flags1, RF1_UNIQUE) != any_bits(ap_r_ptr2->flags1, RF1_UNIQUE))
-            return any_bits(ap_r_ptr1->flags1, RF1_UNIQUE);
+        if (ap_r_ptr1->kind_flags.has(MonsterKindType::UNIQUE) != ap_r_ptr2->kind_flags.has(MonsterKindType::UNIQUE)) {
+            return ap_r_ptr1->kind_flags.has(MonsterKindType::UNIQUE);
+        }
 
         /* Shadowers first (あやしい影) */
-        if (m_ptr1->mflag2.has(MFLAG2::KAGE) != m_ptr2->mflag2.has(MFLAG2::KAGE))
-            return m_ptr1->mflag2.has(MFLAG2::KAGE);
+        if (m_ptr1->mflag2.has(MonsterConstantFlagType::KAGE) != m_ptr2->mflag2.has(MonsterConstantFlagType::KAGE)) {
+            return m_ptr1->mflag2.has(MonsterConstantFlagType::KAGE);
+        }
 
         /* Unknown monsters first */
-        if ((ap_r_ptr1->r_tkills == 0) != (ap_r_ptr2->r_tkills == 0))
-            return (ap_r_ptr1->r_tkills == 0);
+        if ((ap_r_ptr1->r_tkills == 0) != (ap_r_ptr2->r_tkills == 0)) {
+            return ap_r_ptr1->r_tkills == 0;
+        }
 
         /* Higher level monsters first (if known) */
-        if (ap_r_ptr1->r_tkills && ap_r_ptr2->r_tkills && ap_r_ptr1->level != ap_r_ptr2->level)
+        if (ap_r_ptr1->r_tkills && ap_r_ptr2->r_tkills && ap_r_ptr1->level != ap_r_ptr2->level) {
             return ap_r_ptr1->level > ap_r_ptr2->level;
+        }
 
         /* Sort by index if all conditions are same */
         return m_ptr1->ap_r_idx > m_ptr2->ap_r_idx;

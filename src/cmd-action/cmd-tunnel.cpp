@@ -4,7 +4,6 @@
 #include "core/disturbance.h"
 #include "core/player-redraw-types.h"
 #include "floor/geometry.h"
-#include "grid/feature.h"
 #include "grid/grid.h"
 #include "io/input-key-requester.h"
 #include "player-base/player-class.h"
@@ -16,6 +15,7 @@
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "target/target-getter.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
@@ -32,10 +32,10 @@
  * accomplished by strong players using heavy weapons.
  * </pre>
  */
-void do_cmd_tunnel(player_type *player_ptr)
+void do_cmd_tunnel(PlayerType *player_ptr)
 {
     bool more = false;
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU });
 
     if (command_arg) {
         command_rep = command_arg - 1;
@@ -45,8 +45,9 @@ void do_cmd_tunnel(player_type *player_ptr)
 
     DIRECTION dir;
     if (!get_rep_dir(player_ptr, &dir, false)) {
-        if (!more)
+        if (!more) {
             disturb(player_ptr, false, false);
+        }
 
         return;
     }
@@ -56,17 +57,19 @@ void do_cmd_tunnel(player_type *player_ptr)
     grid_type *g_ptr;
     g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
     FEAT_IDX feat = g_ptr->get_feat_mimic();
-    if (f_info[feat].flags.has(FF::DOOR))
+    if (terrains_info[feat].flags.has(TerrainCharacteristics::DOOR)) {
         msg_print(_("ドアは掘れない。", "You cannot tunnel through doors."));
-    else if (f_info[feat].flags.has_not(FF::TUNNEL))
+    } else if (terrains_info[feat].flags.has_not(TerrainCharacteristics::TUNNEL)) {
         msg_print(_("そこは掘れない。", "You can't tunnel through that."));
-    else if (g_ptr->m_idx) {
+    } else if (g_ptr->m_idx) {
         PlayerEnergy(player_ptr).set_player_turn_energy(100);
         msg_print(_("モンスターが立ちふさがっている！", "There is a monster in the way!"));
         do_cmd_attack(player_ptr, y, x, HISSATSU_NONE);
-    } else
+    } else {
         more = exe_tunnel(player_ptr, y, x);
+    }
 
-    if (!more)
+    if (!more) {
         disturb(player_ptr, false, false);
+    }
 }

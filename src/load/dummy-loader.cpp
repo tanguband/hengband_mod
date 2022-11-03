@@ -2,7 +2,7 @@
 #include "load/angband-version-comparer.h"
 #include "load/load-util.h"
 #include "load/monster/monster-loader-factory.h"
-#include "load/old/monster-loader-savefile10.h"
+#include "load/old/monster-loader-savefile50.h"
 #include "system/floor-type-definition.h"
 #include "system/monster-type-definition.h"
 #include "system/player-type-definition.h"
@@ -34,10 +34,11 @@ void rd_dummy2(void)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @details もはや何に使われていたのか不明
  */
-void rd_dummy_monsters(player_type *player_ptr)
+void rd_dummy_monsters(PlayerType *player_ptr)
 {
-    if (h_older_than(1, 5, 0, 2))
+    if (h_older_than(1, 5, 0, 2)) {
         return;
+    }
 
     auto tmp16s = rd_s16b();
     monster_type dummy_mon;

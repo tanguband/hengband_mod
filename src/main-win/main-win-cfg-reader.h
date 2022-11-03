@@ -2,9 +2,9 @@
 
 #include "system/angband.h"
 #include <cstddef>
-#include <vector>
-#include <unordered_map>
 #include <initializer_list>
+#include <unordered_map>
+#include <vector>
 
 typedef uint cfg_key;
 using cfg_values = std::vector<concptr>;
@@ -59,7 +59,7 @@ public:
     CfgData *read_sections(std::initializer_list<cfg_section> sections);
     concptr get_cfg_path()
     {
-        return cfg_path.c_str();
+        return cfg_path.data();
     }
 
 protected:

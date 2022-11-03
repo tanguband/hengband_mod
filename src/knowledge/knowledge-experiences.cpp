@@ -10,7 +10,6 @@
 #include "game-option/cheat-options.h"
 #include "game-option/text-display-options.h"
 #include "io-dump/dump-util.h"
-#include "object/object-kind.h"
 #include "player-info/class-info.h"
 #include "player/player-skill.h"
 #include "player/player-status.h"
@@ -18,41 +17,48 @@
 #include "spell/spells-execution.h"
 #include "spell/technic-info-table.h"
 #include "sv-definition/sv-bow-types.h"
+#include "system/baseitem-info-definition.h"
 #include "system/player-type-definition.h"
 #include "util/angband-files.h"
 
 /*
  * Display weapon-exp
  */
-void do_cmd_knowledge_weapon_exp(player_type *player_ptr)
+void do_cmd_knowledge_weapon_exp(PlayerType *player_ptr)
 {
     FILE *fff = nullptr;
     GAME_TEXT file_name[FILE_NAME_SIZE];
-    if (!open_temporary_file(&fff, file_name))
+    if (!open_temporary_file(&fff, file_name)) {
         return;
+    }
 
-    for (auto tval : {ItemKindType::SWORD, ItemKindType::POLEARM, ItemKindType::HAFTED, ItemKindType::DIGGING, ItemKindType::BOW}) {
+    for (auto tval : { ItemKindType::SWORD, ItemKindType::POLEARM, ItemKindType::HAFTED, ItemKindType::DIGGING, ItemKindType::BOW }) {
         for (int num = 0; num < 64; num++) {
-            char tmp[30];
-            for (const auto &k_ref : k_info) {
-                if ((k_ref.tval != tval) || (k_ref.sval != num))
+            for (const auto &k_ref : baseitems_info) {
+                if ((k_ref.tval != tval) || (k_ref.sval != num)) {
                     continue;
-                if ((k_ref.tval == ItemKindType::BOW) && (k_ref.sval == SV_CRIMSON || k_ref.sval == SV_HARP))
+                }
+                if ((k_ref.tval == ItemKindType::BOW) && (k_ref.sval == SV_CRIMSON || k_ref.sval == SV_HARP)) {
                     continue;
+                }
 
                 SUB_EXP weapon_exp = player_ptr->weapon_exp[tval][num];
-                SUB_EXP weapon_max = s_info[enum2i(player_ptr->pclass)].w_max[tval][num];
-                strip_name(tmp, k_ref.idx);
-                fprintf(fff, "%-25s ", tmp);
-                if (show_actual_value)
-                    fprintf(fff, "%4d/%4d ", std::min(weapon_exp, weapon_max), weapon_max);
-                if (weapon_exp >= weapon_max)
+                SUB_EXP weapon_max = player_ptr->weapon_exp_max[tval][num];
+                const auto tmp = strip_name(k_ref.idx);
+                fprintf(fff, "%-25s ", tmp.data());
+                if (show_actual_value) {
+                    fprintf(fff, "%4d/%4d ", weapon_exp, weapon_max);
+                }
+                if (weapon_exp >= weapon_max) {
                     fprintf(fff, "!");
-                else
+                } else {
                     fprintf(fff, " ");
-                fprintf(fff, "%s", exp_level_str[PlayerSkill::weapon_exp_level(weapon_exp)]);
-                if (cheat_xtra)
+                }
+                auto skill_rank = PlayerSkill::weapon_skill_rank(weapon_exp);
+                fprintf(fff, "%s", PlayerSkill::skill_rank_str(skill_rank));
+                if (cheat_xtra) {
                     fprintf(fff, " %d", weapon_exp);
+                }
                 fprintf(fff, "\n");
                 break;
             }
@@ -68,12 +74,13 @@ void do_cmd_knowledge_weapon_exp(player_type *player_ptr)
  * @brief 魔法の経験値を表示するコマンドのメインルーチン
  * Display spell-exp
  */
-void do_cmd_knowledge_spell_exp(player_type *player_ptr)
+void do_cmd_knowledge_spell_exp(PlayerType *player_ptr)
 {
     FILE *fff = nullptr;
     GAME_TEXT file_name[FILE_NAME_SIZE];
-    if (!open_temporary_file(&fff, file_name))
+    if (!open_temporary_file(&fff, file_name)) {
         return;
+    }
 
     if (player_ptr->realm1 != REALM_NONE) {
         fprintf(fff, _("%sの魔法書\n", "%s Spellbook\n"), realm_names[player_ptr->realm1]);
@@ -85,27 +92,32 @@ void do_cmd_knowledge_spell_exp(player_type *player_ptr)
                 s_ptr = &mp_ptr->info[player_ptr->realm1 - 1][i];
             }
 
-            if (s_ptr->slevel >= 99)
+            if (s_ptr->slevel >= 99) {
                 continue;
+            }
             SUB_EXP spell_exp = player_ptr->spell_exp[i];
-            int exp_level = spell_exp_level(spell_exp);
-            fprintf(fff, "%-25s ", exe_spell(player_ptr, player_ptr->realm1, i, SPELL_NAME));
+            auto skill_rank = PlayerSkill::spell_skill_rank(spell_exp);
+            fprintf(fff, "%-25s ", exe_spell(player_ptr, player_ptr->realm1, i, SpellProcessType::NAME));
             if (player_ptr->realm1 == REALM_HISSATSU) {
-                if (show_actual_value)
+                if (show_actual_value) {
                     fprintf(fff, "----/---- ");
+                }
                 fprintf(fff, "[--]");
             } else {
-                if (show_actual_value)
-                    fprintf(fff, "%4d/%4d ", std::min<short>(spell_exp, SPELL_EXP_MASTER), SPELL_EXP_MASTER);
-                if (exp_level >= EXP_LEVEL_MASTER)
+                if (show_actual_value) {
+                    fprintf(fff, "%4d/%4d ", spell_exp, PlayerSkill::spell_exp_at(PlayerSkillRank::MASTER));
+                }
+                if (skill_rank >= PlayerSkillRank::MASTER) {
                     fprintf(fff, "!");
-                else
+                } else {
                     fprintf(fff, " ");
-                fprintf(fff, "%s", exp_level_str[exp_level]);
+                }
+                fprintf(fff, "%s", PlayerSkill::skill_rank_str(skill_rank));
             }
 
-            if (cheat_xtra)
+            if (cheat_xtra) {
                 fprintf(fff, " %d", spell_exp);
+            }
             fprintf(fff, "\n");
         }
     }
@@ -120,21 +132,25 @@ void do_cmd_knowledge_spell_exp(player_type *player_ptr)
                 s_ptr = &mp_ptr->info[player_ptr->realm2 - 1][i];
             }
 
-            if (s_ptr->slevel >= 99)
+            if (s_ptr->slevel >= 99) {
                 continue;
+            }
 
             SUB_EXP spell_exp = player_ptr->spell_exp[i + 32];
-            int exp_level = spell_exp_level(spell_exp);
-            fprintf(fff, "%-25s ", exe_spell(player_ptr, player_ptr->realm2, i, SPELL_NAME));
-            if (show_actual_value)
-                fprintf(fff, "%4d/%4d ", std::min<short>(spell_exp, SPELL_EXP_MASTER), SPELL_EXP_MASTER);
-            if (exp_level >= EXP_LEVEL_EXPERT)
+            auto skill_rank = PlayerSkill::spell_skill_rank(spell_exp);
+            fprintf(fff, "%-25s ", exe_spell(player_ptr, player_ptr->realm2, i, SpellProcessType::NAME));
+            if (show_actual_value) {
+                fprintf(fff, "%4d/%4d ", spell_exp, PlayerSkill::spell_exp_at(PlayerSkillRank::MASTER));
+            }
+            if (skill_rank >= PlayerSkillRank::EXPERT) {
                 fprintf(fff, "!");
-            else
+            } else {
                 fprintf(fff, " ");
-            fprintf(fff, "%s", exp_level_str[exp_level]);
-            if (cheat_xtra)
+            }
+            fprintf(fff, "%s", PlayerSkill::skill_rank_str(skill_rank));
+            if (cheat_xtra) {
                 fprintf(fff, " %d", spell_exp);
+            }
             fprintf(fff, "\n");
         }
     }
@@ -148,29 +164,31 @@ void do_cmd_knowledge_spell_exp(player_type *player_ptr)
  * @brief スキル情報を表示するコマンドのメインルーチン /
  * Display skill-exp
  */
-void do_cmd_knowledge_skill_exp(player_type *player_ptr)
+void do_cmd_knowledge_skill_exp(PlayerType *player_ptr)
 {
-    const char *skill_name[SKILL_MAX] = { _("マーシャルアーツ", "Martial Arts    "), _("二刀流          ", "Dual Wielding   "),
-        _("乗馬            ", "Riding          "), _("盾              ", "Shield          ") };
-
     FILE *fff = nullptr;
     char file_name[FILE_NAME_SIZE];
-    if (!open_temporary_file(&fff, file_name))
+    if (!open_temporary_file(&fff, file_name)) {
         return;
+    }
 
-    for (int i = 0; i < SKILL_MAX; i++) {
+    for (auto i : PLAYER_SKILL_KIND_TYPE_RANGE) {
         SUB_EXP skill_exp = player_ptr->skill_exp[i];
-        SUB_EXP skill_max = s_info[enum2i(player_ptr->pclass)].s_max[i];
-        fprintf(fff, "%-20s ", skill_name[i]);
-        if (show_actual_value)
+        SUB_EXP skill_max = class_skills_info[enum2i(player_ptr->pclass)].s_max[i];
+        fprintf(fff, "%-20s ", PlayerSkill::skill_name(i));
+        if (show_actual_value) {
             fprintf(fff, "%4d/%4d ", std::min(skill_exp, skill_max), skill_max);
-        if (skill_exp >= skill_max)
+        }
+        if (skill_exp >= skill_max) {
             fprintf(fff, "!");
-        else
+        } else {
             fprintf(fff, " ");
-        fprintf(fff, "%s", exp_level_str[(i == SKILL_RIDING) ? PlayerSkill::riding_exp_level(skill_exp) : PlayerSkill::weapon_exp_level(skill_exp)]);
-        if (cheat_xtra)
+        }
+        auto skill_rank = (i == PlayerSkillKindType::RIDING) ? PlayerSkill::riding_skill_rank(skill_exp) : PlayerSkill::weapon_skill_rank(skill_exp);
+        fprintf(fff, "%s", PlayerSkill::skill_rank_str(skill_rank));
+        if (cheat_xtra) {
             fprintf(fff, " %d", skill_exp);
+        }
         fprintf(fff, "\n");
     }
 

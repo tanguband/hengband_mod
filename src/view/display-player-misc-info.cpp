@@ -12,7 +12,7 @@
  * @param player_ptr プレイヤーへの参照ポインタ
  * Special display, part 2a
  */
-void display_player_misc_info(player_type *player_ptr)
+void display_player_misc_info(PlayerType *player_ptr)
 {
     put_str(_("名前  :", "Name  :"), 1, 26);
     put_str(_("性別  :", "Sex   :"), 3, 1);
@@ -23,8 +23,9 @@ void display_player_misc_info(player_type *player_ptr)
     char tmp[80];
     strcpy(tmp, ap_ptr->title);
 #ifdef JP
-    if (ap_ptr->no == 1)
+    if (ap_ptr->no == 1) {
         strcat(tmp, "の");
+    }
 #else
     strcat(tmp, " ");
 #endif
@@ -32,7 +33,7 @@ void display_player_misc_info(player_type *player_ptr)
 
     c_put_str(TERM_L_BLUE, tmp, 1, 34);
     c_put_str(TERM_L_BLUE, sp_ptr->title, 3, 9);
-    c_put_str(TERM_L_BLUE, (player_ptr->mimic_form ? mimic_info[player_ptr->mimic_form].title : rp_ptr->title), 4, 9);
+    c_put_str(TERM_L_BLUE, (player_ptr->mimic_form != MimicKindType::NONE ? mimic_info.at(player_ptr->mimic_form).title : rp_ptr->title), 4, 9);
     c_put_str(TERM_L_BLUE, cp_ptr->title, 5, 9);
 
     put_str(_("レベル:", "Level :"), 6, 1);

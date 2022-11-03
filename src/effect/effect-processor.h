@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "effect/attribute-types.h"
 #include "system/angband.h"
 
 //! project() の結果。
@@ -10,8 +11,9 @@ struct ProjectResult {
     ProjectResult() = default;
 };
 
-struct effect_player_type;
-struct player_type;
+class CapturedMonsterType;
+class EffectPlayerType;
+class PlayerType;
 ProjectResult project(
-    player_type *player_ptr, const MONSTER_IDX who, POSITION rad, POSITION y, POSITION x, const HIT_POINT dam, const EFFECT_ID typ,
-    BIT_FLAGS flag);
+    PlayerType *player_ptr, const MONSTER_IDX who, POSITION rad, POSITION y, POSITION x, const int dam, const AttributeType typ,
+    BIT_FLAGS flag, std::optional<CapturedMonsterType *> cap_mon_ptr = std::nullopt);

@@ -2,6 +2,7 @@
 
 #include "system/angband.h"
 
-struct player_type;
-void store_owner_says_comment(player_type *player_ptr);
-void purchase_analyze(player_type *player_ptr, PRICE price, PRICE value, PRICE guess);
+enum class StoreSaleType;
+class PlayerType;
+void store_owner_says_comment(PlayerType *player_ptr, StoreSaleType store_num);
+void purchase_analyze(PlayerType *player_ptr, PRICE price, PRICE value, PRICE guess);

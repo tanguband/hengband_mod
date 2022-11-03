@@ -18,7 +18,6 @@
 #include "core/player-redraw-types.h"
 #include "floor/geometry.h"
 #include "game-option/game-play-options.h"
-#include "grid/feature.h"
 #include "grid/grid.h"
 #include "io/input-key-acceptor.h"
 #include "io/input-key-requester.h"
@@ -35,6 +34,7 @@
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "target/target-getter.h"
 #include "term/screen-processor.h"
 #include "util/bit-flags-calculator.h"
@@ -44,7 +44,7 @@
 /*!
  * @brief 探索コマンドのメインルーチン / Simple command to "search" for one turn
  */
-void do_cmd_search(player_type *player_ptr)
+void do_cmd_search(PlayerType *player_ptr)
 {
     if (command_arg) {
         command_rep = command_arg - 1;
@@ -55,43 +55,50 @@ void do_cmd_search(player_type *player_ptr)
     PlayerEnergy(player_ptr).set_player_turn_energy(100);
     search(player_ptr);
 
-    if (player_ptr->action == ACTION_SEARCH)
+    if (player_ptr->action == ACTION_SEARCH) {
         search(player_ptr);
+    }
 }
 
-static bool exe_alter(player_type *player_ptr)
+static bool exe_alter(PlayerType *player_ptr)
 {
     DIRECTION dir;
-    if (!get_rep_dir(player_ptr, &dir, true))
+    if (!get_rep_dir(player_ptr, &dir, true)) {
         return false;
+    }
 
     POSITION y = player_ptr->y + ddy[dir];
     POSITION x = player_ptr->x + ddx[dir];
     grid_type *g_ptr;
     g_ptr = &player_ptr->current_floor_ptr->grid_array[y][x];
     FEAT_IDX feat = g_ptr->get_feat_mimic();
-    feature_type *f_ptr;
-    f_ptr = &f_info[feat];
+    TerrainType *f_ptr;
+    f_ptr = &terrains_info[feat];
     PlayerEnergy(player_ptr).set_player_turn_energy(100);
     if (g_ptr->m_idx) {
         do_cmd_attack(player_ptr, y, x, HISSATSU_NONE);
         return false;
     }
-    
-    if (f_ptr->flags.has(FF::OPEN))
+
+    if (f_ptr->flags.has(TerrainCharacteristics::OPEN)) {
         return exe_open(player_ptr, y, x);
-    
-    if (f_ptr->flags.has(FF::BASH))
+    }
+
+    if (f_ptr->flags.has(TerrainCharacteristics::BASH)) {
         return exe_bash(player_ptr, y, x, dir);
-    
-    if (f_ptr->flags.has(FF::TUNNEL))
+    }
+
+    if (f_ptr->flags.has(TerrainCharacteristics::TUNNEL)) {
         return exe_tunnel(player_ptr, y, x);
-    
-    if (f_ptr->flags.has(FF::CLOSE))
+    }
+
+    if (f_ptr->flags.has(TerrainCharacteristics::CLOSE)) {
         return exe_close(player_ptr, y, x);
-    
-    if (f_ptr->flags.has(FF::DISARM))
+    }
+
+    if (f_ptr->flags.has(TerrainCharacteristics::DISARM)) {
         return exe_disarm(player_ptr, y, x, dir);
+    }
 
     msg_print(_("何もない空中を攻撃した。", "You attack the empty air."));
     return false;
@@ -101,9 +108,9 @@ static bool exe_alter(player_type *player_ptr)
  * @brief 特定のマスに影響を及ぼすための汎用的コマンド / Manipulate an adjacent grid in some way
  * @details
  */
-void do_cmd_alter(player_type *player_ptr)
+void do_cmd_alter(PlayerType *player_ptr)
 {
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU });
 
     if (command_arg) {
         command_rep = command_arg - 1;
@@ -111,8 +118,9 @@ void do_cmd_alter(player_type *player_ptr)
         command_arg = 0;
     }
 
-    if (!exe_alter(player_ptr))
+    if (!exe_alter(player_ptr)) {
         disturb(player_ptr, false, false);
+    }
 }
 
 /*!
@@ -122,8 +130,9 @@ void do_cmd_alter(player_type *player_ptr)
  */
 static bool decide_suicide(void)
 {
-    if (w_ptr->noscore)
+    if (w_ptr->noscore) {
         return true;
+    }
 
     prt(_("確認のため '@' を押して下さい。", "Please verify SUICIDE by typing the '@' sign: "), 0, 0);
     flush();
@@ -132,16 +141,18 @@ static bool decide_suicide(void)
     return i == '@';
 }
 
-static void accept_winner_message(player_type *player_ptr)
+static void accept_winner_message(PlayerType *player_ptr)
 {
-    if (!w_ptr->total_winner || !last_words)
+    if (!w_ptr->total_winner || !last_words) {
         return;
+    }
 
     char buf[1024] = "";
     play_music(TERM_XTRA_MUSIC_BASIC, MUSIC_BASIC_WINNER);
     do {
-        while (!get_string(_("*勝利*メッセージ: ", "*Winning* message: "), buf, sizeof(buf)))
+        while (!get_string(_("*勝利*メッセージ: ", "*Winning* message: "), buf, sizeof(buf))) {
             ;
+        }
     } while (!get_check_strict(player_ptr, _("よろしいですか？", "Are you sure? "), CHECK_NO_HISTORY));
 
     if (buf[0]) {
@@ -155,22 +166,26 @@ static void accept_winner_message(player_type *player_ptr)
  * commit suicide
  * @details
  */
-void do_cmd_suicide(player_type *player_ptr)
+void do_cmd_suicide(PlayerType *player_ptr)
 {
     flush();
     if (w_ptr->total_winner) {
-        if (!get_check_strict(player_ptr, _("引退しますか? ", "Do you want to retire? "), CHECK_NO_HISTORY))
+        if (!get_check_strict(player_ptr, _("引退しますか? ", "Do you want to retire? "), CHECK_NO_HISTORY)) {
             return;
+        }
     } else {
-        if (!get_check(_("本当に自殺しますか？", "Do you really want to commit suicide? ")))
+        if (!get_check(_("本当に自殺しますか？", "Do you really want to commit suicide? "))) {
             return;
+        }
     }
 
-    if (!decide_suicide())
+    if (!decide_suicide()) {
         return;
+    }
 
-    if (player_ptr->last_message)
+    if (player_ptr->last_message) {
         string_free(player_ptr->last_message);
+    }
 
     player_ptr->last_message = nullptr;
     player_ptr->playing = false;
@@ -186,5 +201,5 @@ void do_cmd_suicide(player_type *player_ptr)
         exe_write_diary(player_ptr, DIARY_DESCRIPTION, 1, "\n\n\n\n");
     }
 
-    (void)strcpy(player_ptr->died_from, _("途中終了", "Quitting"));
+    player_ptr->died_from = _("途中終了", "Quitting");
 }

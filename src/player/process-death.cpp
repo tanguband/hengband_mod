@@ -6,7 +6,7 @@
  * core、files、view-mainwindowの参照禁止。コールバックで対応すること
  */
 
-#include "process-death.h"
+#include "player/process-death.h"
 #include "core/asking-player.h"
 #include "core/player-update-types.h"
 #include "core/stuff-handler.h"
@@ -14,6 +14,7 @@
 #include "floor/floor-town.h"
 #include "game-option/game-play-options.h"
 #include "inventory/inventory-slot-types.h"
+#include "io/files-util.h"
 #include "io/input-key-acceptor.h"
 #include "object/item-tester-hooker.h"
 #include "object/item-use-flags.h"
@@ -31,6 +32,7 @@
 #include "util/string-processor.h"
 #include "view/display-inventory.h"
 #include "view/display-messages.h"
+#include "view/display-player.h"
 #include "world/world.h"
 
 #define GRAVE_LINE_WIDTH 31
@@ -52,7 +54,7 @@ static void center_string(char *buf, concptr str)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param buf 墓テンプレ
  */
-static void show_basic_params(player_type *player_ptr, char *buf)
+static void show_basic_params(PlayerType *player_ptr, char *buf)
 {
     char tomb_message[160];
     (void)sprintf(tomb_message, _("レベル: %d", "Level: %d"), (int)player_ptr->lev);
@@ -76,20 +78,22 @@ static void show_basic_params(player_type *player_ptr, char *buf)
  * @param tomb_message 墓碑に刻む言葉
  * @return 追加の行数
  */
-static int show_killing_monster(player_type *player_ptr, char *buf, char *tomb_message, size_t tomb_message_size)
+static int show_killing_monster(PlayerType *player_ptr, char *buf, char *tomb_message, size_t tomb_message_size)
 {
-    shape_buffer(player_ptr->died_from, GRAVE_LINE_WIDTH + 1, tomb_message, tomb_message_size);
+    shape_buffer(player_ptr->died_from.data(), GRAVE_LINE_WIDTH + 1, tomb_message, tomb_message_size);
     char *t;
     t = tomb_message + strlen(tomb_message) + 1;
-    if (!*t)
+    if (!*t) {
         return 0;
+    }
 
     char killer[MAX_MONSTER_NAME];
     strcpy(killer, t); /* 2nd line */
     if (*(t + strlen(t) + 1)) /* Does 3rd line exist? */
     {
-        for (t = killer + strlen(killer) - 2; iskanji(*(t - 1)); t--) /* Loop */
+        for (t = killer + strlen(killer) - 2; iskanji(*(t - 1)); t--) { /* Loop */
             ;
+        }
         strcpy(t, "…");
     } else if (angband_strstr(tomb_message, "『") && suffix(killer, "』")) {
         char killer2[MAX_MONSTER_NAME];
@@ -121,10 +125,11 @@ static int show_killing_monster(player_type *player_ptr, char *buf, char *tomb_m
  * @param tomb_message 表示する文字列
  * @param extra_line 追加の行数
  */
-static void show_dead_place(player_type *player_ptr, char *buf, char *tomb_message, int extra_line)
+static void show_dead_place(PlayerType *player_ptr, char *buf, char *tomb_message, int extra_line)
 {
-    if (streq(player_ptr->died_from, "ripe") || streq(player_ptr->died_from, "Seppuku"))
+    if (streq(player_ptr->died_from, "ripe") || streq(player_ptr->died_from, "Seppuku")) {
         return;
+    }
 
     if (player_ptr->current_floor_ptr->dun_level == 0) {
         concptr field_name = player_ptr->town_num ? "街" : "荒野";
@@ -150,7 +155,7 @@ static void show_dead_place(player_type *player_ptr, char *buf, char *tomb_messa
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param buf 墓テンプレ
  */
-static void show_tomb_detail(player_type *player_ptr, char *buf)
+static void show_tomb_detail(PlayerType *player_ptr, char *buf)
 {
     char tomb_message[160];
     int extra_line = 0;
@@ -177,20 +182,21 @@ static void show_tomb_detail(player_type *player_ptr, char *buf)
  * @param buf template of the tomb
  * @return nothing
  */
-static void show_tomb_detail(player_type *player_ptr, char *buf)
+static void show_tomb_detail(PlayerType *player_ptr, char *buf)
 {
     char tomb_message[160];
     (void)sprintf(tomb_message, "Killed on Level %d", player_ptr->current_floor_ptr->dun_level);
     center_string(buf, tomb_message);
     put_str(buf, 14, 11);
 
-    shape_buffer(format("by %s.", player_ptr->died_from), GRAVE_LINE_WIDTH + 1, tomb_message, sizeof(tomb_message));
+    shape_buffer(format("by %s.", player_ptr->died_from.data()), GRAVE_LINE_WIDTH + 1, tomb_message, sizeof(tomb_message));
     center_string(buf, tomb_message);
     char *t;
     put_str(buf, 15, 11);
     t = tomb_message + strlen(tomb_message) + 1;
-    if (!*t)
+    if (!*t) {
         return;
+    }
 
     char killer[MAX_MONSTER_NAME];
     strcpy(killer, t); /* 2nd line */
@@ -210,13 +216,12 @@ static void show_tomb_detail(player_type *player_ptr, char *buf)
  * Display a "tomb-stone"
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void print_tomb(player_type *player_ptr)
+void print_tomb(PlayerType *player_ptr)
 {
     term_clear();
     char buf[1024];
     read_dead_file(buf, sizeof(buf));
-    concptr p = (w_ptr->total_winner || (player_ptr->lev > PY_MAX_LEVEL)) ? _("偉大なる者", "Magnificent")
-                                                                          : player_titles[enum2i(player_ptr->pclass)][(player_ptr->lev - 1) / 5].data();
+    concptr p = w_ptr->total_winner ? _("偉大なる者", "Magnificent") : player_titles[enum2i(player_ptr->pclass)][(player_ptr->lev - 1) / 5].data();
 
     center_string(buf, player_ptr->name);
     put_str(buf, 6, 11);
@@ -248,13 +253,14 @@ void print_tomb(player_type *player_ptr)
  * @brief 死亡/引退/切腹時にインベントリ内のアイテムを*鑑定*する
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-static void inventory_aware(player_type *player_ptr)
+static void inventory_aware(PlayerType *player_ptr)
 {
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     for (int i = 0; i < INVEN_TOTAL; i++) {
         o_ptr = &player_ptr->inventory_list[i];
-        if (!o_ptr->k_idx)
+        if (!o_ptr->k_idx) {
             continue;
+        }
 
         object_aware(player_ptr, o_ptr);
         object_known(o_ptr);
@@ -265,16 +271,17 @@ static void inventory_aware(player_type *player_ptr)
  * @brief 死亡/引退/切腹時に我が家のアイテムを*鑑定*する
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-static void home_aware(player_type *player_ptr)
+static void home_aware(PlayerType *player_ptr)
 {
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     store_type *store_ptr;
     for (int i = 1; i < max_towns; i++) {
         store_ptr = &town_info[i].store[enum2i(StoreSaleType::HOME)];
         for (int j = 0; j < store_ptr->stock_num; j++) {
             o_ptr = &store_ptr->stock[j];
-            if (!o_ptr->k_idx)
+            if (!o_ptr->k_idx) {
                 continue;
+            }
 
             object_aware(player_ptr, o_ptr);
             object_known(o_ptr);
@@ -287,14 +294,15 @@ static void home_aware(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return Escキーでゲームを終了する時TRUE
  */
-static bool show_dead_player_items(player_type *player_ptr)
+static bool show_dead_player_items(PlayerType *player_ptr)
 {
     if (player_ptr->equip_cnt) {
         term_clear();
         (void)show_equipment(player_ptr, 0, USE_FULL, AllMatchItemTester());
         prt(_("装備していたアイテム: -続く-", "You are using: -more-"), 0, 0);
-        if (inkey() == ESCAPE)
+        if (inkey() == ESCAPE) {
             return true;
+        }
     }
 
     if (player_ptr->inven_cnt) {
@@ -302,8 +310,9 @@ static bool show_dead_player_items(player_type *player_ptr)
         (void)show_inventory(player_ptr, 0, USE_FULL, AllMatchItemTester());
         prt(_("持っていたアイテム: -続く-", "You are carrying: -more-"), 0, 0);
 
-        if (inkey() == ESCAPE)
+        if (inkey() == ESCAPE) {
             return true;
+        }
     }
 
     return false;
@@ -313,20 +322,21 @@ static bool show_dead_player_items(player_type *player_ptr)
  * @brief 我が家にあったアイテムを表示する
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-static void show_dead_home_items(player_type *player_ptr)
+static void show_dead_home_items(PlayerType *player_ptr)
 {
     for (int l = 1; l < max_towns; l++) {
         store_type *store_ptr;
         store_ptr = &town_info[l].store[enum2i(StoreSaleType::HOME)];
-        if (store_ptr->stock_num == 0)
+        if (store_ptr->stock_num == 0) {
             continue;
+        }
 
         for (int i = 0, k = 0; i < store_ptr->stock_num; k++) {
             term_clear();
             for (int j = 0; (j < 12) && (i < store_ptr->stock_num); j++, i++) {
                 GAME_TEXT o_name[MAX_NLEN];
                 char tmp_val[80];
-                object_type *o_ptr;
+                ObjectType *o_ptr;
                 o_ptr = &store_ptr->stock[i];
                 sprintf(tmp_val, "%c) ", I2A(j));
                 prt(tmp_val, j + 2, 4);
@@ -335,8 +345,9 @@ static void show_dead_home_items(player_type *player_ptr)
             }
 
             prt(format(_("我が家に置いてあったアイテム ( %d ページ): -続く-", "Your home contains (page %d): -more-"), k + 1), 0, 0);
-            if (inkey() == ESCAPE)
+            if (inkey() == ESCAPE) {
                 return;
+            }
         }
     }
 }
@@ -346,7 +357,7 @@ static void show_dead_home_items(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param file_character ステータスダンプへのコールバック
  */
-static void export_player_info(player_type *player_ptr, display_player_pf display_player)
+static void export_player_info(PlayerType *player_ptr)
 {
     prt(_("キャラクターの記録をファイルに書き出すことができます。", "You may now dump a character record to one or more files."), 21, 0);
     prt(_("リターンキーでキャラクターを見ます。ESCで中断します。", "Then, hit RETURN to see the character, or ESC to abort."), 22, 0);
@@ -354,13 +365,15 @@ static void export_player_info(player_type *player_ptr, display_player_pf displa
         char out_val[160];
         put_str(_("ファイルネーム: ", "Filename: "), 23, 0);
         strcpy(out_val, "");
-        if (!askfor(out_val, 60))
+        if (!askfor(out_val, 60)) {
             return;
-        if (!out_val[0])
+        }
+        if (!out_val[0]) {
             break;
+        }
 
         screen_save();
-        (void)file_character(player_ptr, out_val, display_player);
+        (void)file_character(player_ptr, out_val);
         screen_load();
     }
 }
@@ -368,7 +381,7 @@ static void export_player_info(player_type *player_ptr, display_player_pf displa
 /*!
  * @brief 自動的にプレイヤーステータスをファイルダンプ出力する
  */
-static void file_character_auto(player_type *player_ptr, display_player_pf display_player)
+static void file_character_auto(PlayerType *player_ptr)
 {
     time_t now_t = time(nullptr);
     struct tm *now_tm = localtime(&now_t);
@@ -380,7 +393,7 @@ static void file_character_auto(player_type *player_ptr, display_player_pf displ
     strnfmt(filename, sizeof(filename), "%s_Autodump_%s.txt", p_ptr->name, datetime);
 
     screen_save();
-    (void)file_character(player_ptr, filename, display_player);
+    (void)file_character(player_ptr, filename);
     screen_load();
 }
 
@@ -389,7 +402,7 @@ static void file_character_auto(player_type *player_ptr, display_player_pf displ
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param display_player ステータス表示へのコールバック
  */
-void show_death_info(player_type *player_ptr, display_player_pf display_player)
+void show_death_info(PlayerType *player_ptr)
 {
     inventory_aware(player_ptr);
     home_aware(player_ptr);
@@ -399,16 +412,19 @@ void show_death_info(player_type *player_ptr, display_player_pf display_player)
     flush();
     msg_erase();
 
-    if (auto_dump)
-        file_character_auto(player_ptr, display_player);
+    if (auto_dump) {
+        file_character_auto(player_ptr);
+    }
 
-    export_player_info(player_ptr, display_player);
-    (*display_player)(player_ptr, 0);
+    export_player_info(player_ptr);
+    (void)display_player(player_ptr, 0);
     prt(_("何かキーを押すとさらに情報が続きます (ESCで中断): ", "Hit any key to see more information (ESC to abort): "), 23, 0);
-    if (inkey() == ESCAPE)
+    if (inkey() == ESCAPE) {
         return;
-    if (show_dead_player_items(player_ptr))
+    }
+    if (show_dead_player_items(player_ptr)) {
         return;
+    }
 
     show_dead_home_items(player_ptr);
 }

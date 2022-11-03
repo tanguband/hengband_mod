@@ -24,7 +24,10 @@
  * @param i プレイヤーの所持/装備オブジェクトID
  * @return 指輪枠ならばTRUEを返す。
  */
-bool is_ring_slot(int i) { return (i == INVEN_MAIN_RING) || (i == INVEN_SUB_RING); }
+bool is_ring_slot(int i)
+{
+    return (i == INVEN_MAIN_RING) || (i == INVEN_SUB_RING);
+}
 
 /*!
  * @brief 床オブジェクトに選択タグを与える/タグに該当するオブジェクトがあるかを返す /
@@ -42,12 +45,13 @@ bool is_ring_slot(int i) { return (i == INVEN_MAIN_RING) || (i == INVEN_SUB_RING
  * Also, the tag "@xn" will work as well, where "n" is a any tag-char,\n
  * and "x" is the "current" command_cmd code.\n
  */
-bool get_tag_floor(floor_type *floor_ptr, COMMAND_CODE *cp, char tag, FLOOR_IDX floor_list[], ITEM_NUMBER floor_num)
+bool get_tag_floor(FloorType *floor_ptr, COMMAND_CODE *cp, char tag, FLOOR_IDX floor_list[], ITEM_NUMBER floor_num)
 {
     for (COMMAND_CODE i = 0; i < floor_num && i < 23; i++) {
-        object_type *o_ptr = &floor_ptr->o_list[floor_list[i]];
-        if (!o_ptr->inscription)
+        auto *o_ptr = &floor_ptr->o_list[floor_list[i]];
+        if (!o_ptr->inscription) {
             continue;
+        }
 
         concptr s = angband_strchr(quark_str(o_ptr->inscription), '@');
         while (s) {
@@ -65,9 +69,10 @@ bool get_tag_floor(floor_type *floor_ptr, COMMAND_CODE *cp, char tag, FLOOR_IDX 
     }
 
     for (COMMAND_CODE i = 0; i < floor_num && i < 23; i++) {
-        object_type *o_ptr = &floor_ptr->o_list[floor_list[i]];
-        if (!o_ptr->inscription)
+        auto *o_ptr = &floor_ptr->o_list[floor_list[i]];
+        if (!o_ptr->inscription) {
             continue;
+        }
 
         concptr s = angband_strchr(quark_str(o_ptr->inscription), '@');
         while (s) {
@@ -99,7 +104,7 @@ bool get_tag_floor(floor_type *floor_ptr, COMMAND_CODE *cp, char tag, FLOOR_IDX 
  * Also, the tag "@xn" will work as well, where "n" is a any tag-char,\n
  * and "x" is the "current" command_cmd code.\n
  */
-bool get_tag(player_type *player_ptr, COMMAND_CODE *cp, char tag, BIT_FLAGS mode, const ItemTester& item_tester)
+bool get_tag(PlayerType *player_ptr, COMMAND_CODE *cp, char tag, BIT_FLAGS mode, const ItemTester &item_tester)
 {
     COMMAND_CODE start, end;
     switch (mode) {
@@ -118,12 +123,14 @@ bool get_tag(player_type *player_ptr, COMMAND_CODE *cp, char tag, BIT_FLAGS mode
     }
 
     for (COMMAND_CODE i = start; i <= end; i++) {
-        object_type *o_ptr = &player_ptr->inventory_list[i];
-        if ((o_ptr->k_idx == 0) || (o_ptr->inscription == 0))
+        auto *o_ptr = &player_ptr->inventory_list[i];
+        if ((o_ptr->k_idx == 0) || (o_ptr->inscription == 0)) {
             continue;
+        }
 
-        if (!item_tester.okay(o_ptr) && !(mode & USE_FULL))
+        if (!item_tester.okay(o_ptr) && !(mode & USE_FULL)) {
             continue;
+        }
 
         concptr s = angband_strchr(quark_str(o_ptr->inscription), '@');
         while (s) {
@@ -136,16 +143,19 @@ bool get_tag(player_type *player_ptr, COMMAND_CODE *cp, char tag, BIT_FLAGS mode
         }
     }
 
-    if (tag < '0' || '9' < tag)
+    if (tag < '0' || '9' < tag) {
         return false;
+    }
 
     for (COMMAND_CODE i = start; i <= end; i++) {
-        object_type *o_ptr = &player_ptr->inventory_list[i];
-        if ((o_ptr->k_idx == 0) || (o_ptr->inscription == 0))
+        auto *o_ptr = &player_ptr->inventory_list[i];
+        if ((o_ptr->k_idx == 0) || (o_ptr->inscription == 0)) {
             continue;
+        }
 
-        if (!item_tester.okay(o_ptr) && !(mode & USE_FULL))
+        if (!item_tester.okay(o_ptr) && !(mode & USE_FULL)) {
             continue;
+        }
 
         concptr s = angband_strchr(quark_str(o_ptr->inscription), '@');
         while (s) {
@@ -167,13 +177,15 @@ bool get_tag(player_type *player_ptr, COMMAND_CODE *cp, char tag, BIT_FLAGS mode
  * @param i 選択アイテムID
  * @return 正規のIDならばTRUEを返す。
  */
-bool get_item_okay(player_type *player_ptr, OBJECT_IDX i, const ItemTester& item_tester)
+bool get_item_okay(PlayerType *player_ptr, OBJECT_IDX i, const ItemTester &item_tester)
 {
-    if ((i < 0) || (i >= INVEN_TOTAL))
+    if ((i < 0) || (i >= INVEN_TOTAL)) {
         return false;
+    }
 
-    if (player_ptr->select_ring_slot)
+    if (player_ptr->select_ring_slot) {
         return is_ring_slot(i);
+    }
 
     return item_tester.okay(&player_ptr->inventory_list[i]);
 }
@@ -186,25 +198,30 @@ bool get_item_okay(player_type *player_ptr, OBJECT_IDX i, const ItemTester& item
  * @details The item can be negative to mean "item on floor".
  * Hack -- allow user to "prevent" certain choices
  */
-bool get_item_allow(player_type *player_ptr, INVENTORY_IDX item)
+bool get_item_allow(PlayerType *player_ptr, INVENTORY_IDX item)
 {
-    if (!command_cmd)
+    if (!command_cmd) {
         return true;
+    }
 
-    object_type *o_ptr;
-    if (item >= 0)
+    ObjectType *o_ptr;
+    if (item >= 0) {
         o_ptr = &player_ptr->inventory_list[item];
-    else
+    } else {
         o_ptr = &player_ptr->current_floor_ptr->o_list[0 - item];
+    }
 
-    if (!o_ptr->inscription)
+    if (!o_ptr->inscription) {
         return true;
+    }
 
     concptr s = angband_strchr(quark_str(o_ptr->inscription), '!');
     while (s) {
-        if ((s[1] == command_cmd) || (s[1] == '*'))
-            if (!verify(player_ptr, _("本当に", "Really try"), item))
+        if ((s[1] == command_cmd) || (s[1] == '*')) {
+            if (!verify(player_ptr, _("本当に", "Really try"), item)) {
                 return false;
+            }
+        }
 
         s = angband_strchr(s + 1, '!');
     }
@@ -218,18 +235,21 @@ bool get_item_allow(player_type *player_ptr, INVENTORY_IDX item)
  * Convert a label into the index of a item in the "equip"
  * @return 対応するID。該当スロットにオブジェクトが存在しなかった場合-1を返す / Return "-1" if the label does not indicate a real item
  */
-INVENTORY_IDX label_to_equipment(player_type *player_ptr, int c)
+INVENTORY_IDX label_to_equipment(PlayerType *player_ptr, int c)
 {
     INVENTORY_IDX i = (INVENTORY_IDX)(islower(c) ? A2I(c) : -1) + INVEN_MAIN_HAND;
 
-    if ((i < INVEN_MAIN_HAND) || (i >= INVEN_TOTAL))
+    if ((i < INVEN_MAIN_HAND) || (i >= INVEN_TOTAL)) {
         return -1;
+    }
 
-    if (player_ptr->select_ring_slot)
+    if (player_ptr->select_ring_slot) {
         return is_ring_slot(i) ? i : -1;
+    }
 
-    if (!player_ptr->inventory_list[i].k_idx)
+    if (!player_ptr->inventory_list[i].k_idx) {
         return -1;
+    }
 
     return i;
 }
@@ -242,12 +262,13 @@ INVENTORY_IDX label_to_equipment(player_type *player_ptr, int c)
  * @return 対応するID。該当スロットにオブジェクトが存在しなかった場合-1を返す / Return "-1" if the label does not indicate a real item
  * @details Note that the label does NOT distinguish inven/equip.
  */
-INVENTORY_IDX label_to_inventory(player_type *player_ptr, int c)
+INVENTORY_IDX label_to_inventory(PlayerType *player_ptr, int c)
 {
     INVENTORY_IDX i = (INVENTORY_IDX)(islower(c) ? A2I(c) : -1);
 
-    if ((i < 0) || (i > INVEN_PACK) || (player_ptr->inventory_list[i].k_idx == 0))
+    if ((i < 0) || (i > INVEN_PACK) || (player_ptr->inventory_list[i].k_idx == 0)) {
         return -1;
+    }
 
     return i;
 }
@@ -261,15 +282,16 @@ INVENTORY_IDX label_to_inventory(player_type *player_ptr, int c)
  * @return 確認がYesならTRUEを返す。
  * @details The item can be negative to mean "item on floor".
  */
-bool verify(player_type *player_ptr, concptr prompt, INVENTORY_IDX item)
+bool verify(PlayerType *player_ptr, concptr prompt, INVENTORY_IDX item)
 {
     GAME_TEXT o_name[MAX_NLEN];
     char out_val[MAX_NLEN + 20];
-    object_type *o_ptr;
-    if (item >= 0)
+    ObjectType *o_ptr;
+    if (item >= 0) {
         o_ptr = &player_ptr->inventory_list[item];
-    else
+    } else {
         o_ptr = &player_ptr->current_floor_ptr->o_list[0 - item];
+    }
 
     describe_flavor(player_ptr, o_name, o_ptr, 0);
     (void)sprintf(out_val, _("%s%sですか? ", "%s %s? "), prompt, o_name);
@@ -283,19 +305,21 @@ bool verify(player_type *player_ptr, concptr prompt, INVENTORY_IDX item)
  * @param label ラベルリストを取得する文字列参照ポインタ
  * @param mode 所持品リストか装備品リストかの切り替え
  */
-void prepare_label_string(player_type *player_ptr, char *label, BIT_FLAGS mode, const ItemTester& item_tester)
+void prepare_label_string(PlayerType *player_ptr, char *label, BIT_FLAGS mode, const ItemTester &item_tester)
 {
     concptr alphabet_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     int offset = (mode == USE_EQUIP) ? INVEN_MAIN_HAND : 0;
     strcpy(label, alphabet_chars);
     for (int i = 0; i < 52; i++) {
         COMMAND_CODE index;
-        SYMBOL_CODE c = alphabet_chars[i];
-        if (!get_tag(player_ptr, &index, c, mode, item_tester))
+        auto c = alphabet_chars[i];
+        if (!get_tag(player_ptr, &index, c, mode, item_tester)) {
             continue;
+        }
 
-        if (label[i] == c)
+        if (label[i] == c) {
             label[i] = ' ';
+        }
 
         label[index - offset] = c;
     }

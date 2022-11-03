@@ -1,11 +1,13 @@
 ﻿#pragma once
 
+#include "effect/attribute-types.h"
 #include "system/angband.h"
 
-struct grid_type;;
+struct grid_type;
+;
 struct monster_type;
 struct monster_race;
-typedef struct effect_monster_type {
+struct effect_monster_type {
     grid_type *g_ptr;
     monster_type *m_ptr;
     monster_type *m_caster_ptr;
@@ -37,12 +39,12 @@ typedef struct effect_monster_type {
     POSITION r;
     POSITION y;
     POSITION x;
-    HIT_POINT dam;
-    EFFECT_ID effect_type;
+    int dam;
+    AttributeType attribute;
     BIT_FLAGS flag;
     bool see_s_msg;
-} effect_monster_type;
+};
 
-struct player_type;
-effect_monster_type *initialize_effect_monster(player_type *player_ptr, effect_monster_type *em_ptr, MONSTER_IDX who, POSITION r, POSITION y, POSITION x,
-    HIT_POINT dam, EFFECT_ID effect_type, BIT_FLAGS flag, bool see_s_msg);
+class PlayerType;
+effect_monster_type *initialize_effect_monster(PlayerType *player_ptr, effect_monster_type *em_ptr, MONSTER_IDX who, POSITION r, POSITION y, POSITION x,
+    int dam, AttributeType attribute, BIT_FLAGS flag, bool see_s_msg);

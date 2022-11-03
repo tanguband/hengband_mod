@@ -164,7 +164,6 @@ hengband_SOURCES = \
 	core/visuals-reseter.cpp core/visuals-reseter.h \
 	core/window-redrawer.cpp core/window-redrawer.h \
 	\
-	dungeon/dungeon.cpp dungeon/dungeon.h \
 	dungeon/dungeon-flag-mask.h \
 	dungeon/dungeon-flag-types.h \
 	dungeon/dungeon-processor.cpp dungeon/dungeon-processor.h \
@@ -172,6 +171,7 @@ hengband_SOURCES = \
 	dungeon/quest-completion-checker.cpp dungeon/quest-completion-checker.h \
 	dungeon/quest-monster-placer.cpp dungeon/quest-monster-placer.h \
 	\
+	effect/attribute-types.h \
 	effect/effect-feature.cpp effect/effect-feature.h \
 	effect/effect-item.cpp effect/effect-item.h \
 	effect/spells-effect-util.cpp effect/spells-effect-util.h \
@@ -187,7 +187,6 @@ hengband_SOURCES = \
 	effect/effect-monster-evil.cpp effect/effect-monster-evil.h \
 	effect/effect-monster-spirit.cpp effect/effect-monster-spirit.h \
 	effect/effect-monster-switcher.cpp effect/effect-monster-switcher.h \
-	effect/effect-player-util.h \
 	effect/effect-player-resist-hurt.cpp effect/effect-player-resist-hurt.h \
 	effect/effect-player-oldies.cpp effect/effect-player-oldies.h \
 	effect/effect-player-curse.cpp effect/effect-player-curse.h \
@@ -227,7 +226,6 @@ hengband_SOURCES = \
 	floor/object-allocator.cpp floor/object-allocator.h \
 	floor/object-scanner.cpp floor/object-scanner.h \
 	floor/pattern-walk.cpp floor/pattern-walk.h \
-	floor/sight-definitions.h \
 	floor/tunnel-generator.cpp floor/tunnel-generator.h \
 	floor/wild.h floor/wild.cpp \
 	\
@@ -262,6 +260,8 @@ hengband_SOURCES = \
 	hpmp/hp-mp-regenerator.cpp hpmp/hp-mp-regenerator.h \
 	\
 	info-reader/artifact-reader.cpp info-reader/artifact-reader.h \
+	info-reader/baseitem-reader.cpp info-reader/baseitem-reader.h \
+	info-reader/baseitem-tokens-table.cpp info-reader/baseitem-tokens-table.h \
 	info-reader/dungeon-info-tokens-table.cpp info-reader/dungeon-info-tokens-table.h \
 	info-reader/dungeon-reader.cpp info-reader/dungeon-reader.h \
 	info-reader/ego-reader.cpp info-reader/ego-reader.h \
@@ -270,8 +270,6 @@ hengband_SOURCES = \
 	info-reader/fixed-map-parser.cpp info-reader/fixed-map-parser.h \
 	info-reader/general-parser.cpp info-reader/general-parser.h \
 	info-reader/info-reader-util.cpp info-reader/info-reader-util.h \
-	info-reader/kind-info-tokens-table.cpp info-reader/kind-info-tokens-table.h \
-	info-reader/kind-reader.cpp info-reader/kind-reader.h \
 	info-reader/magic-reader.cpp info-reader/magic-reader.h \
 	info-reader/parse-error-types.h \
 	info-reader/race-info-tokens-table.cpp info-reader/race-info-tokens-table.h \
@@ -365,12 +363,12 @@ hengband_SOURCES = \
 	load/monster/monster-loader-factory.cpp load/monster/monster-loader-factory.h \
 	load/monster/monster-loader-version-types.h \
 	\
-	load/old/item-flag-types-savefile10.h \
-	load/old/item-loader-savefile10.cpp load/old/item-loader-savefile10.h \
+	load/old/item-flag-types-savefile50.h \
+	load/old/item-loader-savefile50.cpp load/old/item-loader-savefile50.h \
 	load/old/load-v1-5-0.cpp load/old/load-v1-5-0.h \
 	load/old/load-v1-7-0.cpp load/old/load-v1-7-0.h \
-	load/old/monster-flag-types-savefile10.h \
-	load/old/monster-loader-savefile10.cpp load/old/monster-loader-savefile10.h \
+	load/old/monster-flag-types-savefile50.h \
+	load/old/monster-loader-savefile50.cpp load/old/monster-loader-savefile50.h \
 	\
 	locale/english.cpp locale/english.h \
 	locale/japanese.cpp locale/japanese.h \
@@ -407,6 +405,7 @@ hengband_SOURCES = \
 	market/poker.cpp market/poker.h \
 	market/arena.cpp market/arena.h \
 	market/bounty-prize-table.cpp market/bounty-prize-table.h \
+	market/bounty-type-definition.h \
 	market/bounty.cpp market/bounty.h \
 	market/building-recharger.cpp market/building-recharger.h \
 	market/building-quest.cpp market/building-quest.h \
@@ -482,8 +481,7 @@ hengband_SOURCES = \
 	monster-attack/monster-attack-processor.cpp monster-attack/monster-attack-processor.h \
 	monster-attack/monster-attack-status.cpp monster-attack/monster-attack-status.h \
 	monster-attack/monster-attack-switcher.cpp monster-attack/monster-attack-switcher.h \
-	monster-attack/monster-attack-types.cpp monster-attack/monster-attack-types.h \
-	monster-attack/monster-attack-util.cpp monster-attack/monster-attack-util.h \
+	monster-attack/monster-attack-table.cpp monster-attack/monster-attack-table.h \
 	monster-attack/monster-eating.cpp monster-attack/monster-eating.h \
 	\
 	monster-floor/monster-death.cpp monster-floor/monster-death.h \
@@ -506,16 +504,26 @@ hengband_SOURCES = \
 	monster-floor/special-death-switcher.cpp monster-floor/special-death-switcher.h \
 	\
 	monster-race/monster-aura-types.h \
+	monster-race/monster-kind-mask.cpp monster-race/monster-kind-mask.h \
 	monster-race/monster-race.cpp monster-race/monster-race.h \
 	monster-race/monster-race-hook.cpp monster-race/monster-race-hook.h \
 	monster-race/race-ability-flags.h \
 	monster-race/race-ability-mask.cpp monster-race/race-ability-mask.h \
+	monster-race/race-behavior-flags.h \
+	monster-race/race-drop-flags.h \
+	monster-race/race-feature-flags.h \
+	monster-race/race-feature-mask.cpp monster-race/race-feature-mask.h \
 	monster-race/race-flags-resistance.h \
 	monster-race/race-flags1.h monster-race/race-flags2.h \
 	monster-race/race-flags3.h \
 	monster-race/race-flags7.h monster-race/race-flags8.h \
-	monster-race/race-flags9.h \
 	monster-race/race-indice-types.h \
+	monster-race/race-kind-flags.h \
+	monster-race/race-population-flags.h \
+	monster-race/race-resistance-mask.cpp monster-race/race-resistance-mask.h \
+	monster-race/race-speak-flags.h \
+	monster-race/race-visual-flags.h \
+	monster-race/race-wilderness-flags.h \
 	\
 	mspell/assign-monster-spell.cpp mspell/assign-monster-spell.h \
 	mspell/element-resistance-checker.cpp mspell/element-resistance-checker.h \
@@ -524,27 +532,30 @@ hengband_SOURCES = \
 	mspell/monster-power-table.cpp mspell/monster-power-table.h \
 	mspell/mspell-attack.cpp mspell/mspell-attack.h \
 	mspell/mspell-attack-util.cpp mspell/mspell-attack-util.h \
-	mspell/mspell-breath.cpp mspell/mspell-breath.h \
-	mspell/mspell-ball.cpp mspell/mspell-ball.h \
-	mspell/mspell-bolt.cpp mspell/mspell-bolt.h \
 	mspell/mspell-checker.cpp mspell/mspell-checker.h \
-	mspell/mspell-curse.cpp mspell/mspell-curse.h \
-	mspell/mspell-dispel.cpp mspell/mspell-dispel.h \
-	mspell/mspell-judgement.cpp mspell/mspell-judgement.h \
-	mspell/mspell-lite.cpp mspell/mspell-lite.h \
-	mspell/mspell-summon.cpp mspell/mspell-summon.h \
-	mspell/mspell-util.cpp mspell/mspell-util.h \
 	mspell/mspell-damage-calculator.cpp mspell/mspell-damage-calculator.h \
-	mspell/mspell-learn-checker.cpp mspell/mspell-learn-checker.h \
+	mspell/mspell-data.cpp mspell/mspell-data.h \
+	mspell/mspell-dispel.cpp mspell/mspell-dispel.h \
 	mspell/mspell-floor.cpp mspell/mspell-floor.h \
+	mspell/mspell-judgement.cpp mspell/mspell-judgement.h \
+	mspell/mspell-learn-checker.cpp mspell/mspell-learn-checker.h \
+	mspell/mspell-lite.cpp mspell/mspell-lite.h \
+	mspell/mspell-result.h \
 	mspell/mspell-special.cpp mspell/mspell-special.h \
+	mspell/mspell-summon.cpp mspell/mspell-summon.h \
 	mspell/mspell-status.cpp mspell/mspell-status.h \
-	mspell/mspell-particularity.cpp mspell/mspell-particularity.h \
 	mspell/mspell-selector.cpp mspell/mspell-selector.h \
-	mspell/mspell.h \
+	mspell/mspell-util.cpp mspell/mspell-util.h \
 	mspell/smart-mspell-util.cpp mspell/smart-mspell-util.h \
 	mspell/specified-summon.cpp mspell/specified-summon.h \
 	mspell/summon-checker.cpp mspell/summon-checker.h \
+	\
+	mspell/mspell-attack/abstract-mspell.cpp mspell/mspell-attack/abstract-mspell.h \
+	mspell/mspell-attack/mspell-ball.cpp mspell/mspell-attack/mspell-ball.h \
+	mspell/mspell-attack/mspell-bolt.cpp mspell/mspell-attack/mspell-bolt.h \
+	mspell/mspell-attack/mspell-breath.cpp mspell/mspell-attack/mspell-breath.h \
+	mspell/mspell-attack/mspell-curse.cpp mspell/mspell-attack/mspell-curse.h \
+	mspell/mspell-attack/mspell-particularity.cpp mspell/mspell-attack/mspell-particularity.h \
 	\
 	mutation/gain-mutation-switcher.cpp mutation/gain-mutation-switcher.h \
 	mutation/lose-mutation-switcher.cpp mutation/lose-mutation-switcher.h \
@@ -560,7 +571,6 @@ hengband_SOURCES = \
 	object/object-flags.cpp object/object-flags.h \
 	object/object-index-list.cpp object/object-index-list.h \
 	object/object-info.cpp object/object-info.h \
-	object/object-kind.cpp object/object-kind.h \
 	object/object-kind-hook.cpp object/object-kind-hook.h \
 	object/object-stack.cpp object/object-stack.h \
 	object/object-value.cpp object/object-value.h \
@@ -581,35 +591,46 @@ hengband_SOURCES = \
 	object-activation/activation-teleport.cpp object-activation/activation-teleport.h \
 	object-activation/activation-util.cpp object-activation/activation-util.h \
 	\
-	object-enchant/abstract-protector-enchanter.cpp object-enchant/abstract-protector-enchanter.h \
 	object-enchant/activation-info-table.cpp object-enchant/activation-info-table.h \
-	object-enchant/apply-magic.cpp object-enchant/apply-magic.h \
-	object-enchant/apply-magic-amulet.cpp object-enchant/apply-magic-amulet.h \
-	object-enchant/apply-magic-armor.cpp object-enchant/apply-magic-armor.h \
-	object-enchant/apply-magic-boots.cpp object-enchant/apply-magic-boots.h \
-	object-enchant/apply-magic-cloak.cpp object-enchant/apply-magic-cloak.h \
-	object-enchant/apply-magic-crown.cpp object-enchant/apply-magic-crown.h \
-	object-enchant/apply-magic-gloves.cpp object-enchant/apply-magic-gloves.h \
-	object-enchant/apply-magic-helm.cpp object-enchant/apply-magic-helm.h \
-	object-enchant/apply-magic-others.cpp object-enchant/apply-magic-others.h \
-	object-enchant/apply-magic-ring.cpp object-enchant/apply-magic-ring.h \
-	object-enchant/apply-magic-shield.cpp object-enchant/apply-magic-shield.h \
-	object-enchant/apply-magic-weapon.cpp object-enchant/apply-magic-weapon.h \
 	object-enchant/dragon-breaths-table.cpp object-enchant/dragon-breaths-table.h \
 	object-enchant/enchanter-base.h \
+	object-enchant/enchanter-factory.cpp object-enchant/enchanter-factory.h \
+	object-enchant/item-magic-applier.cpp object-enchant/item-magic-applier.h \
 	object-enchant/object-boost.cpp object-enchant/object-boost.h \
 	object-enchant/object-curse.cpp object-enchant/object-curse.h \
 	object-enchant/object-ego.cpp object-enchant/object-ego.h \
-	object-enchant/object-smith.cpp object-enchant/object-smith.h \
 	object-enchant/item-apply-magic.h object-enchant/item-feeling.h \
 	object-enchant/old-ego-extra-values.h object-enchant/special-object-flags.h \
-	object-enchant/smith-info.cpp object-enchant/smith-info.h \
-	object-enchant/smith-tables.cpp object-enchant/smith-tables.h \
-	object-enchant/smith-types.h \
 	object-enchant/tr-flags.h \
 	object-enchant/tr-types.h object-enchant/trc-types.h \
 	object-enchant/trg-types.h \
 	object-enchant/vorpal-weapon.cpp object-enchant/vorpal-weapon.h \
+	\
+	object-enchant/others/apply-magic-amulet.cpp object-enchant/others/apply-magic-amulet.h \
+	object-enchant/others/apply-magic-lite.cpp object-enchant/others/apply-magic-lite.h \
+	object-enchant/others/apply-magic-ring.cpp object-enchant/others/apply-magic-ring.h \
+	object-enchant/others/apply-magic-others.cpp object-enchant/others/apply-magic-others.h \
+	\
+	object-enchant/protector/abstract-protector-enchanter.cpp object-enchant/protector/abstract-protector-enchanter.h \
+	object-enchant/protector/apply-magic-armor.cpp object-enchant/protector/apply-magic-armor.h \
+	object-enchant/protector/apply-magic-boots.cpp object-enchant/protector/apply-magic-boots.h \
+	object-enchant/protector/apply-magic-cloak.cpp object-enchant/protector/apply-magic-cloak.h \
+	object-enchant/protector/apply-magic-crown.cpp object-enchant/protector/apply-magic-crown.h \
+	object-enchant/protector/apply-magic-dragon-armor.cpp object-enchant/protector/apply-magic-dragon-armor.h \
+	object-enchant/protector/apply-magic-gloves.cpp object-enchant/protector/apply-magic-gloves.h \
+	object-enchant/protector/apply-magic-hard-armor.cpp object-enchant/protector/apply-magic-hard-armor.h \
+	object-enchant/protector/apply-magic-helm.cpp object-enchant/protector/apply-magic-helm.h \
+	object-enchant/protector/apply-magic-shield.cpp object-enchant/protector/apply-magic-shield.h \
+	object-enchant/protector/apply-magic-soft-armor.cpp object-enchant/protector/apply-magic-soft-armor.h \
+	\
+	object-enchant/weapon/abstract-weapon-enchanter.cpp object-enchant/weapon/abstract-weapon-enchanter.h \
+	object-enchant/weapon/apply-magic-arrow.cpp object-enchant/weapon/apply-magic-arrow.h \
+	object-enchant/weapon/apply-magic-bow.cpp object-enchant/weapon/apply-magic-bow.h \
+	object-enchant/weapon/apply-magic-digging.cpp object-enchant/weapon/apply-magic-digging.h \
+	object-enchant/weapon/apply-magic-hafted.cpp object-enchant/weapon/apply-magic-hafted.h \
+	object-enchant/weapon/apply-magic-polearm.cpp object-enchant/weapon/apply-magic-polearm.h \
+	object-enchant/weapon/apply-magic-sword.cpp object-enchant/weapon/apply-magic-sword.h \
+	object-enchant/weapon/melee-weapon-enchanter.cpp object-enchant/weapon/melee-weapon-enchanter.h \
 	\
 	object-hook/hook-armor.cpp object-hook/hook-armor.h \
 	object-hook/hook-expendable.cpp object-hook/hook-expendable.h \
@@ -619,12 +640,21 @@ hengband_SOURCES = \
 	object-hook/hook-weapon.cpp object-hook/hook-weapon.h \
 	\
 	object-use/item-use-checker.cpp object-use/item-use-checker.h \
-	object-use/quaff-execution.cpp object-use/quaff-execution.h \
-	object-use/read-execution.cpp object-use/read-execution.h \
 	object-use/throw-execution.cpp object-use/throw-execution.h \
 	object-use/use-execution.cpp object-use/use-execution.h \
 	object-use/zaprod-execution.cpp object-use/zaprod-execution.h \
 	object-use/zapwand-execution.cpp object-use/zapwand-execution.h \
+	\
+	object-use/quaff/quaff-effects.cpp object-use/quaff/quaff-effects.h \
+	object-use/quaff/quaff-execution.cpp object-use/quaff/quaff-execution.h \
+	\
+	object-use/read/read-execution.cpp object-use/read/read-execution.h \
+	object-use/read/gbh-shirt-read-executor.cpp object-use/read/gbh-shirt-read-executor.h \
+	object-use/read/parchment-read-executor.cpp object-use/read/parchment-read-executor.h \
+	object-use/read/read-executor-base.h \
+	object-use/read/read-executor-factory.cpp object-use/read/read-executor-factory.h \
+	object-use/read/ring-power-read-executor.cpp object-use/read/ring-power-read-executor.h \
+	object-use/read/scroll-read-executor.cpp object-use/read/scroll-read-executor.h \
 	\
 	perception/identification.cpp perception/identification.h \
 	perception/object-perception.cpp perception/object-perception.h \
@@ -638,7 +668,7 @@ hengband_SOURCES = \
 	player/patron.cpp player/patron.h \
 	player/process-death.cpp player/process-death.h \
 	player/process-name.cpp player/process-name.h \
-	player/race-info-table.cpp player/race-info-table.h\
+	player/race-info-table.cpp player/race-info-table.h \
 	player/race-resistances.cpp player/race-resistances.h \
 	player/permanent-resistances.cpp player/permanent-resistances.h \
 	player/temporary-resistances.cpp player/temporary-resistances.h \
@@ -697,9 +727,9 @@ hengband_SOURCES = \
 	player-info/samurai-data-type.h \
 	player-info/self-info.cpp player-info/self-info.h \
 	player-info/self-info-util.cpp player-info/self-info-util.h \
-        player-info/smith-data-type.h \
+	player-info/smith-data-type.h \
 	player-info/sniper-data-type.h \
-        player-info/spell-hex-data-type.h \
+	player-info/spell-hex-data-type.h \
 	player-info/weapon-effect-info.cpp player-info/weapon-effect-info.h \
 	\
 	player-status/player-hand-types.h \
@@ -766,6 +796,11 @@ hengband_SOURCES = \
 	save/save.cpp save/save.h \
 	save/save-util.cpp save/save-util.h \
 	\
+	smith/object-smith.cpp smith/object-smith.h \
+	smith/smith-info.cpp smith/smith-info.h \
+	smith/smith-tables.cpp smith/smith-tables.h \
+	smith/smith-types.h \
+	\
 	specific-object/blade-turner.cpp specific-object/blade-turner.h \
 	specific-object/bloody-moon.cpp specific-object/bloody-moon.h \
 	specific-object/bow.cpp specific-object/bow.h \
@@ -788,9 +823,11 @@ hengband_SOURCES = \
 	spell/spells-staff-only.cpp spell/spells-staff-only.h \
 	spell/spells-summon.cpp spell/spells-summon.h \
 	spell/spells-status.cpp spell/spells-status.h \
-	spell/spell-types.h spell/spells-util.h \
+	spell/spells-util.h \
 	spell/summon-types.h \
 	spell/technic-info-table.cpp spell/technic-info-table.h \
+	\
+	spell-class/spells-mirror-master.cpp spell-class/spells-mirror-master.h \
 	\
 	spell-kind/blood-curse.cpp spell-kind/blood-curse.h \
 	spell-kind/earthquake.cpp spell-kind/earthquake.h \
@@ -868,20 +905,24 @@ hengband_SOURCES = \
 	\
 	system/alloc-entries.cpp system/alloc-entries.h \
 	system/angband.h \
+	system/angband-exceptions.h \
 	system/angband-version.cpp system/angband-version.h \
 	system/artifact-type-definition.cpp system/artifact-type-definition.h \
+	system/baseitem-info-definition.cpp system/baseitem-info-definition.h \
 	system/building-type-definition.cpp system/building-type-definition.h \
 	system/dungeon-data-definition.h \
-	system/floor-type-definition.h \
+	system/dungeon-info.cpp system/dungeon-info.h \
+	system/floor-type-definition.cpp system/floor-type-definition.h \
 	system/grid-type-definition.cpp system/grid-type-definition.h \
 	system/game-option-types.h \
 	system/h-basic.h system/h-config.h \
-	system/h-define.h system/h-system.h system/h-type.h \
+	system/h-system.h system/h-type.h \
 	system/monster-race-definition.h \
-	system/monster-type-definition.h \
+	system/monster-type-definition.cpp system/monster-type-definition.h \
 	system/object-type-definition.cpp system/object-type-definition.h \
 	system/player-type-definition.cpp system/player-type-definition.h \
 	system/system-variables.cpp system/system-variables.h \
+	system/terrain-type-definition.cpp system/terrain-type-definition.h \
 	system/gamevalue.h \
 	\
 	target/grid-selector.cpp target/grid-selector.h \
@@ -900,7 +941,15 @@ hengband_SOURCES = \
 	term/z-term.cpp term/z-term.h term/z-util.cpp term/z-util.h \
 	term/z-virt.cpp term/z-virt.h \
 	\
+	timed-effect/player-acceleration.cpp timed-effect/player-acceleration.h \
+	timed-effect/player-blindness.cpp timed-effect/player-blindness.h \
+	timed-effect/player-confusion.cpp timed-effect/player-confusion.h \
 	timed-effect/player-cut.cpp timed-effect/player-cut.h \
+	timed-effect/player-deceleration.cpp timed-effect/player-deceleration.h \
+	timed-effect/player-fear.cpp timed-effect/player-fear.h \
+	timed-effect/player-hallucination.cpp timed-effect/player-hallucination.h \
+	timed-effect/player-paralysis.cpp timed-effect/player-paralysis.h \
+	timed-effect/player-poison.cpp timed-effect/player-poison.h \
 	timed-effect/player-stun.cpp timed-effect/player-stun.h \
 	timed-effect/timed-effects.cpp timed-effect/timed-effects.h \
 	\
@@ -1001,7 +1050,7 @@ EXTRA_DIST = \
 DEFAULT_INCLUDES = -I$(srcdir) -I$(top_builddir)/src
 CPPFLAGS += $(XFT_CFLAGS) $(libcurl_CFLAGS)
 if PCH
-CPPFLAGS += -include stdafx.h
+CPPFLAGS += -include ../src/stdafx.h
 endif
 LIBS += $(XFT_LIBS) $(libcurl_LIBS)
 COMPILE = $(srcdir)/gcc-wrap $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
@@ -1026,3 +1075,4 @@ endif
 
 clean-local:
 	-rm stdafx.h.gch stdafx.h.gch.sum
+	-rm -rf ../build

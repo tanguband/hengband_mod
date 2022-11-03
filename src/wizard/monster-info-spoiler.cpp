@@ -22,15 +22,15 @@
  */
 static concptr attr_to_text(monster_race *r_ptr)
 {
-    if (any_bits(r_ptr->flags1, RF1_ATTR_CLEAR)) {
+    if (r_ptr->visual_flags.has(MonsterVisualType::CLEAR_COLOR)) {
         return _("透明な", "Clear");
     }
 
-    if (any_bits(r_ptr->flags1, RF1_ATTR_MULTI)) {
+    if (r_ptr->visual_flags.has(MonsterVisualType::MULTI_COLOR)) {
         return _("万色の", "Multi");
     }
 
-    if (any_bits(r_ptr->flags1, RF1_ATTR_SEMIRAND)) {
+    if (r_ptr->visual_flags.has(MonsterVisualType::RANDOM_COLOR)) {
         return _("準ランダムな", "S.Rand");
     }
 
@@ -72,9 +72,9 @@ static concptr attr_to_text(monster_race *r_ptr)
     return _("変な色の", "Icky");
 }
 
-spoiler_output_status spoil_mon_desc(concptr fname, std::function<bool(const monster_race *)> filter_monster)
+SpoilerOutputResultType spoil_mon_desc(concptr fname, std::function<bool(const monster_race *)> filter_monster)
 {
-    player_type dummy;
+    PlayerType dummy;
     uint16_t why = 2;
     char buf[1024];
     char nam[MAX_MONSTER_NAME + 10]; // ユニークには[U] が付くので少し伸ばす
@@ -87,7 +87,7 @@ spoiler_output_status spoil_mon_desc(concptr fname, std::function<bool(const mon
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, fname);
     spoiler_file = angband_fopen(buf, "w");
     if (!spoiler_file) {
-        return spoiler_output_status::SPOILER_OUTPUT_FAIL_FOPEN;
+        return SpoilerOutputResultType::FILE_OPEN_FAILED;
     }
 
     char title[200];
@@ -102,44 +102,36 @@ spoiler_output_status spoil_mon_desc(concptr fname, std::function<bool(const mon
         "----------",
         "---", "---", "---", "-----", "-----", "-------------------");
 
-    std::vector<MONRACE_IDX> who;
-    for (const auto &r_ref : r_info) {
-        if (r_ref.idx > 0 && !r_ref.name.empty())
+    std::vector<MonsterRaceId> who;
+    for (const auto &[r_idx, r_ref] : monraces_info) {
+        if (MonsterRace(r_ref.idx).is_valid() && !r_ref.name.empty()) {
             who.push_back(r_ref.idx);
+        }
     }
 
     ang_sort(&dummy, who.data(), &why, who.size(), ang_sort_comp_hook, ang_sort_swap_hook);
     for (auto r_idx : who) {
-        monster_race *r_ptr = &r_info[r_idx];
-        concptr name = r_ptr->name.c_str();
+        auto *r_ptr = &monraces_info[r_idx];
         if (filter_monster && !filter_monster(r_ptr)) {
             continue;
         }
-
-        char name_buf[41];
-        angband_strcpy(name_buf, name, sizeof(name_buf));
-        name += strlen(name_buf);
 
         if (any_bits(r_ptr->flags7, RF7_KAGE)) {
             continue;
         }
 
-        if (any_bits(r_ptr->flags1, RF1_UNIQUE)) {
-            sprintf(nam, "[U] %s", name_buf);
-        } else if (any_bits(r_ptr->flags7, RF7_NAZGUL)) {
-            sprintf(nam, "[N] %s", name_buf);
+        const auto name = str_separate(r_ptr->name, 40);
+        if (r_ptr->kind_flags.has(MonsterKindType::UNIQUE)) {
+            sprintf(nam, "[U] %s", name.front().data());
+        } else if (r_ptr->population_flags.has(MonsterPopulationType::NAZGUL)) {
+            sprintf(nam, "[N] %s", name.front().data());
         } else {
-            sprintf(nam, _("    %s", "The %s"), name_buf);
+            sprintf(nam, _("    %s", "The %s"), name.front().data());
         }
 
         sprintf(lev, "%d", (int)r_ptr->level);
         sprintf(rar, "%d", (int)r_ptr->rarity);
-        if (r_ptr->speed >= 110) {
-            sprintf(spd, "+%d", (r_ptr->speed - 110));
-        } else {
-            sprintf(spd, "-%d", (110 - r_ptr->speed));
-        }
-
+        sprintf(spd, "%+d", r_ptr->speed - STANDARD_SPEED);
         sprintf(ac, "%d", r_ptr->ac);
         if (any_bits(r_ptr->flags1, RF1_FORCE_MAXHP) || (r_ptr->hside == 1)) {
             sprintf(hp, "%d", r_ptr->hdice * r_ptr->hside);
@@ -151,16 +143,14 @@ spoiler_output_status spoil_mon_desc(concptr fname, std::function<bool(const mon
         sprintf(symbol, "%s '%c'", attr_to_text(r_ptr), r_ptr->d_char);
         fprintf(spoiler_file, "%-45.45s%4s %4s %4s %7s %7s  %19.19s\n", nam, lev, rar, spd, hp, ac, symbol);
 
-        while (*name != '\0') {
-            angband_strcpy(name_buf, name, sizeof(name_buf));
-            name += strlen(name_buf);
-            fprintf(spoiler_file, "    %s\n", name_buf);
+        for (auto i = 1U; i < name.size(); ++i) {
+            fprintf(spoiler_file, "    %s\n", name[i].data());
         }
     }
 
     fprintf(spoiler_file, "\n");
-    return ferror(spoiler_file) || angband_fclose(spoiler_file) ? spoiler_output_status::SPOILER_OUTPUT_FAIL_FCLOSE
-                                                                : spoiler_output_status::SPOILER_OUTPUT_SUCCESS;
+    return ferror(spoiler_file) || angband_fclose(spoiler_file) ? SpoilerOutputResultType::FILE_CLOSE_FAILED
+                                                                : SpoilerOutputResultType::SUCCESSFUL;
 }
 
 /*!
@@ -180,14 +170,14 @@ static void roff_func(TERM_COLOR attr, concptr str)
  * Create a spoiler file for monsters (-SHAWN-)
  * @param fname ファイル名
  */
-spoiler_output_status spoil_mon_info(concptr fname)
+SpoilerOutputResultType spoil_mon_info(concptr fname)
 {
-    player_type dummy;
+    PlayerType dummy;
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, fname);
     spoiler_file = angband_fopen(buf, "w");
     if (!spoiler_file) {
-        return spoiler_output_status::SPOILER_OUTPUT_FAIL_FOPEN;
+        return SpoilerOutputResultType::FILE_OPEN_FAILED;
     }
 
     char title[200];
@@ -196,44 +186,39 @@ spoiler_output_status spoil_mon_info(concptr fname)
     spoil_out(buf);
     spoil_out("------------------------------------------\n\n");
 
-    std::vector<MONRACE_IDX> who;
-    for (const auto &r_ref : r_info) {
-        if (r_ref.idx > 0 && !r_ref.name.empty())
+    std::vector<MonsterRaceId> who;
+    for (const auto &[r_idx, r_ref] : monraces_info) {
+        if (MonsterRace(r_ref.idx).is_valid() && !r_ref.name.empty()) {
             who.push_back(r_ref.idx);
+        }
     }
 
     uint16_t why = 2;
     ang_sort(&dummy, who.data(), &why, who.size(), ang_sort_comp_hook, ang_sort_swap_hook);
     for (auto r_idx : who) {
-        monster_race *r_ptr = &r_info[r_idx];
-        BIT_FLAGS flags1 = r_ptr->flags1;
-        if (any_bits(flags1, RF1_UNIQUE)) {
+        auto *r_ptr = &monraces_info[r_idx];
+        if (r_ptr->kind_flags.has(MonsterKindType::UNIQUE)) {
             spoil_out("[U] ");
-        } else if (any_bits(r_ptr->flags7, RF7_NAZGUL)) {
+        } else if (r_ptr->population_flags.has(MonsterPopulationType::NAZGUL)) {
             spoil_out("[N] ");
         }
 
-        sprintf(buf, _("%s/%s  (", "%s%s ("), r_ptr->name.c_str(), _(r_ptr->E_name.c_str(), "")); /* ---)--- */
+        sprintf(buf, _("%s/%s  (", "%s%s ("), r_ptr->name.data(), _(r_ptr->E_name.data(), "")); /* ---)--- */
         spoil_out(buf);
         spoil_out(attr_to_text(r_ptr));
         sprintf(buf, " '%c')\n", r_ptr->d_char);
         spoil_out(buf);
         sprintf(buf, "=== ");
         spoil_out(buf);
-        sprintf(buf, "Num:%d  ", r_idx);
+        sprintf(buf, "Num:%d  ", enum2i(r_idx));
         spoil_out(buf);
         sprintf(buf, "Lev:%d  ", (int)r_ptr->level);
         spoil_out(buf);
         sprintf(buf, "Rar:%d  ", r_ptr->rarity);
         spoil_out(buf);
-        if (r_ptr->speed >= 110) {
-            sprintf(buf, "Spd:+%d  ", (r_ptr->speed - 110));
-        } else {
-            sprintf(buf, "Spd:-%d  ", (110 - r_ptr->speed));
-        }
-
+        sprintf(buf, "%+d", r_ptr->speed - STANDARD_SPEED);
         spoil_out(buf);
-        if (any_bits(flags1, RF1_FORCE_MAXHP) || (r_ptr->hside == 1)) {
+        if (any_bits(r_ptr->flags1, RF1_FORCE_MAXHP) || (r_ptr->hside == 1)) {
             sprintf(buf, "Hp:%d  ", r_ptr->hdice * r_ptr->hside);
         } else {
             sprintf(buf, "Hp:%dd%d  ", r_ptr->hdice, r_ptr->hside);
@@ -248,6 +233,6 @@ spoiler_output_status spoil_mon_info(concptr fname)
         spoil_out(nullptr);
     }
 
-    return ferror(spoiler_file) || angband_fclose(spoiler_file) ? spoiler_output_status::SPOILER_OUTPUT_FAIL_FCLOSE
-                                                                : spoiler_output_status::SPOILER_OUTPUT_SUCCESS;
+    return ferror(spoiler_file) || angband_fclose(spoiler_file) ? SpoilerOutputResultType::FILE_CLOSE_FAILED
+                                                                : SpoilerOutputResultType::SUCCESSFUL;
 }

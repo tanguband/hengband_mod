@@ -2,5 +2,6 @@
 
 extern bool leave_store;
 
-struct player_type;
-void store_process_command(player_type *player_ptr);
+enum class StoreSaleType;
+class PlayerType;
+void store_process_command(PlayerType *player_ptr, StoreSaleType store_num);

@@ -22,7 +22,7 @@
  * @return 常にTRUEを返す。
  * @todo 返り値が意味不明なので直した方が良いかもしれない。
  */
-bool research_mon(player_type *player_ptr)
+bool research_mon(PlayerType *player_ptr)
 {
     char buf[256];
     bool notpicked;
@@ -48,8 +48,9 @@ bool research_mon(player_type *player_ptr)
 
     IDX ident_i;
     for (ident_i = 0; ident_info[ident_i]; ++ident_i) {
-        if (sym == ident_info[ident_i][0])
+        if (sym == ident_info[ident_i][0]) {
             break;
+        }
     }
 
     /* XTRA HACK WHATSEARCH */
@@ -82,22 +83,25 @@ bool research_mon(player_type *player_ptr)
     prt(buf, 16, 10);
 
     /* Allocate the "who" array */
-    std::vector<MONRACE_IDX> who;
+    std::vector<MonsterRaceId> who;
 
     /* Collect matching monsters */
-    for (const auto &r_ref : r_info) {
+    for (const auto &[r_idx, r_ref] : monraces_info) {
         /* Empty monster */
-        if (r_ref.idx == 0 || r_ref.name.empty())
+        if (!MonsterRace(r_ref.idx).is_valid() || r_ref.name.empty()) {
             continue;
+        }
 
         /* XTRA HACK WHATSEARCH */
         /* Require non-unique monsters if needed */
-        if (norm && (r_ref.flags1 & (RF1_UNIQUE)))
+        if (norm && r_ref.kind_flags.has(MonsterKindType::UNIQUE)) {
             continue;
+        }
 
         /* Require unique monsters if needed */
-        if (uniq && !(r_ref.flags1 & (RF1_UNIQUE)))
+        if (uniq && r_ref.kind_flags.has_not(MonsterKindType::UNIQUE)) {
             continue;
+        }
 
         /* 名前検索 */
         if (temp[0]) {
@@ -108,23 +112,25 @@ bool research_mon(player_type *player_ptr)
                     continue;
                 }
 #endif
-                if (isupper(temp[xx]))
+                if (isupper(temp[xx])) {
                     temp[xx] = (char)tolower(temp[xx]);
+                }
             }
 
             char temp2[MAX_MONSTER_NAME];
 #ifdef JP
-            strcpy(temp2, r_ref.E_name.c_str());
+            strcpy(temp2, r_ref.E_name.data());
 #else
-            strcpy(temp2, r_ref.name.c_str());
+            strcpy(temp2, r_ref.name.data());
 #endif
             for (int xx = 0; temp2[xx] && xx < 80; xx++) {
-                if (isupper(temp2[xx]))
+                if (isupper(temp2[xx])) {
                     temp2[xx] = (char)tolower(temp2[xx]);
+                }
             }
 
 #ifdef JP
-            if (angband_strstr(temp2, temp) || angband_strstr(r_ref.name.c_str(), temp))
+            if (angband_strstr(temp2, temp) || angband_strstr(r_ref.name.data(), temp))
 #else
             if (angband_strstr(temp2, temp))
 #endif
@@ -150,10 +156,11 @@ bool research_mon(player_type *player_ptr)
     uint i;
     static int old_sym = '\0';
     static uint old_i = 0;
-    if (old_sym == sym && old_i < who.size())
+    if (old_sym == sym && old_i < who.size()) {
         i = old_i;
-    else
+    } else {
         i = who.size() - 1;
+    }
 
     notpicked = true;
     while (notpicked) {
@@ -172,20 +179,23 @@ bool research_mon(player_type *player_ptr)
             }
 
             query = inkey();
-            if (query != 'r')
+            if (query != 'r') {
                 break;
+            }
 
             recall = !recall;
         }
 
-        if (query == ESCAPE)
+        if (query == ESCAPE) {
             break;
+        }
 
         if (query == '-') {
             if (++i == who.size()) {
                 i = 0;
-                if (!expand_list)
+                if (!expand_list) {
                     break;
+                }
             }
 
             continue;
@@ -193,8 +203,9 @@ bool research_mon(player_type *player_ptr)
 
         if (i-- == 0) {
             i = who.size() - 1;
-            if (!expand_list)
+            if (!expand_list) {
                 break;
+            }
         }
     }
 

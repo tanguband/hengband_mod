@@ -22,6 +22,10 @@
 #include "status/experience.h"
 #include "system/angband.h"
 #include "system/player-type-definition.h"
+#include "timed-effect/player-blindness.h"
+#include "timed-effect/player-confusion.h"
+#include "timed-effect/player-hallucination.h"
+#include "timed-effect/player-paralysis.h"
 #include "timed-effect/player-stun.h"
 #include "timed-effect/timed-effects.h"
 #include "view/display-messages.h"
@@ -30,18 +34,27 @@
  * @brief 青魔法のラーニング判定と成功した場合のラーニング処理
  * @param monspell ラーニングを試みるモンスター攻撃のID
  */
-void learn_spell(player_type *player_ptr, RF_ABILITY monspell)
+void learn_spell(PlayerType *player_ptr, MonsterAbilityType monspell)
 {
-    if (player_ptr->action != ACTION_LEARN)
+    if (player_ptr->action != ACTION_LEARN) {
         return;
-    auto bluemage_data = PlayerClass(player_ptr).get_specific_data<bluemage_data_type>();
-    if (!bluemage_data || bluemage_data->learnt_blue_magics.has(monspell))
-        return;
+    }
 
-    auto effects = player_ptr->effects();
-    auto is_stunned = effects->stun()->is_stunned();
-    if (player_ptr->confused || player_ptr->blind || player_ptr->hallucinated || is_stunned || player_ptr->paralyzed)
+    auto bluemage_data = PlayerClass(player_ptr).get_specific_data<bluemage_data_type>();
+    if (!bluemage_data || bluemage_data->learnt_blue_magics.has(monspell)) {
         return;
+    }
+
+    const auto effects = player_ptr->effects();
+    const auto is_confused = effects->confusion()->is_confused();
+    const auto is_blind = effects->blindness()->is_blind();
+    const auto is_stunned = effects->stun()->is_stunned();
+    const auto is_hallucinated = effects->hallucination()->is_hallucinated();
+    const auto is_paralyzed = effects->paralysis()->is_paralyzed();
+    if (is_confused || is_blind || is_hallucinated || is_stunned || is_paralyzed) {
+        return;
+    }
+
     const auto &monster_power = monster_powers.at(monspell);
     if (randint1(player_ptr->lev + 70) > monster_power.level + 40) {
         bluemage_data->learnt_blue_magics.set(monspell);
@@ -59,13 +72,13 @@ void learn_spell(player_type *player_ptr, RF_ABILITY monspell)
  * @param ability_flags モンスター特殊能力のフラグ集合
  * @param type 抜き出したいタイプ
  */
-void set_rf_masks(EnumClassFlagGroup<RF_ABILITY> &ability_flags, BlueMagicType type)
+void set_rf_masks(EnumClassFlagGroup<MonsterAbilityType> &ability_flags, BlueMagicType type)
 {
     ability_flags.clear();
 
     switch (type) {
     case BlueMagicType::BOLT:
-        ability_flags.set(RF_ABILITY_BOLT_MASK | RF_ABILITY_BEAM_MASK).reset(RF_ABILITY::ROCKET);
+        ability_flags.set(RF_ABILITY_BOLT_MASK | RF_ABILITY_BEAM_MASK).reset(MonsterAbilityType::ROCKET);
         break;
 
     case BlueMagicType::BALL:

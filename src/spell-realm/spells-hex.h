@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#include "system/angband.h"
 #include "realm/realm-hex-numbers.h"
+#include "system/angband.h"
 #include <tuple>
 
 enum class SpellHexRevengeType : byte {
@@ -10,13 +10,13 @@ enum class SpellHexRevengeType : byte {
     REVENGE = 2,
 };
 
-struct monap_type;
-struct player_type;
+class MonsterAttackPlayer;
+class PlayerType;
 struct spell_hex_data_type;
 class SpellHex {
 public:
-    SpellHex(player_type *player_ptr);
-    SpellHex(player_type *player_ptr, monap_type *monap_ptr);
+    SpellHex(PlayerType *player_ptr);
+    SpellHex(PlayerType *player_ptr, MonsterAttackPlayer *monap_ptr);
     virtual ~SpellHex() = default;
 
     bool stop_spells_with_selection();
@@ -24,7 +24,7 @@ public:
     void stop_all_spells();
     bool is_casting_full_capacity() const;
     void continue_revenge();
-    void store_vengeful_damage(HIT_POINT dam);
+    void store_vengeful_damage(int dam);
     bool check_hex_barrier(MONSTER_IDX m_idx, spell_hex_type type) const;
     bool is_spelling_specific(int hex) const;
     bool is_spelling_any() const;
@@ -42,9 +42,9 @@ public:
     void set_revenge_type(SpellHexRevengeType type);
 
 private:
-    player_type *player_ptr;
+    PlayerType *player_ptr;
     std::vector<int> casting_spells;
-    monap_type *monap_ptr = nullptr;
+    MonsterAttackPlayer *monap_ptr = nullptr;
     std::shared_ptr<spell_hex_data_type> spell_hex_data;
 
     std::tuple<bool, bool, char> select_spell_stopping(char *out_val);
@@ -53,7 +53,4 @@ private:
     bool check_restart();
     int calc_need_mana();
     void gain_exp();
-    bool gain_exp_skilled(const int spell);
-    bool gain_exp_expert(const int spell);
-    void gain_exp_master(const int spell);
 };

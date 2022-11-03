@@ -26,21 +26,23 @@ int wild_regen = 20;
  * @brief プレイヤーのHP自然回復処理 / Regenerate hit points -RAK-
  * @param percent 回復比率
  */
-void regenhp(player_type *player_ptr, int percent)
+void regenhp(PlayerType *player_ptr, int percent)
 {
-    if (PlayerClass(player_ptr).samurai_stance_is(SamuraiStance::KOUKIJIN))
+    if (PlayerClass(player_ptr).samurai_stance_is(SamuraiStanceType::KOUKIJIN)) {
         return;
-    if (player_ptr->action == ACTION_HAYAGAKE)
+    }
+    if (player_ptr->action == ACTION_HAYAGAKE) {
         return;
+    }
 
-    HIT_POINT old_chp = player_ptr->chp;
+    int old_chp = player_ptr->chp;
 
     /*
      * Extract the new hitpoints
      *
      * 'percent' is the Regen factor in unit (1/2^16)
      */
-    HIT_POINT new_chp = 0;
+    int new_chp = 0;
     uint32_t new_chp_frac = (player_ptr->mhp * percent + PY_REGEN_HPBASE);
     s64b_lshift(&new_chp, &new_chp_frac, 16);
     s64b_add(&(player_ptr->chp), &(player_ptr->chp_frac), new_chp, new_chp_frac);
@@ -61,7 +63,7 @@ void regenhp(player_type *player_ptr, int percent)
  * @param upkeep_factor ペット維持によるMPコスト量
  * @param regen_amount 回復量
  */
-void regenmana(player_type *player_ptr, MANA_POINT upkeep_factor, MANA_POINT regen_amount)
+void regenmana(PlayerType *player_ptr, MANA_POINT upkeep_factor, MANA_POINT regen_amount)
 {
     MANA_POINT old_csp = player_ptr->csp;
     int32_t regen_rate = regen_amount * 100 - upkeep_factor * PY_REGEN_NORMAL;
@@ -117,7 +119,7 @@ void regenmana(player_type *player_ptr, MANA_POINT upkeep_factor, MANA_POINT reg
  * @brief 取り込んだ魔道具の自然回復処理 / Regenerate magic regen_amount: PY_REGEN_NORMAL * 2 (if resting) * 2 (if having regenarate)
  * @param regen_amount 回復量
  */
-void regenmagic(player_type *player_ptr, int regen_amount)
+void regenmagic(PlayerType *player_ptr, int regen_amount)
 {
     auto magic_eater_data = PlayerClass(player_ptr).get_specific_data<magic_eater_data_type>();
     if (!magic_eater_data) {
@@ -164,32 +166,39 @@ void regenmagic(player_type *player_ptr, int regen_amount)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @note Should probably be done during monster turns.
  */
-void regenerate_monsters(player_type *player_ptr)
+void regenerate_monsters(PlayerType *player_ptr)
 {
     for (int i = 1; i < player_ptr->current_floor_ptr->m_max; i++) {
-        monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
-        monster_race *r_ptr = &r_info[m_ptr->r_idx];
+        auto *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
+        auto *r_ptr = &monraces_info[m_ptr->r_idx];
 
-        if (!monster_is_valid(m_ptr))
+        if (!m_ptr->is_valid()) {
             continue;
+        }
 
         if (m_ptr->hp < m_ptr->maxhp) {
             int frac = m_ptr->maxhp / 100;
-            if (!frac)
-                if (one_in_(2))
+            if (!frac) {
+                if (one_in_(2)) {
                     frac = 1;
+                }
+            }
 
-            if (r_ptr->flags2 & RF2_REGENERATE)
+            if (r_ptr->flags2 & RF2_REGENERATE) {
                 frac *= 2;
+            }
 
             m_ptr->hp += frac;
-            if (m_ptr->hp > m_ptr->maxhp)
+            if (m_ptr->hp > m_ptr->maxhp) {
                 m_ptr->hp = m_ptr->maxhp;
+            }
 
-            if (player_ptr->health_who == i)
+            if (player_ptr->health_who == i) {
                 player_ptr->redraw |= (PR_HEALTH);
-            if (player_ptr->riding == i)
+            }
+            if (player_ptr->riding == i) {
                 player_ptr->redraw |= (PR_UHEALTH);
+            }
         }
     }
 }
@@ -199,41 +208,49 @@ void regenerate_monsters(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @note Should probably be done during monster turns.
  */
-void regenerate_captured_monsters(player_type *player_ptr)
+void regenerate_captured_monsters(PlayerType *player_ptr)
 {
     bool heal = false;
     for (int i = 0; i < INVEN_TOTAL; i++) {
         monster_race *r_ptr;
-        object_type *o_ptr = &player_ptr->inventory_list[i];
-        if (!o_ptr->k_idx)
+        auto *o_ptr = &player_ptr->inventory_list[i];
+        if (!o_ptr->k_idx) {
             continue;
-        if (o_ptr->tval != ItemKindType::CAPTURE)
+        }
+        if (o_ptr->tval != ItemKindType::CAPTURE) {
             continue;
-        if (!o_ptr->pval)
+        }
+        if (!o_ptr->pval) {
             continue;
+        }
 
         heal = true;
-        r_ptr = &r_info[o_ptr->pval];
-        if (o_ptr->xtra4 < o_ptr->xtra5) {
-            int frac = o_ptr->xtra5 / 100;
-            if (!frac)
-                if (one_in_(2))
+        const auto r_idx = i2enum<MonsterRaceId>(o_ptr->pval);
+        r_ptr = &monraces_info[r_idx];
+        if (o_ptr->captured_monster_current_hp < o_ptr->captured_monster_max_hp) {
+            short frac = o_ptr->captured_monster_max_hp / 100;
+            if (!frac) {
+                if (one_in_(2)) {
                     frac = 1;
+                }
+            }
 
-            if (r_ptr->flags2 & RF2_REGENERATE)
+            if (r_ptr->flags2 & RF2_REGENERATE) {
                 frac *= 2;
+            }
 
-            o_ptr->xtra4 += (XTRA16)frac;
-            if (o_ptr->xtra4 > o_ptr->xtra5)
-                o_ptr->xtra4 = o_ptr->xtra5;
+            o_ptr->captured_monster_current_hp += frac;
+            if (o_ptr->captured_monster_current_hp > o_ptr->captured_monster_max_hp) {
+                o_ptr->captured_monster_current_hp = o_ptr->captured_monster_max_hp;
+            }
         }
     }
 
     if (heal) {
         player_ptr->update |= (PU_COMBINE);
         // FIXME 広域マップ移動で1歩毎に何度も再描画されて重くなる。現在はボール中モンスターのHP回復でボールの表示は変わらないためコメントアウトする。
-        //player_ptr->window_flags |= (PW_INVEN);
-        //player_ptr->window_flags |= (PW_EQUIP);
+        // player_ptr->window_flags |= (PW_INVEN);
+        // player_ptr->window_flags |= (PW_EQUIP);
         wild_regen = 20;
     }
 }

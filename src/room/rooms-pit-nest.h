@@ -1,9 +1,11 @@
-﻿#pragma once 
+﻿#pragma once
 
 #include "system/angband.h"
 
 #define NUM_NEST_MON_TYPE 64 /*!<nestの種別数 */
 #define TRAPPED_PIT_MONSTER_PLACE_MAX 69
+
+enum class MonsterRaceId : int16_t;
 
 /*! nestのID定義 /  Nest types code */
 enum nest_type : int {
@@ -34,22 +36,22 @@ enum pit_type : int {
 };
 
 /*! pit/nest型情報の構造体定義 */
-struct player_type;
+class PlayerType;
 struct nest_pit_type {
     concptr name; //<! 部屋名
-    bool (*hook_func)(player_type *player_ptr, MONRACE_IDX r_idx); //<! モンスターフィルタ関数
-    void (*prep_func)(player_type *player_ptr); //<! 能力フィルタ関数
+    bool (*hook_func)(PlayerType *player_ptr, MonsterRaceId r_idx); //<! モンスターフィルタ関数
+    void (*prep_func)(PlayerType *player_ptr); //<! 能力フィルタ関数
     DEPTH level; //<! 相当階
     int chance; //!< 生成確率
 };
 
 /*! デバッグ時にnestのモンスター情報を確認するための構造体 / A struct for nest monster information with cheat_hear */
 struct nest_mon_info_type {
-    MONRACE_IDX r_idx; //!< モンスター種族ID
+    MonsterRaceId r_idx; //!< モンスター種族ID
     bool used; //!< 既に選んだかどうか
 };
 
 struct dun_data_type;
-bool build_type5(player_type *player_ptr, dun_data_type *dd_ptr);
-bool build_type6(player_type *player_ptr, dun_data_type *dd_ptr);
-bool build_type13(player_type *player_ptr, dun_data_type *dd_ptr);
+bool build_type5(PlayerType *player_ptr, dun_data_type *dd_ptr);
+bool build_type6(PlayerType *player_ptr, dun_data_type *dd_ptr);
+bool build_type13(PlayerType *player_ptr, dun_data_type *dd_ptr);

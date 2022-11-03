@@ -57,7 +57,7 @@ char debug_savefile[1024];
  * Allow the "full" flag to dump additional info,
  * and trigger its usage from various places in the code.
  */
-errr file_character(player_type *player_ptr, concptr name, display_player_pf display_player)
+errr file_character(PlayerType *player_ptr, concptr name)
 {
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_USER, name);
@@ -66,13 +66,15 @@ errr file_character(player_type *player_ptr, concptr name, display_player_pf dis
         char out_val[sizeof(buf) + 128];
         (void)fd_close(fd);
         (void)sprintf(out_val, _("現存するファイル %s に上書きしますか? ", "Replace existing file %s? "), buf);
-        if (get_check_strict(player_ptr, out_val, CHECK_NO_HISTORY))
+        if (get_check_strict(player_ptr, out_val, CHECK_NO_HISTORY)) {
             fd = -1;
+        }
     }
 
     FILE *fff = nullptr;
-    if (fd < 0)
+    if (fd < 0) {
         fff = angband_fopen(buf, "w");
+    }
 
     if (!fff) {
         prt(_("キャラクタ情報のファイルへの書き出しに失敗しました！", "Character dump failed!"), 0, 0);
@@ -80,7 +82,7 @@ errr file_character(player_type *player_ptr, concptr name, display_player_pf dis
         return -1;
     }
 
-    make_character_dump(player_ptr, fff, display_player);
+    make_character_dump(player_ptr, fff);
     angband_fclose(fff);
     msg_print(_("キャラクタ情報のファイルへの書き出しに成功しました。", "Character dump successful."));
     msg_print(nullptr);
@@ -105,8 +107,9 @@ errr get_rnd_line(concptr file_name, int entry, char *output)
     path_build(buf, sizeof(buf), ANGBAND_DIR_FILE, file_name);
     FILE *fp;
     fp = angband_fopen(buf, "r");
-    if (!fp)
+    if (!fp) {
         return -1;
+    }
 
     int test;
     int line_num = 0;
@@ -117,20 +120,24 @@ errr get_rnd_line(concptr file_name, int entry, char *output)
         }
 
         line_num++;
-        if ((buf[0] != 'N') || (buf[1] != ':'))
+        if ((buf[0] != 'N') || (buf[1] != ':')) {
             continue;
+        }
 
         if (buf[2] == '*') {
             break;
         } else if (buf[2] == 'M') {
-            if (r_info[entry].flags1 & RF1_MALE)
+            if (monraces_info[i2enum<MonsterRaceId>(entry)].flags1 & RF1_MALE) {
                 break;
+            }
         } else if (buf[2] == 'F') {
-            if (r_info[entry].flags1 & RF1_FEMALE)
+            if (monraces_info[i2enum<MonsterRaceId>(entry)].flags1 & RF1_FEMALE) {
                 break;
+            }
         } else if (sscanf(&(buf[2]), "%d", &test) != EOF) {
-            if (test == entry)
+            if (test == entry) {
                 break;
+            }
         } else {
             msg_format("Error in line %d of %s!", line_num, file_name);
             angband_fclose(fp);
@@ -144,20 +151,25 @@ errr get_rnd_line(concptr file_name, int entry, char *output)
             test = angband_fgets(fp, buf, sizeof(buf));
             if (!test) {
                 /* Ignore lines starting with 'N:' */
-                if ((buf[0] == 'N') && (buf[1] == ':'))
+                if ((buf[0] == 'N') && (buf[1] == ':')) {
                     continue;
+                }
 
-                if (buf[0] != '#')
+                if (buf[0] != '#') {
                     break;
-            } else
+                }
+            } else {
                 break;
+            }
         }
 
-        if (!buf[0])
+        if (!buf[0]) {
             break;
+        }
 
-        if (one_in_(counter + 1))
+        if (one_in_(counter + 1)) {
             strcpy(output, buf);
+        }
     }
 
     angband_fclose(fp);
@@ -179,13 +191,16 @@ errr get_rnd_line_jonly(concptr file_name, int entry, char *output, int count)
     errr result = 1;
     for (int i = 0; i < count; i++) {
         result = get_rnd_line(file_name, entry, output);
-        if (result)
+        if (result) {
             break;
+        }
         bool kanji = false;
-        for (int j = 0; output[j]; j++)
+        for (int j = 0; output[j]; j++) {
             kanji |= iskanji(output[j]);
-        if (kanji)
+        }
+        if (kanji) {
             break;
+        }
     }
 
     return result;
@@ -201,7 +216,7 @@ errr get_rnd_line_jonly(concptr file_name, int entry, char *output, int count)
  * @return エラーコード
  * @details
  */
-static errr counts_seek(player_type *player_ptr, int fd, uint32_t where, bool flag)
+static errr counts_seek(PlayerType *player_ptr, int fd, uint32_t where, bool flag)
 {
     char temp1[128], temp2[128];
     auto short_pclass = enum2i(player_ptr->pclass);
@@ -210,17 +225,20 @@ static errr counts_seek(player_type *player_ptr, int fd, uint32_t where, bool fl
 #else
     (void)sprintf(temp1, "%s.%d%d%d", savefile_base, short_pclass, player_ptr->ppersonality, player_ptr->age);
 #endif
-    for (int i = 0; temp1[i]; i++)
+    for (int i = 0; temp1[i]; i++) {
         temp1[i] ^= (i + 1) * 63;
+    }
 
     int seekpoint = 0;
     uint32_t zero_header[3] = { 0L, 0L, 0L };
     while (true) {
-        if (fd_seek(fd, seekpoint + 3 * sizeof(uint32_t)))
+        if (fd_seek(fd, seekpoint + 3 * sizeof(uint32_t))) {
             return 1;
+        }
         if (fd_read(fd, (char *)(temp2), sizeof(temp2))) {
-            if (!flag)
+            if (!flag) {
                 return 1;
+            }
             /* add new name */
             fd_seek(fd, seekpoint);
             fd_write(fd, (char *)zero_header, 3 * sizeof(uint32_t));
@@ -228,8 +246,9 @@ static errr counts_seek(player_type *player_ptr, int fd, uint32_t where, bool fl
             break;
         }
 
-        if (strcmp(temp1, temp2) == 0)
+        if (strcmp(temp1, temp2) == 0) {
             break;
+        }
 
         seekpoint += 128 + 3 * sizeof(uint32_t);
     }
@@ -244,15 +263,16 @@ static errr counts_seek(player_type *player_ptr, int fd, uint32_t where, bool fl
  * @return エラーコード
  * @details
  */
-uint32_t counts_read(player_type *player_ptr, int where)
+uint32_t counts_read(PlayerType *player_ptr, int where)
 {
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_DATA, _("z_info_j.raw", "z_info.raw"));
     int fd = fd_open(buf, O_RDONLY);
 
     uint32_t count = 0;
-    if (counts_seek(player_ptr, fd, where, false) || fd_read(fd, (char *)(&count), sizeof(uint32_t)))
+    if (counts_seek(player_ptr, fd, where, false) || fd_read(fd, (char *)(&count), sizeof(uint32_t))) {
         count = 0;
+    }
 
     (void)fd_close(fd);
 
@@ -267,7 +287,7 @@ uint32_t counts_read(player_type *player_ptr, int where)
  * @return エラーコード
  * @details
  */
-errr counts_write(player_type *player_ptr, int where, uint32_t count)
+errr counts_write(PlayerType *player_ptr, int where, uint32_t count)
 {
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_DATA, _("z_info_j.raw", "z_info.raw"));
@@ -284,8 +304,9 @@ errr counts_write(player_type *player_ptr, int where, uint32_t count)
     safe_setuid_grab(player_ptr);
     errr err = fd_lock(fd, F_WRLCK);
     safe_setuid_drop();
-    if (err)
+    if (err) {
         return 1;
+    }
 
     counts_seek(player_ptr, fd, where, true);
     fd_write(fd, (char *)(&count), sizeof(uint32_t));
@@ -293,8 +314,9 @@ errr counts_write(player_type *player_ptr, int where, uint32_t count)
     err = fd_lock(fd, F_UNLCK);
     safe_setuid_drop();
 
-    if (err)
+    if (err) {
         return 1;
+    }
 
     (void)fd_close(fd);
     return 0;
@@ -311,8 +333,9 @@ void read_dead_file(char *buf, size_t buf_size)
 
     FILE *fp;
     fp = angband_fopen(buf, "r");
-    if (!fp)
+    if (!fp) {
         return;
+    }
 
     int i = 0;
     while (angband_fgets(fp, buf, buf_size) == 0) {

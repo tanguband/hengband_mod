@@ -1,13 +1,14 @@
 ﻿#include "grid/door.h"
 #include "dungeon/dungeon-flag-types.h"
-#include "dungeon/dungeon.h"
 #include "floor/cave.h"
 #include "grid/feature.h"
 #include "grid/grid.h"
 #include "room/door-definition.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
 /*
@@ -16,11 +17,12 @@
  *
  * The doors must be INSIDE the allocated region.
  */
-void add_door(player_type *player_ptr, POSITION x, POSITION y)
+void add_door(PlayerType *player_ptr, POSITION x, POSITION y)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (!floor_ptr->grid_array[y][x].is_outer())
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (!floor_ptr->grid_array[y][x].is_outer()) {
         return;
+    }
 
     /* look at:
      *  x#x
@@ -31,8 +33,7 @@ void add_door(player_type *player_ptr, POSITION x, POSITION y)
      *  .=floor, #=wall
      */
 
-    if (floor_ptr->grid_array[y - 1][x].is_floor() && floor_ptr->grid_array[y + 1][x].is_floor() && floor_ptr->grid_array[y][x - 1].is_outer()
-        && floor_ptr->grid_array[y][x + 1].is_outer()) {
+    if (floor_ptr->grid_array[y - 1][x].is_floor() && floor_ptr->grid_array[y + 1][x].is_floor() && floor_ptr->grid_array[y][x - 1].is_outer() && floor_ptr->grid_array[y][x + 1].is_outer()) {
         place_secret_door(player_ptr, y, x, DOOR_DEFAULT);
         place_bold(player_ptr, y, x - 1, GB_SOLID);
         place_bold(player_ptr, y, x + 1, GB_SOLID);
@@ -46,8 +47,7 @@ void add_door(player_type *player_ptr, POSITION x, POSITION y)
      *  where x = don't care
      *  .=floor, #=wall
      */
-    if (floor_ptr->grid_array[y - 1][x].is_outer() && floor_ptr->grid_array[y + 1][x].is_outer() && floor_ptr->grid_array[y][x - 1].is_floor()
-        && floor_ptr->grid_array[y][x + 1].is_floor()) {
+    if (floor_ptr->grid_array[y - 1][x].is_outer() && floor_ptr->grid_array[y + 1][x].is_outer() && floor_ptr->grid_array[y][x - 1].is_floor() && floor_ptr->grid_array[y][x + 1].is_floor()) {
         place_secret_door(player_ptr, y, x, DOOR_DEFAULT);
         place_bold(player_ptr, y - 1, x, GB_SOLID);
         place_bold(player_ptr, y + 1, x, GB_SOLID);
@@ -61,26 +61,26 @@ void add_door(player_type *player_ptr, POSITION x, POSITION y)
  * @param x 配置したいフロアのX座標
  * @param type DOOR_DEFAULT / DOOR_DOOR / DOOR_GLASS_DOOR / DOOR_CURTAIN のいずれか
  */
-void place_secret_door(player_type *player_ptr, POSITION y, POSITION x, int type)
+void place_secret_door(PlayerType *player_ptr, POSITION y, POSITION x, int type)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_DOORS)) {
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_DOORS)) {
         place_bold(player_ptr, y, x, GB_FLOOR);
         return;
     }
 
     if (type == DOOR_DEFAULT) {
-        type = (d_info[floor_ptr->dungeon_idx].flags.has(DF::CURTAIN) && one_in_(d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_CAVE) ? 16 : 256))
-            ? DOOR_CURTAIN
-            : (d_info[floor_ptr->dungeon_idx].flags.has(DF::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
+        type = (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::CURTAIN) && one_in_(dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_CAVE) ? 16 : 256))
+                   ? DOOR_CURTAIN
+                   : (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
     }
 
     place_closed_door(player_ptr, y, x, type);
-    grid_type *g_ptr = &floor_ptr->grid_array[y][x];
+    auto *g_ptr = &floor_ptr->grid_array[y][x];
     if (type != DOOR_CURTAIN) {
         g_ptr->mimic = feat_wall_inner;
         if (feat_supports_los(g_ptr->mimic) && !feat_supports_los(g_ptr->feat)) {
-            if (f_info[g_ptr->mimic].flags.has(FF::MOVE) || f_info[g_ptr->mimic].flags.has(FF::CAN_FLY)) {
+            if (terrains_info[g_ptr->mimic].flags.has(TerrainCharacteristics::MOVE) || terrains_info[g_ptr->mimic].flags.has(TerrainCharacteristics::CAN_FLY)) {
                 g_ptr->feat = one_in_(2) ? g_ptr->mimic : feat_ground_type[randint0(100)];
             }
 
@@ -98,15 +98,15 @@ void place_secret_door(player_type *player_ptr, POSITION y, POSITION x, int type
  * @param y 配置したいフロアのY座標
  * @param x 配置したいフロアのX座標
  */
-void place_locked_door(player_type *player_ptr, POSITION y, POSITION x)
+void place_locked_door(PlayerType *player_ptr, POSITION y, POSITION x)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_DOORS)) {
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_DOORS)) {
         place_bold(player_ptr, y, x, GB_FLOOR);
         return;
     }
 
-    set_cave_feat(floor_ptr, y, x, feat_locked_door_random(d_info[player_ptr->dungeon_idx].flags.has(DF::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR));
+    set_cave_feat(floor_ptr, y, x, feat_locked_door_random(dungeons_info[player_ptr->dungeon_idx].flags.has(DungeonFeatureType::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR));
     floor_ptr->grid_array[y][x].info &= ~(CAVE_FLOOR);
     delete_monster(player_ptr, y, x);
 }
@@ -118,20 +118,20 @@ void place_locked_door(player_type *player_ptr, POSITION y, POSITION x)
  * @param x ドアの配置を試みたいマスのX座標
  * @param room 部屋に接している場合向けのドア生成か否か
  */
-void place_random_door(player_type *player_ptr, POSITION y, POSITION x, bool room)
+void place_random_door(PlayerType *player_ptr, POSITION y, POSITION x, bool room)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    grid_type *g_ptr = &floor_ptr->grid_array[y][x];
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    auto *g_ptr = &floor_ptr->grid_array[y][x];
     g_ptr->mimic = 0;
 
-    if (d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_DOORS)) {
+    if (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_DOORS)) {
         place_bold(player_ptr, y, x, GB_FLOOR);
         return;
     }
 
-    int type = (d_info[floor_ptr->dungeon_idx].flags.has(DF::CURTAIN) && one_in_(d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_CAVE) ? 16 : 256))
-        ? DOOR_CURTAIN
-        : (d_info[floor_ptr->dungeon_idx].flags.has(DF::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
+    int type = (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::CURTAIN) && one_in_(dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_CAVE) ? 16 : 256))
+                   ? DOOR_CURTAIN
+                   : (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::GLASS_DOOR) ? DOOR_GLASS_DOOR : DOOR_DOOR);
 
     int tmp = randint0(1000);
     FEAT_IDX feat = feat_none;
@@ -145,7 +145,7 @@ void place_random_door(player_type *player_ptr, POSITION y, POSITION x, bool roo
         if (type != DOOR_CURTAIN) {
             g_ptr->mimic = room ? feat_wall_outer : feat_wall_type[randint0(100)];
             if (feat_supports_los(g_ptr->mimic) && !feat_supports_los(g_ptr->feat)) {
-                if (f_info[g_ptr->mimic].flags.has(FF::MOVE) || f_info[g_ptr->mimic].flags.has(FF::CAN_FLY)) {
+                if (terrains_info[g_ptr->mimic].flags.has(TerrainCharacteristics::MOVE) || terrains_info[g_ptr->mimic].flags.has(TerrainCharacteristics::CAN_FLY)) {
                     g_ptr->feat = one_in_(2) ? g_ptr->mimic : feat_ground_type[randint0(100)];
                 }
                 g_ptr->mimic = 0;
@@ -176,10 +176,10 @@ void place_random_door(player_type *player_ptr, POSITION y, POSITION x, bool roo
  * @param x ドアの配置を試みたいマスのX座標
  * @param type ドアの地形ID
  */
-void place_closed_door(player_type *player_ptr, POSITION y, POSITION x, int type)
+void place_closed_door(PlayerType *player_ptr, POSITION y, POSITION x, int type)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (d_info[floor_ptr->dungeon_idx].flags.has(DF::NO_DOORS)) {
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (dungeons_info[floor_ptr->dungeon_idx].flags.has(DungeonFeatureType::NO_DOORS)) {
         place_bold(player_ptr, y, x, GB_FLOOR);
         return;
     }

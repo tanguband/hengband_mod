@@ -14,7 +14,7 @@
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
-PlayerConstitution::PlayerConstitution(player_type *player_ptr)
+PlayerConstitution::PlayerConstitution(PlayerType *player_ptr)
     : PlayerBasicStatistics(player_ptr)
 {
 }
@@ -31,22 +31,12 @@ void PlayerConstitution::set_locals()
 /*!
  * @brief 耐久力補正計算 - 種族
  * @return 耐久力補正値
- * @details
- * * 種族による耐久力修正値。
- * * エントは別途レベル26,41,46到達ごとに加算(+1)
  */
-int16_t PlayerConstitution::race_value()
+int16_t PlayerConstitution::race_bonus()
 {
-    int16_t result = PlayerBasicStatistics::race_value();
+    int16_t result = PlayerBasicStatistics::race_bonus();
 
-    if (PlayerRace(this->player_ptr).equals(PlayerRaceType::ENT)) {
-        if (this->player_ptr->lev > 25)
-            result++;
-        if (this->player_ptr->lev > 40)
-            result++;
-        if (this->player_ptr->lev > 45)
-            result++;
-    }
+    result += PlayerRace(this->player_ptr).additional_constitution();
 
     return result;
 }
@@ -58,7 +48,7 @@ int16_t PlayerConstitution::race_value()
  * * 一時効果による耐久力修正値
  * * 呪術の肉体強化で加算(+4)
  */
-int16_t PlayerConstitution::time_effect_value()
+int16_t PlayerConstitution::time_effect_bonus()
 {
     int16_t result = 0;
 
@@ -82,20 +72,20 @@ int16_t PlayerConstitution::time_effect_value()
  * * 朱雀の構えで減算(-2)
  * * ネオ・つよしスペシャル中で加算(+4)
  */
-int16_t PlayerConstitution::battleform_value()
+int16_t PlayerConstitution::stance_bonus()
 {
     int16_t result = 0;
 
     PlayerClass pc(player_ptr);
-    if (pc.samurai_stance_is(SamuraiStance::KOUKIJIN)) {
+    if (pc.samurai_stance_is(SamuraiStanceType::KOUKIJIN)) {
         result += 5;
     }
 
-    if (pc.monk_stance_is(MonkStance::BYAKKO)) {
+    if (pc.monk_stance_is(MonkStanceType::BYAKKO)) {
         result -= 3;
-    } else if (pc.monk_stance_is(MonkStance::GENBU)) {
+    } else if (pc.monk_stance_is(MonkStanceType::GENBU)) {
         result += 3;
-    } else if (pc.monk_stance_is(MonkStance::SUZAKU)) {
+    } else if (pc.monk_stance_is(MonkStanceType::SUZAKU)) {
         result -= 2;
     }
     if (this->player_ptr->tsuyoshi) {
@@ -115,24 +105,24 @@ int16_t PlayerConstitution::battleform_value()
  * * 変異MUT3_XTRA_FATで加算(+2)
  * * 変異MUT3_FLESH_ROTで減算(-2)
  */
-int16_t PlayerConstitution::mutation_value()
+int16_t PlayerConstitution::mutation_bonus()
 {
     int16_t result = 0;
 
     if (this->player_ptr->muta.any()) {
-        if (this->player_ptr->muta.has(MUTA::RESILIENT)) {
+        if (this->player_ptr->muta.has(PlayerMutationType::RESILIENT)) {
             result += 4;
         }
 
-        if (this->player_ptr->muta.has(MUTA::ALBINO)) {
+        if (this->player_ptr->muta.has(PlayerMutationType::ALBINO)) {
             result -= 4;
         }
 
-        if (this->player_ptr->muta.has(MUTA::XTRA_FAT)) {
+        if (this->player_ptr->muta.has(PlayerMutationType::XTRA_FAT)) {
             result += 2;
         }
 
-        if (this->player_ptr->muta.has(MUTA::FLESH_ROT)) {
+        if (this->player_ptr->muta.has(PlayerMutationType::FLESH_ROT)) {
             result -= 2;
         }
     }

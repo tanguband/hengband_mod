@@ -5,14 +5,14 @@
 
 #include "main/game-data-initializer.h"
 #include "cmd-io/macro-util.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "floor/floor-util.h"
 #include "game-option/option-flags.h"
 #include "game-option/option-types-table.h"
 #include "monster-race/monster-race.h"
-#include "object/object-kind.h"
 #include "system/alloc-entries.h"
+#include "system/baseitem-info-definition.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
@@ -33,16 +33,11 @@
  */
 constexpr int MACRO_MAX = 256;
 
-/*!
- * @brief クエスト情報初期化のメインルーチン /
- * Initialize quest array
- * @return エラーコード
- */
-void init_quests(void)
+static void init_gf_colors()
 {
-    quest.assign(max_q_idx, {});
-    for (auto &q_ref : quest) {
-        q_ref.status = QuestStatusType::UNTAKEN;
+    constexpr ushort default_gf_color = 0;
+    for (auto i = 0; i < enum2i(AttributeType::MAX); i++) {
+        gf_colors.emplace(i2enum<AttributeType>(i), default_gf_color);
     }
 }
 
@@ -51,7 +46,7 @@ void init_quests(void)
  * Initialize some other arrays
  * @return エラーコード
  */
-void init_other(player_type *player_ptr)
+void init_other(PlayerType *player_ptr)
 {
     player_ptr->current_floor_ptr = &floor_info; // TODO:本当はこんなところで初期化したくない
     auto *floor_ptr = player_ptr->current_floor_ptr;
@@ -61,8 +56,9 @@ void init_other(player_type *player_ptr)
         list.assign(w_ptr->max_m_idx, {});
     }
 
-    max_dlv.assign(d_info.size(), {});
+    max_dlv.assign(dungeons_info.size(), {});
     floor_ptr->grid_array.assign(MAX_HGT, std::vector<grid_type>(MAX_WID));
+    init_gf_colors();
 
     macro__pat.assign(MACRO_MAX, {});
     macro__act.assign(MACRO_MAX, {});
@@ -111,7 +107,7 @@ static void init_object_alloc(void)
 {
     int16_t num[MAX_DEPTH]{};
     auto alloc_kind_size = 0;
-    for (const auto &k_ref : k_info) {
+    for (const auto &k_ref : baseitems_info) {
         for (auto j = 0; j < 4; j++) {
             if (k_ref.chance[j]) {
                 alloc_kind_size++;
@@ -130,7 +126,7 @@ static void init_object_alloc(void)
 
     alloc_kind_table.assign(alloc_kind_size, {});
     int16_t aux[MAX_DEPTH]{};
-    for (const auto &k_ref : k_info) {
+    for (const auto &k_ref : baseitems_info) {
         for (auto j = 0; j < 4; j++) {
             if (k_ref.chance[j] == 0) {
                 continue;
@@ -156,18 +152,18 @@ static void init_object_alloc(void)
  */
 void init_alloc(void)
 {
-    std::vector<tag_type> elements(r_info.size());
-    for (const auto &r_ref : r_info) {
-        if (r_ref.idx > 0) {
-            elements[r_ref.idx].tag = r_ref.level;
-            elements[r_ref.idx].index = r_ref.idx;
+    std::vector<tag_type> elements(monraces_info.size());
+    for (const auto &[r_idx, r_ref] : monraces_info) {
+        if (MonsterRace(r_ref.idx).is_valid()) {
+            elements[enum2i(r_ref.idx)].tag = r_ref.level;
+            elements[enum2i(r_ref.idx)].index = enum2i(r_ref.idx);
         }
     }
 
     tag_sort(elements.data(), elements.size());
-    alloc_race_table.assign(r_info.size(), {});
-    for (auto i = 1U; i < r_info.size(); i++) {
-        auto *r_ptr = &r_info[elements[i].index];
+    alloc_race_table.assign(monraces_info.size(), {});
+    for (auto i = 1U; i < monraces_info.size(); i++) {
+        auto *r_ptr = &monraces_info[i2enum<MonsterRaceId>(elements[i].index)];
         if (r_ptr->rarity == 0) {
             continue;
         }

@@ -13,7 +13,7 @@
  */
 
 #include "main/angband-initializer.h"
-#include "dungeon/dungeon.h"
+#include "dungeon/quest.h"
 #include "floor/wild.h"
 #include "info-reader/feature-reader.h"
 #include "io/files-util.h"
@@ -25,6 +25,7 @@
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags7.h"
 #include "system/angband-version.h"
+#include "system/dungeon-info.h"
 #include "system/monster-race-definition.h"
 #include "system/system-variables.h"
 #include "term/screen-processor.h"
@@ -33,8 +34,11 @@
 #include "util/angband-files.h"
 #include "world/world.h"
 #ifndef WINDOWS
-#include <dirent.h>
 #include "util/string-processor.h"
+#include <dirent.h>
+#endif
+#ifdef PRIVATE_USER_PATH
+#include <string>
 #endif
 
 /*!
@@ -87,7 +91,7 @@ void init_file_paths(char *libpath, char *varpath)
     path_build(buf, sizeof(buf), ANGBAND_DIR_SAVE, "log");
     ANGBAND_DIR_DEBUG_SAVE = string_make(buf);
 #ifdef PRIVATE_USER_PATH
-    path_build(buf, sizeof(buf), PRIVATE_USER_PATH, VERSION_NAME);
+    path_build(buf, sizeof(buf), PRIVATE_USER_PATH, VARIANT_NAME.data());
     ANGBAND_DIR_USER = string_make(buf);
 #else
     strcpy(vartail, "user");
@@ -136,7 +140,7 @@ void init_file_paths(char *libpath, char *varpath)
                      * 7*24*60*60 seconds.
                      */
                     if (stat(path, &next_stat) == 0 &&
-                            difftime(now, next_stat.st_mtime) > 604800) {
+                        difftime(now, next_stat.st_mtime) > 604800) {
                         remove(path);
                     }
                 }
@@ -208,7 +212,7 @@ static void put_title(void)
  * @param no_term TRUEならゲーム画面無しの状態で初期化を行う。
  *                コマンドラインからスポイラーの出力のみを行う時の使用を想定する。
  */
-void init_angband(player_type *player_ptr, bool no_term)
+void init_angband(PlayerType *player_ptr, bool no_term)
 {
     char buf[1024];
     path_build(buf, sizeof(buf), ANGBAND_DIR_FILE, _("news_j.txt", "news.txt"));
@@ -229,8 +233,9 @@ void init_angband(player_type *player_ptr, bool no_term)
         fp = angband_fopen(buf, "r");
         if (fp) {
             int i = 0;
-            while (0 == angband_fgets(fp, buf, sizeof(buf)))
+            while (0 == angband_fgets(fp, buf, sizeof(buf))) {
                 term_putstr(0, i++, -1, TERM_WHITE, buf);
+            }
 
             angband_fclose(fp);
         }
@@ -260,51 +265,64 @@ void init_angband(player_type *player_ptr, bool no_term)
     void (*init_note)(concptr) = (no_term ? init_note_no_term : init_note_term);
 
     init_note(_("[変数を初期化しています...(その他)", "[Initializing values... (misc)]"));
-    if (init_misc(player_ptr))
+    if (init_misc(player_ptr)) {
         quit(_("その他の変数を初期化できません", "Cannot initialize misc. values"));
+    }
 
     init_note(_("[データの初期化中... (地形)]", "[Initializing arrays... (features)]"));
-    if (init_f_info())
+    if (init_terrains_info()) {
         quit(_("地形初期化不能", "Cannot initialize features"));
+    }
 
-    if (init_feat_variables())
+    if (init_feat_variables()) {
         quit(_("地形初期化不能", "Cannot initialize features"));
+    }
 
     init_note(_("[データの初期化中... (アイテム)]", "[Initializing arrays... (objects)]"));
-    if (init_k_info())
+    if (init_baseitems_info()) {
         quit(_("アイテム初期化不能", "Cannot initialize objects"));
+    }
 
     init_note(_("[データの初期化中... (伝説のアイテム)]", "[Initializing arrays... (artifacts)]"));
-    if (init_a_info())
+    if (init_artifacts_info()) {
         quit(_("伝説のアイテム初期化不能", "Cannot initialize artifacts"));
+    }
 
     init_note(_("[データの初期化中... (名のあるアイテム)]", "[Initializing arrays... (ego-items)]"));
-    if (init_e_info())
+    if (init_egos_info()) {
         quit(_("名のあるアイテム初期化不能", "Cannot initialize ego-items"));
+    }
 
     init_note(_("[データの初期化中... (モンスター)]", "[Initializing arrays... (monsters)]"));
-    if (init_r_info())
+    if (init_monster_race_definitions()) {
         quit(_("モンスター初期化不能", "Cannot initialize monsters"));
+    }
 
     init_note(_("[データの初期化中... (ダンジョン)]", "[Initializing arrays... (dungeon)]"));
-    if (init_d_info())
+    if (init_dungeons_info()) {
         quit(_("ダンジョン初期化不能", "Cannot initialize dungeon"));
+    }
 
-    for (const auto &d_ref : d_info)
-        if (d_ref.idx > 0 && d_ref.final_guardian)
-            r_info[d_ref.final_guardian].flags7 |= RF7_GUARDIAN;
+    for (const auto &d_ref : dungeons_info) {
+        if (d_ref.idx > 0 && MonsterRace(d_ref.final_guardian).is_valid()) {
+            monraces_info[d_ref.final_guardian].flags7 |= RF7_GUARDIAN;
+        }
+    }
 
     init_note(_("[データの初期化中... (魔法)]", "[Initializing arrays... (magic)]"));
-    if (init_m_info())
+    if (init_class_magics_info()) {
         quit(_("魔法初期化不能", "Cannot initialize magic"));
+    }
 
     init_note(_("[データの初期化中... (熟練度)]", "[Initializing arrays... (skill)]"));
-    if (init_s_info())
+    if (init_class_skills_info()) {
         quit(_("熟練度初期化不能", "Cannot initialize skill"));
+    }
 
     init_note(_("[配列を初期化しています... (荒野)]", "[Initializing arrays... (wilderness)]"));
-    if (init_wilderness())
+    if (init_wilderness()) {
         quit(_("荒野を初期化できません", "Cannot initialize wilderness"));
+    }
 
     init_note(_("[配列を初期化しています... (街)]", "[Initializing arrays... (towns)]"));
     init_towns();
@@ -313,9 +331,10 @@ void init_angband(player_type *player_ptr, bool no_term)
     init_buildings();
 
     init_note(_("[配列を初期化しています... (クエスト)]", "[Initializing arrays... (quests)]"));
-    init_quests();
-    if (init_v_info())
+    QuestList::get_instance().initialize();
+    if (init_vaults_info()) {
         quit(_("vault 初期化不能", "Cannot initialize vaults"));
+    }
 
     init_note(_("[データの初期化中... (その他)]", "[Initializing arrays... (other)]"));
     init_other(player_ptr);

@@ -4,6 +4,7 @@
 #include "core/window-redrawer.h"
 #include "mutation/mutation-flag-types.h"
 #include "object/object-flags.h"
+#include "player-base/player-race.h"
 #include "player-info/class-info.h"
 #include "player-info/mimic-info-table.h"
 #include "player/player-personality.h"
@@ -16,7 +17,7 @@
 #include "util/bit-flags-calculator.h"
 #include "util/enum-converter.h"
 
-PlayerBasicStatistics::PlayerBasicStatistics(player_type *player_ptr)
+PlayerBasicStatistics::PlayerBasicStatistics(PlayerType *player_ptr)
     : PlayerStatusBase(player_ptr)
 {
 }
@@ -49,15 +50,9 @@ int16_t PlayerBasicStatistics::get_value()
  * @details
  * * 種族によるステータス修正値。
  */
-int16_t PlayerBasicStatistics::race_value()
+int16_t PlayerBasicStatistics::race_bonus()
 {
-    const player_race_info *tmp_rp_ptr;
-    if (this->player_ptr->mimic_form)
-        tmp_rp_ptr = &mimic_info[this->player_ptr->mimic_form];
-    else
-        tmp_rp_ptr = &race_info[enum2i(this->player_ptr->prace)];
-
-    return tmp_rp_ptr->r_adj[this->ability_type];
+    return PlayerRace(this->player_ptr).get_info()->r_adj[this->ability_type];
 }
 
 /*!
@@ -67,7 +62,7 @@ int16_t PlayerBasicStatistics::race_value()
  * @details
  * * 職業によるステータス修正値
  */
-int16_t PlayerBasicStatistics::class_value()
+int16_t PlayerBasicStatistics::class_bonus()
 {
     const player_class_info *c_ptr = &class_info[enum2i(this->player_ptr->pclass)];
     return c_ptr->c_adj[this->ability_type];
@@ -80,7 +75,7 @@ int16_t PlayerBasicStatistics::class_value()
  * @details
  * * 性格によるステータス修正値
  */
-int16_t PlayerBasicStatistics::personality_value()
+int16_t PlayerBasicStatistics::personality_bonus()
 {
     const player_personality *a_ptr = &personality_info[this->player_ptr->ppersonality];
     return a_ptr->a_adj[this->ability_type];
@@ -161,15 +156,17 @@ void PlayerBasicStatistics::update_index_status()
 {
     int status = (int)this->ability_type;
     int index;
-    if (this->player_ptr->stat_use[status] <= 18)
+    if (this->player_ptr->stat_use[status] <= 18) {
         index = (this->player_ptr->stat_use[status] - 3);
-    else if (this->player_ptr->stat_use[status] <= 18 + 219)
+    } else if (this->player_ptr->stat_use[status] <= 18 + 219) {
         index = (15 + (this->player_ptr->stat_use[status] - 18) / 10);
-    else
+    } else {
         index = (37);
+    }
 
-    if (this->player_ptr->stat_index[status] == index)
+    if (this->player_ptr->stat_index[status] == index) {
         return;
+    }
 
     this->player_ptr->stat_index[status] = (int16_t)index;
     if (status == A_CON) {

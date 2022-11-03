@@ -23,14 +23,16 @@
 /*!
  * @brief プレイヤーの歌に関する継続処理
  */
-void check_music(player_type *player_ptr)
+void check_music(PlayerType *player_ptr)
 {
-    if (player_ptr->pclass != PlayerClassType::BARD)
+    if (!PlayerClass(player_ptr).equals(PlayerClassType::BARD)) {
         return;
+    }
 
     auto interupting_song_effect = get_interrupting_song_effect(player_ptr);
-    if ((get_singing_song_effect(player_ptr) == 0) && (interupting_song_effect == 0))
+    if ((get_singing_song_effect(player_ptr) == 0) && (interupting_song_effect == 0)) {
         return;
+    }
 
     if (player_ptr->anti_magic) {
         stop_singing(player_ptr);
@@ -63,21 +65,9 @@ void check_music(player_type *player_ptr)
         }
     }
 
-    if (player_ptr->spell_exp[spell] < SPELL_EXP_BEGINNER)
-        player_ptr->spell_exp[spell] += 5;
-    else if (player_ptr->spell_exp[spell] < SPELL_EXP_SKILLED) {
-        if (one_in_(2) && (player_ptr->current_floor_ptr->dun_level > 4) && ((player_ptr->current_floor_ptr->dun_level + 10) > player_ptr->lev))
-            player_ptr->spell_exp[spell] += 1;
-    } else if (player_ptr->spell_exp[spell] < SPELL_EXP_EXPERT) {
-        if (one_in_(5) && ((player_ptr->current_floor_ptr->dun_level + 5) > player_ptr->lev)
-            && ((player_ptr->current_floor_ptr->dun_level + 5) > s_ptr->slevel))
-            player_ptr->spell_exp[spell] += 1;
-    } else if (player_ptr->spell_exp[spell] < SPELL_EXP_MASTER) {
-        if (one_in_(5) && ((player_ptr->current_floor_ptr->dun_level + 5) > player_ptr->lev) && (player_ptr->current_floor_ptr->dun_level > s_ptr->slevel))
-            player_ptr->spell_exp[spell] += 1;
-    }
+    PlayerSkill(player_ptr).gain_continuous_spell_skill_exp(REALM_MUSIC, spell);
 
-    exe_spell(player_ptr, REALM_MUSIC, spell, SPELL_CONTNUATION);
+    exe_spell(player_ptr, REALM_MUSIC, spell, SpellProcessType::CONTNUATION);
 }
 
 /*!
@@ -86,18 +76,21 @@ void check_music(player_type *player_ptr)
  * @param do_dec 現在の継続時間より長い値のみ上書きする
  * @return ステータスに影響を及ぼす変化があった場合TRUEを返す。
  */
-bool set_tim_stealth(player_type *player_ptr, TIME_EFFECT v, bool do_dec)
+bool set_tim_stealth(PlayerType *player_ptr, TIME_EFFECT v, bool do_dec)
 {
     bool notice = false;
-    v = (v > 10000) ? 10000 : (v < 0) ? 0 : v;
+    v = (v > 10000) ? 10000 : (v < 0) ? 0
+                                      : v;
 
-    if (player_ptr->is_dead)
+    if (player_ptr->is_dead) {
         return false;
+    }
 
     if (v) {
         if (player_ptr->tim_stealth && !do_dec) {
-            if (player_ptr->tim_stealth > v)
+            if (player_ptr->tim_stealth > v) {
                 return false;
+            }
         } else if (!is_time_limit_stealth(player_ptr)) {
             msg_print(_("足音が小さくなった！", "You begin to walk silently!"));
             notice = true;
@@ -112,11 +105,13 @@ bool set_tim_stealth(player_type *player_ptr, TIME_EFFECT v, bool do_dec)
     player_ptr->tim_stealth = v;
     player_ptr->redraw |= (PR_STATUS);
 
-    if (!notice)
+    if (!notice) {
         return false;
+    }
 
-    if (disturb_state)
+    if (disturb_state) {
         disturb(player_ptr, false, false);
+    }
     player_ptr->update |= (PU_BONUS);
     handle_stuff(player_ptr);
     return true;
@@ -125,42 +120,45 @@ bool set_tim_stealth(player_type *player_ptr, TIME_EFFECT v, bool do_dec)
 /*!
  * @brief 歌の停止を処理する / Stop singing if the player is a Bard
  */
-void stop_singing(player_type *player_ptr)
+void stop_singing(PlayerType *player_ptr)
 {
-    if (player_ptr->pclass != PlayerClassType::BARD)
+    if (!PlayerClass(player_ptr).equals(PlayerClassType::BARD)) {
         return;
+    }
 
     if (get_interrupting_song_effect(player_ptr) != 0) {
         set_interrupting_song_effect(player_ptr, MUSIC_NONE);
         return;
     }
 
-    if (get_singing_song_effect(player_ptr) == 0)
+    if (get_singing_song_effect(player_ptr) == 0) {
         return;
+    }
 
-    if (player_ptr->action == ACTION_SING)
+    if (player_ptr->action == ACTION_SING) {
         set_action(player_ptr, ACTION_NONE);
+    }
 
-    (void)exe_spell(player_ptr, REALM_MUSIC, get_singing_song_id(player_ptr), SPELL_STOP);
+    (void)exe_spell(player_ptr, REALM_MUSIC, get_singing_song_id(player_ptr), SpellProcessType::STOP);
     set_singing_song_effect(player_ptr, MUSIC_NONE);
     set_singing_song_id(player_ptr, 0);
     set_bits(player_ptr->update, PU_BONUS);
     set_bits(player_ptr->redraw, PR_STATUS);
 }
 
-bool music_singing(player_type *player_ptr, int music_songs)
+bool music_singing(PlayerType *player_ptr, int music_songs)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     return bird_data && (bird_data->singing_song == music_songs);
 }
 
-bool music_singing_any(player_type *player_ptr)
+bool music_singing_any(PlayerType *player_ptr)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     return bird_data && (bird_data->singing_song != MUSIC_NONE);
 }
 
-int32_t get_singing_song_effect(player_type *player_ptr)
+int32_t get_singing_song_effect(PlayerType *player_ptr)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {
@@ -170,7 +168,7 @@ int32_t get_singing_song_effect(player_type *player_ptr)
     return bird_data->singing_song;
 }
 
-void set_singing_song_effect(player_type *player_ptr, const int32_t magic_num)
+void set_singing_song_effect(PlayerType *player_ptr, const int32_t magic_num)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {
@@ -180,7 +178,7 @@ void set_singing_song_effect(player_type *player_ptr, const int32_t magic_num)
     bird_data->singing_song = i2enum<realm_song_type>(magic_num);
 }
 
-int32_t get_interrupting_song_effect(player_type *player_ptr)
+int32_t get_interrupting_song_effect(PlayerType *player_ptr)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {
@@ -190,7 +188,7 @@ int32_t get_interrupting_song_effect(player_type *player_ptr)
     return bird_data->interrputing_song;
 }
 
-void set_interrupting_song_effect(player_type *player_ptr, const int32_t magic_num)
+void set_interrupting_song_effect(PlayerType *player_ptr, const int32_t magic_num)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {
@@ -200,7 +198,7 @@ void set_interrupting_song_effect(player_type *player_ptr, const int32_t magic_n
     bird_data->interrputing_song = i2enum<realm_song_type>(magic_num);
 }
 
-int32_t get_singing_count(player_type *player_ptr)
+int32_t get_singing_count(PlayerType *player_ptr)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {
@@ -210,7 +208,7 @@ int32_t get_singing_count(player_type *player_ptr)
     return bird_data->singing_duration;
 }
 
-void set_singing_count(player_type *player_ptr, const int32_t magic_num)
+void set_singing_count(PlayerType *player_ptr, const int32_t magic_num)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {
@@ -220,7 +218,7 @@ void set_singing_count(player_type *player_ptr, const int32_t magic_num)
     bird_data->singing_duration = magic_num;
 }
 
-byte get_singing_song_id(player_type *player_ptr)
+byte get_singing_song_id(PlayerType *player_ptr)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {
@@ -230,7 +228,7 @@ byte get_singing_song_id(player_type *player_ptr)
     return bird_data->singing_song_spell_idx;
 }
 
-void set_singing_song_id(player_type *player_ptr, const byte magic_num)
+void set_singing_song_id(PlayerType *player_ptr, const byte magic_num)
 {
     auto bird_data = PlayerClass(player_ptr).get_specific_data<bard_data_type>();
     if (!bird_data) {

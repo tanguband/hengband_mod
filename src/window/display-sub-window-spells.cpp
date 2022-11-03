@@ -5,6 +5,7 @@
 #include "mind/mind-info.h"
 #include "mind/mind-sniper.h"
 #include "mind/mind-types.h"
+#include "player-base/player-class.h"
 #include "player-info/class-info.h"
 #include "player/player-status-table.h"
 #include "realm/realm-names-table.h"
@@ -26,7 +27,7 @@
  * Need to analyze size of the window.
  * Need more color coding.
  */
-static void display_spell_list(player_type *player_ptr)
+static void display_spell_list(PlayerType *player_ptr)
 {
     TERM_LEN y, x;
     int m[9];
@@ -36,24 +37,24 @@ static void display_spell_list(player_type *player_ptr)
 
     clear_from(0);
 
-    if (player_ptr->pclass == PlayerClassType::SORCERER)
+    PlayerClass pc(player_ptr);
+    if (pc.is_every_magic()) {
         return;
-    if (player_ptr->pclass == PlayerClassType::RED_MAGE)
-        return;
-    if (player_ptr->pclass == PlayerClassType::SNIPER) {
+    }
+
+    if (pc.equals(PlayerClassType::SNIPER)) {
         display_snipe_list(player_ptr);
         return;
     }
 
-    if ((player_ptr->pclass == PlayerClassType::MINDCRAFTER) || (player_ptr->pclass == PlayerClassType::BERSERKER) || (player_ptr->pclass == PlayerClassType::NINJA)
-        || (player_ptr->pclass == PlayerClassType::MIRROR_MASTER) || (player_ptr->pclass == PlayerClassType::FORCETRAINER) || player_ptr->pclass == PlayerClassType::ELEMENTALIST) {
+    if (pc.has_listed_magics()) {
         PERCENTAGE minfail = 0;
         PLAYER_LEVEL plev = player_ptr->lev;
         PERCENTAGE chance = 0;
         mind_type spell;
         char comment[80];
         char psi_desc[160];
-        mind_kind_type use_mind;
+        MindKindType use_mind;
         bool use_hp = false;
 
         y = 1;
@@ -65,35 +66,36 @@ static void display_spell_list(player_type *player_ptr)
 
         switch (player_ptr->pclass) {
         case PlayerClassType::MINDCRAFTER:
-            use_mind = mind_kind_type::MINDCRAFTER;
+            use_mind = MindKindType::MINDCRAFTER;
             break;
         case PlayerClassType::FORCETRAINER:
-            use_mind = mind_kind_type::KI;
+            use_mind = MindKindType::KI;
             break;
         case PlayerClassType::BERSERKER:
-            use_mind = mind_kind_type::BERSERKER;
+            use_mind = MindKindType::BERSERKER;
             use_hp = true;
             break;
         case PlayerClassType::MIRROR_MASTER:
-            use_mind = mind_kind_type::MIRROR_MASTER;
+            use_mind = MindKindType::MIRROR_MASTER;
             break;
         case PlayerClassType::NINJA:
-            use_mind = mind_kind_type::NINJUTSU;
+            use_mind = MindKindType::NINJUTSU;
             use_hp = true;
             break;
         case PlayerClassType::ELEMENTALIST:
-            use_mind = mind_kind_type::ELEMENTAL;
+            use_mind = MindKindType::ELEMENTAL;
             break;
         default:
-            use_mind = mind_kind_type::MINDCRAFTER;
+            use_mind = MindKindType::MINDCRAFTER;
             break;
         }
 
         for (int i = 0; i < MAX_MIND_POWERS; i++) {
             byte a = TERM_WHITE;
             spell = mind_powers[static_cast<int>(use_mind)].info[i];
-            if (spell.min_lev > plev)
+            if (spell.min_lev > plev) {
                 break;
+            }
 
             chance = spell.fail;
             chance -= 3 * (player_ptr->lev - spell.min_lev);
@@ -111,8 +113,9 @@ static void display_spell_list(player_type *player_ptr)
             }
 
             minfail = adj_mag_fail[player_ptr->stat_index[mp_ptr->spell_stat]];
-            if (chance < minfail)
+            if (chance < minfail) {
                 chance = minfail;
+            }
 
             auto player_stun = player_ptr->effects()->stun();
             chance += player_stun->get_magic_chance_penalty();
@@ -129,8 +132,9 @@ static void display_spell_list(player_type *player_ptr)
         return;
     }
 
-    if (REALM_NONE == player_ptr->realm1)
+    if (REALM_NONE == player_ptr->realm1) {
         return;
+    }
 
     for (int j = 0; j < ((player_ptr->realm2 > REALM_NONE) ? 2 : 1); j++) {
         m[j] = 0;
@@ -146,7 +150,7 @@ static void display_spell_list(player_type *player_ptr)
                 s_ptr = &mp_ptr->info[((j < 1) ? player_ptr->realm1 : player_ptr->realm2) - 1][i % 32];
             }
 
-            strcpy(name, exe_spell(player_ptr, (j < 1) ? player_ptr->realm1 : player_ptr->realm2, i % 32, SPELL_NAME));
+            strcpy(name, exe_spell(player_ptr, (j < 1) ? player_ptr->realm1 : player_ptr->realm2, i % 32, SpellProcessType::NAME));
 
             if (s_ptr->slevel >= 99) {
                 strcpy(name, _("(判読不能)", "(illegible)"));
@@ -173,15 +177,17 @@ static void display_spell_list(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * Hack -- display spells in sub-windows
  */
-void fix_spell(player_type *player_ptr)
+void fix_spell(PlayerType *player_ptr)
 {
     for (int j = 0; j < 8; j++) {
-        term_type *old = Term;
-        if (!angband_term[j])
+        term_type *old = game_term;
+        if (!angband_term[j]) {
             continue;
+        }
 
-        if (!(window_flag[j] & (PW_SPELL)))
+        if (!(window_flag[j] & (PW_SPELL))) {
             continue;
+        }
 
         term_activate(angband_term[j]);
         display_spell_list(player_ptr);

@@ -1,7 +1,6 @@
 ﻿#include "target/target-describer.h"
 #include "action/travel-execution.h"
 #include "core/stuff-handler.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "flavor/flavor-describer.h"
 #include "floor/cave.h"
@@ -9,7 +8,6 @@
 #include "floor/floor-town.h"
 #include "floor/geometry.h"
 #include "floor/object-scanner.h"
-#include "game-option/game-play-options.h"
 #include "game-option/input-options.h"
 #include "grid/feature.h"
 #include "grid/grid.h"
@@ -25,8 +23,10 @@
 #include "monster/monster-flag-types.h"
 #include "object/item-tester-hooker.h"
 #include "object/object-mark-types.h"
+#include "player-base/player-race.h"
 #include "player/player-status-table.h"
 #include "system/building-type-definition.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/monster-race-definition.h"
@@ -34,21 +34,25 @@
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "system/system-variables.h"
+#include "system/terrain-type-definition.h"
 #include "target/target-types.h"
 #include "term/screen-processor.h"
 #include "term/term-color-types.h"
+#include "timed-effect/player-hallucination.h"
+#include "timed-effect/timed-effects.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-lore.h"
 #include "view/display-messages.h"
 #include "view/display-monster-status.h"
 #include "window/display-sub-windows.h"
+#include "world/world.h"
 
 static const int16_t CONTINUOUS_DESCRIPTION = 256;
 
 bool show_gold_on_floor = false;
 
 // Examine grid
-typedef struct eg_type {
+struct eg_type {
     POSITION y;
     POSITION x;
     target_type mode;
@@ -66,11 +70,11 @@ typedef struct eg_type {
     monster_type *m_ptr;
     OBJECT_IDX next_o_idx;
     FEAT_IDX feat;
-    feature_type *f_ptr;
+    TerrainType *f_ptr;
     concptr name;
-} eg_type;
+};
 
-static eg_type *initialize_eg_type(player_type *player_ptr, eg_type *eg_ptr, POSITION y, POSITION x, target_type mode, concptr info)
+static eg_type *initialize_eg_type(PlayerType *player_ptr, eg_type *eg_ptr, POSITION y, POSITION x, target_type mode, concptr info)
 {
     eg_ptr->y = y;
     eg_ptr->x = x;
@@ -84,7 +88,7 @@ static eg_type *initialize_eg_type(player_type *player_ptr, eg_type *eg_ptr, POS
     eg_ptr->query = '\001';
     eg_ptr->floor_num = 0;
 
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     eg_ptr->g_ptr = &floor_ptr->grid_array[y][x];
     eg_ptr->m_ptr = &floor_ptr->m_list[eg_ptr->g_ptr->m_idx];
     eg_ptr->next_o_idx = 0;
@@ -94,16 +98,16 @@ static eg_type *initialize_eg_type(player_type *player_ptr, eg_type *eg_ptr, POS
 /*
  * Evaluate number of kill needed to gain level
  */
-static void evaluate_monster_exp(player_type *player_ptr, char *buf, monster_type *m_ptr)
+static void evaluate_monster_exp(PlayerType *player_ptr, char *buf, monster_type *m_ptr)
 {
-    monster_race *ap_r_ptr = &r_info[m_ptr->ap_r_idx];
-    if ((player_ptr->lev >= PY_MAX_LEVEL) || (player_ptr->prace == PlayerRaceType::ANDROID)) {
+    monster_race *ap_r_ptr = &monraces_info[m_ptr->ap_r_idx];
+    if ((player_ptr->lev >= PY_MAX_LEVEL) || PlayerRace(player_ptr).equals(PlayerRaceType::ANDROID)) {
         sprintf(buf, "**");
         return;
     }
 
-    if (!ap_r_ptr->r_tkills || m_ptr->mflag2.has(MFLAG2::KAGE)) {
-        if (!allow_debug_options) {
+    if (!ap_r_ptr->r_tkills || m_ptr->mflag2.has(MonsterConstantFlagType::KAGE)) {
+        if (!w_ptr->wizard) {
             sprintf(buf, "??");
             return;
         }
@@ -128,17 +132,19 @@ static void evaluate_monster_exp(player_type *player_ptr, char *buf, monster_typ
     sprintf(buf, "%03ld", (long int)num);
 }
 
-static void describe_scan_result(player_type *player_ptr, eg_type *eg_ptr)
+static void describe_scan_result(PlayerType *player_ptr, eg_type *eg_ptr)
 {
-    if (!easy_floor)
+    if (!easy_floor) {
         return;
+    }
 
     eg_ptr->floor_num = scan_floor_items(player_ptr, eg_ptr->floor_list, eg_ptr->y, eg_ptr->x, SCAN_FLOOR_ONLY_MARKED, AllMatchItemTester());
-    if (eg_ptr->floor_num > 0)
+    if (eg_ptr->floor_num > 0) {
         eg_ptr->x_info = _("x物 ", "x,");
+    }
 }
 
-static void describe_target(player_type *player_ptr, eg_type *eg_ptr)
+static void describe_target(PlayerType *player_ptr, eg_type *eg_ptr)
 {
     if (!player_bold(player_ptr, eg_ptr->y, eg_ptr->x)) {
         eg_ptr->s1 = _("ターゲット:", "Target:");
@@ -155,10 +161,11 @@ static void describe_target(player_type *player_ptr, eg_type *eg_ptr)
 #endif
 }
 
-static process_result describe_hallucinated_target(player_type *player_ptr, eg_type *eg_ptr)
+static ProcessResult describe_hallucinated_target(PlayerType *player_ptr, eg_type *eg_ptr)
 {
-    if (!player_ptr->hallucinated)
-        return PROCESS_CONTINUE;
+    if (!player_ptr->effects()->hallucination()->is_hallucinated()) {
+        return ProcessResult::PROCESS_CONTINUE;
+    }
 
     concptr name = _("何か奇妙な物", "something strange");
 #ifdef JP
@@ -169,13 +176,14 @@ static process_result describe_hallucinated_target(player_type *player_ptr, eg_t
     prt(eg_ptr->out_val, 0, 0);
     move_cursor_relative(eg_ptr->y, eg_ptr->x);
     eg_ptr->query = inkey();
-    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n'))
-        return PROCESS_TRUE;
+    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n')) {
+        return ProcessResult::PROCESS_TRUE;
+    }
 
-    return PROCESS_FALSE;
+    return ProcessResult::PROCESS_FALSE;
 }
 
-static bool describe_grid_lore(player_type *player_ptr, eg_type *eg_ptr)
+static bool describe_grid_lore(PlayerType *player_ptr, eg_type *eg_ptr)
 {
     screen_save();
     screen_roff(player_ptr, eg_ptr->m_ptr->ap_r_idx, MONSTER_LORE_NORMAL);
@@ -185,7 +193,7 @@ static bool describe_grid_lore(player_type *player_ptr, eg_type *eg_ptr)
     return eg_ptr->query != 'r';
 }
 
-static void describe_grid_monster(player_type *player_ptr, eg_type *eg_ptr)
+static void describe_grid_monster(PlayerType *player_ptr, eg_type *eg_ptr)
 {
     bool recall = false;
     GAME_TEXT m_name[MAX_NLEN];
@@ -193,8 +201,9 @@ static void describe_grid_monster(player_type *player_ptr, eg_type *eg_ptr)
     while (true) {
         char acount[10];
         if (recall) {
-            if (describe_grid_lore(player_ptr, eg_ptr))
+            if (describe_grid_lore(player_ptr, eg_ptr)) {
                 return;
+            }
 
             recall = false;
             continue;
@@ -211,8 +220,9 @@ static void describe_grid_monster(player_type *player_ptr, eg_type *eg_ptr)
         prt(eg_ptr->out_val, 0, 0);
         move_cursor_relative(eg_ptr->y, eg_ptr->x);
         eg_ptr->query = inkey();
-        if (eg_ptr->query != 'r')
+        if (eg_ptr->query != 'r') {
             return;
+        }
 
         recall = true;
     }
@@ -220,12 +230,13 @@ static void describe_grid_monster(player_type *player_ptr, eg_type *eg_ptr)
 
 static void describe_monster_person(eg_type *eg_ptr)
 {
-    monster_race *ap_r_ptr = &r_info[eg_ptr->m_ptr->ap_r_idx];
+    monster_race *ap_r_ptr = &monraces_info[eg_ptr->m_ptr->ap_r_idx];
     eg_ptr->s1 = _("それは", "It is ");
-    if (ap_r_ptr->flags1 & RF1_FEMALE)
+    if (ap_r_ptr->flags1 & RF1_FEMALE) {
         eg_ptr->s1 = _("彼女は", "She is ");
-    else if (ap_r_ptr->flags1 & RF1_MALE)
+    } else if (ap_r_ptr->flags1 & RF1_MALE) {
         eg_ptr->s1 = _("彼は", "He is ");
+    }
 
 #ifdef JP
     eg_ptr->s2 = "を";
@@ -235,11 +246,11 @@ static void describe_monster_person(eg_type *eg_ptr)
 #endif
 }
 
-static uint16_t describe_monster_item(player_type *player_ptr, eg_type *eg_ptr)
+static uint16_t describe_monster_item(PlayerType *player_ptr, eg_type *eg_ptr)
 {
     for (const auto this_o_idx : eg_ptr->m_ptr->hold_o_idx_list) {
         GAME_TEXT o_name[MAX_NLEN];
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &player_ptr->current_floor_ptr->o_list[this_o_idx];
         describe_flavor(player_ptr, o_name, o_ptr, 0);
 #ifdef JP
@@ -250,11 +261,13 @@ static uint16_t describe_monster_item(player_type *player_ptr, eg_type *eg_ptr)
         prt(eg_ptr->out_val, 0, 0);
         move_cursor_relative(eg_ptr->y, eg_ptr->x);
         eg_ptr->query = inkey();
-        if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n') && (eg_ptr->query != ' ') && (eg_ptr->query != 'x'))
+        if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n') && (eg_ptr->query != ' ') && (eg_ptr->query != 'x')) {
             return eg_ptr->query;
+        }
 
-        if ((eg_ptr->query == ' ') && !(eg_ptr->mode & TARGET_LOOK))
+        if ((eg_ptr->query == ' ') && !(eg_ptr->mode & TARGET_LOOK)) {
             return eg_ptr->query;
+        }
 
         eg_ptr->s2 = _("をまた", "also carrying ");
     }
@@ -267,26 +280,30 @@ static bool within_char_util(int16_t input)
     return (input > -127) && (input < 128);
 }
 
-static int16_t describe_grid(player_type *player_ptr, eg_type *eg_ptr)
+static int16_t describe_grid(PlayerType *player_ptr, eg_type *eg_ptr)
 {
-    if ((eg_ptr->g_ptr->m_idx == 0) || !player_ptr->current_floor_ptr->m_list[eg_ptr->g_ptr->m_idx].ml)
+    if ((eg_ptr->g_ptr->m_idx == 0) || !player_ptr->current_floor_ptr->m_list[eg_ptr->g_ptr->m_idx].ml) {
         return CONTINUOUS_DESCRIPTION;
+    }
 
     eg_ptr->boring = false;
     monster_race_track(player_ptr, eg_ptr->m_ptr->ap_r_idx);
     health_track(player_ptr, eg_ptr->g_ptr->m_idx);
     handle_stuff(player_ptr);
     describe_grid_monster(player_ptr, eg_ptr);
-    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n') && (eg_ptr->query != ' ') && (eg_ptr->query != 'x'))
+    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n') && (eg_ptr->query != ' ') && (eg_ptr->query != 'x')) {
         return eg_ptr->query;
+    }
 
-    if ((eg_ptr->query == ' ') && !(eg_ptr->mode & TARGET_LOOK))
+    if ((eg_ptr->query == ' ') && !(eg_ptr->mode & TARGET_LOOK)) {
         return eg_ptr->query;
+    }
 
     describe_monster_person(eg_ptr);
     uint16_t monster_item_description = describe_monster_item(player_ptr, eg_ptr);
-    if (within_char_util(monster_item_description))
+    if (within_char_util(monster_item_description)) {
         return (char)monster_item_description;
+    }
 
 #ifdef JP
     eg_ptr->s2 = "の上";
@@ -297,13 +314,14 @@ static int16_t describe_grid(player_type *player_ptr, eg_type *eg_ptr)
     return CONTINUOUS_DESCRIPTION;
 }
 
-static int16_t describe_footing(player_type *player_ptr, eg_type *eg_ptr)
+static int16_t describe_footing(PlayerType *player_ptr, eg_type *eg_ptr)
 {
-    if (eg_ptr->floor_num != 1)
+    if (eg_ptr->floor_num != 1) {
         return CONTINUOUS_DESCRIPTION;
+    }
 
     GAME_TEXT o_name[MAX_NLEN];
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     o_ptr = &player_ptr->current_floor_ptr->o_list[eg_ptr->floor_list[0]];
     describe_flavor(player_ptr, o_name, o_ptr, 0);
 #ifdef JP
@@ -319,8 +337,9 @@ static int16_t describe_footing(player_type *player_ptr, eg_type *eg_ptr)
 
 static int16_t describe_footing_items(eg_type *eg_ptr)
 {
-    if (!eg_ptr->boring)
+    if (!eg_ptr->boring) {
         return CONTINUOUS_DESCRIPTION;
+    }
 
 #ifdef JP
     sprintf(eg_ptr->out_val, "%s %d個のアイテム%s%s ['x'で一覧, %s]", eg_ptr->s1, (int)eg_ptr->floor_num, eg_ptr->s2, eg_ptr->s3, eg_ptr->info);
@@ -330,13 +349,14 @@ static int16_t describe_footing_items(eg_type *eg_ptr)
     prt(eg_ptr->out_val, 0, 0);
     move_cursor_relative(eg_ptr->y, eg_ptr->x);
     eg_ptr->query = inkey();
-    if (eg_ptr->query != 'x' && eg_ptr->query != ' ')
+    if (eg_ptr->query != 'x' && eg_ptr->query != ' ') {
         return eg_ptr->query;
+    }
 
     return CONTINUOUS_DESCRIPTION;
 }
 
-static char describe_footing_many_items(player_type *player_ptr, eg_type *eg_ptr, int *min_width)
+static char describe_footing_many_items(PlayerType *player_ptr, eg_type *eg_ptr, int *min_width)
 {
     while (true) {
         screen_save();
@@ -351,11 +371,13 @@ static char describe_footing_many_items(player_type *player_ptr, eg_type *eg_ptr
         prt(eg_ptr->out_val, 0, 0);
         eg_ptr->query = inkey();
         screen_load();
-        if (eg_ptr->query != '\n' && eg_ptr->query != '\r')
+        if (eg_ptr->query != '\n' && eg_ptr->query != '\r') {
             return eg_ptr->query;
+        }
 
-        if (eg_ptr->g_ptr->o_idx_list.size() < 2)
+        if (eg_ptr->g_ptr->o_idx_list.size() < 2) {
             continue;
+        }
 
         eg_ptr->g_ptr->o_idx_list.rotate(player_ptr->current_floor_ptr);
 
@@ -364,29 +386,33 @@ static char describe_footing_many_items(player_type *player_ptr, eg_type *eg_ptr
     }
 }
 
-static int16_t loop_describing_grid(player_type *player_ptr, eg_type *eg_ptr)
+static int16_t loop_describing_grid(PlayerType *player_ptr, eg_type *eg_ptr)
 {
-    if (eg_ptr->floor_num == 0)
+    if (eg_ptr->floor_num == 0) {
         return CONTINUOUS_DESCRIPTION;
+    }
 
     int min_width = 0;
     while (true) {
         int16_t footing_description = describe_footing(player_ptr, eg_ptr);
-        if (within_char_util(footing_description))
+        if (within_char_util(footing_description)) {
             return (char)footing_description;
+        }
 
         int16_t footing_descriptions = describe_footing_items(eg_ptr);
-        if (within_char_util(footing_descriptions))
+        if (within_char_util(footing_descriptions)) {
             return (char)footing_descriptions;
+        }
 
         return describe_footing_many_items(player_ptr, eg_ptr, &min_width);
     }
 }
 
-static int16_t describe_footing_sight(player_type *player_ptr, eg_type *eg_ptr, object_type *o_ptr)
+static int16_t describe_footing_sight(PlayerType *player_ptr, eg_type *eg_ptr, ObjectType *o_ptr)
 {
-    if ((o_ptr->marked & OM_FOUND) == 0)
+    if ((o_ptr->marked & OM_FOUND) == 0) {
         return CONTINUOUS_DESCRIPTION;
+    }
 
     GAME_TEXT o_name[MAX_NLEN];
     eg_ptr->boring = false;
@@ -399,15 +425,18 @@ static int16_t describe_footing_sight(player_type *player_ptr, eg_type *eg_ptr, 
     prt(eg_ptr->out_val, 0, 0);
     move_cursor_relative(eg_ptr->y, eg_ptr->x);
     eg_ptr->query = inkey();
-    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n') && (eg_ptr->query != ' ') && (eg_ptr->query != 'x'))
+    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n') && (eg_ptr->query != ' ') && (eg_ptr->query != 'x')) {
         return eg_ptr->query;
+    }
 
-    if ((eg_ptr->query == ' ') && !(eg_ptr->mode & TARGET_LOOK))
+    if ((eg_ptr->query == ' ') && !(eg_ptr->mode & TARGET_LOOK)) {
         return eg_ptr->query;
+    }
 
     eg_ptr->s1 = _("それは", "It is ");
-    if (o_ptr->number != 1)
+    if (o_ptr->number != 1) {
         eg_ptr->s1 = _("それらは", "They are ");
+    }
 
 #ifdef JP
     eg_ptr->s2 = "の上";
@@ -418,53 +447,62 @@ static int16_t describe_footing_sight(player_type *player_ptr, eg_type *eg_ptr, 
     return CONTINUOUS_DESCRIPTION;
 }
 
-static int16_t sweep_footing_items(player_type *player_ptr, eg_type *eg_ptr)
+static int16_t sweep_footing_items(PlayerType *player_ptr, eg_type *eg_ptr)
 {
     for (const auto this_o_idx : eg_ptr->g_ptr->o_idx_list) {
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &player_ptr->current_floor_ptr->o_list[this_o_idx];
         int16_t ret = describe_footing_sight(player_ptr, eg_ptr, o_ptr);
-        if (within_char_util(ret))
+        if (within_char_util(ret)) {
             return (char)ret;
+        }
     }
 
     return CONTINUOUS_DESCRIPTION;
 }
 
-static concptr decide_target_floor(player_type *player_ptr, eg_type *eg_ptr)
+static concptr decide_target_floor(PlayerType *player_ptr, eg_type *eg_ptr)
 {
-    if (eg_ptr->f_ptr->flags.has(FF::QUEST_ENTER)) {
-        QUEST_IDX old_quest = player_ptr->current_floor_ptr->inside_quest;
-        for (int j = 0; j < 10; j++)
+    if (eg_ptr->f_ptr->flags.has(TerrainCharacteristics::QUEST_ENTER)) {
+        QuestId old_quest = player_ptr->current_floor_ptr->quest_number;
+        const auto &quest_list = QuestList::get_instance();
+        const QuestId number = i2enum<QuestId>(eg_ptr->g_ptr->special);
+        const auto *q_ptr = &quest_list[number];
+        std::string_view msg(_("クエスト「%s」(%d階相当)", "the entrance to the quest '%s'(level %d)"));
+        for (int j = 0; j < 10; j++) {
             quest_text[j][0] = '\0';
+        }
 
         quest_text_line = 0;
-        player_ptr->current_floor_ptr->inside_quest = eg_ptr->g_ptr->special;
+        player_ptr->current_floor_ptr->quest_number = number;
         init_flags = INIT_NAME_ONLY;
-        parse_fixed_map(player_ptr, "q_info.txt", 0, 0, 0, 0);
-        player_ptr->current_floor_ptr->inside_quest = old_quest;
-        return format(
-            _("クエスト「%s」(%d階相当)", "the entrance to the quest '%s'(level %d)"), quest[eg_ptr->g_ptr->special].name, quest[eg_ptr->g_ptr->special].level);
+        parse_fixed_map(player_ptr, QUEST_DEFINITION_LIST, 0, 0, 0, 0);
+        player_ptr->current_floor_ptr->quest_number = old_quest;
+        return format(msg.data(), q_ptr->name, q_ptr->level);
     }
 
-    if (eg_ptr->f_ptr->flags.has(FF::BLDG) && !player_ptr->current_floor_ptr->inside_arena)
+    if (eg_ptr->f_ptr->flags.has(TerrainCharacteristics::BLDG) && !player_ptr->current_floor_ptr->inside_arena) {
         return building[eg_ptr->f_ptr->subtype].name;
+    }
 
-    if (eg_ptr->f_ptr->flags.has(FF::ENTRANCE))
-        return format(_("%s(%d階相当)", "%s(level %d)"), d_info[eg_ptr->g_ptr->special].text.c_str(), d_info[eg_ptr->g_ptr->special].mindepth);
+    if (eg_ptr->f_ptr->flags.has(TerrainCharacteristics::ENTRANCE)) {
+        return format(_("%s(%d階相当)", "%s(level %d)"), dungeons_info[eg_ptr->g_ptr->special].text.data(), dungeons_info[eg_ptr->g_ptr->special].mindepth);
+    }
 
-    if (eg_ptr->f_ptr->flags.has(FF::TOWN))
+    if (eg_ptr->f_ptr->flags.has(TerrainCharacteristics::TOWN)) {
         return town_info[eg_ptr->g_ptr->special].name;
+    }
 
-    if (player_ptr->wild_mode && (eg_ptr->feat == feat_floor))
+    if (player_ptr->wild_mode && (eg_ptr->feat == feat_floor)) {
         return _("道", "road");
+    }
 
-    return eg_ptr->f_ptr->name.c_str();
+    return eg_ptr->f_ptr->name.data();
 }
 
 static void describe_grid_monster_all(eg_type *eg_ptr)
 {
-    if (!allow_debug_options) {
+    if (!w_ptr->wizard) {
 #ifdef JP
         sprintf(eg_ptr->out_val, "%s%s%s%s[%s]", eg_ptr->s1, eg_ptr->name, eg_ptr->s2, eg_ptr->s3, eg_ptr->info);
 #else
@@ -474,10 +512,11 @@ static void describe_grid_monster_all(eg_type *eg_ptr)
     }
 
     char f_idx_str[32];
-    if (eg_ptr->g_ptr->mimic)
+    if (eg_ptr->g_ptr->mimic) {
         sprintf(f_idx_str, "%d/%d", eg_ptr->g_ptr->feat, eg_ptr->g_ptr->mimic);
-    else
+    } else {
         sprintf(f_idx_str, "%d", eg_ptr->g_ptr->feat);
+    }
 
 #ifdef JP
     sprintf(eg_ptr->out_val, "%s%s%s%s[%s] %x %s %d %d %d (%d,%d) %d", eg_ptr->s1, eg_ptr->name, eg_ptr->s2, eg_ptr->s3, eg_ptr->info,
@@ -499,67 +538,75 @@ static void describe_grid_monster_all(eg_type *eg_ptr)
  * @return 入力キー
  * @todo xとlで処理を分ける？
  */
-char examine_grid(player_type *player_ptr, const POSITION y, const POSITION x, target_type mode, concptr info)
+char examine_grid(PlayerType *player_ptr, const POSITION y, const POSITION x, target_type mode, concptr info)
 {
     eg_type tmp_eg;
     eg_type *eg_ptr = initialize_eg_type(player_ptr, &tmp_eg, y, x, mode, info);
     describe_scan_result(player_ptr, eg_ptr);
     describe_target(player_ptr, eg_ptr);
-    process_result next_target = describe_hallucinated_target(player_ptr, eg_ptr);
+    ProcessResult next_target = describe_hallucinated_target(player_ptr, eg_ptr);
     switch (next_target) {
-    case PROCESS_FALSE:
+    case ProcessResult::PROCESS_FALSE:
         return 0;
-    case PROCESS_TRUE:
+    case ProcessResult::PROCESS_TRUE:
         return eg_ptr->query;
-    case PROCESS_CONTINUE:
+    default:
         break;
     }
 
     int16_t description_grid = describe_grid(player_ptr, eg_ptr);
-    if (within_char_util(description_grid))
+    if (within_char_util(description_grid)) {
         return (char)description_grid;
+    }
 
     int16_t loop_description = loop_describing_grid(player_ptr, eg_ptr);
-    if (within_char_util(loop_description))
+    if (within_char_util(loop_description)) {
         return (char)loop_description;
+    }
 
     int16_t footing_items_description = sweep_footing_items(player_ptr, eg_ptr);
-    if (within_char_util(footing_items_description))
+    if (within_char_util(footing_items_description)) {
         return (char)footing_items_description;
+    }
 
     eg_ptr->feat = eg_ptr->g_ptr->get_feat_mimic();
-    if (!eg_ptr->g_ptr->is_mark() && !player_can_see_bold(player_ptr, y, x))
+    if (!eg_ptr->g_ptr->is_mark() && !player_can_see_bold(player_ptr, y, x)) {
         eg_ptr->feat = feat_none;
+    }
 
-    eg_ptr->f_ptr = &f_info[eg_ptr->feat];
-    if (!eg_ptr->boring && eg_ptr->f_ptr->flags.has_not(FF::REMEMBER))
+    eg_ptr->f_ptr = &terrains_info[eg_ptr->feat];
+    if (!eg_ptr->boring && eg_ptr->f_ptr->flags.has_not(TerrainCharacteristics::REMEMBER)) {
         return (eg_ptr->query != '\r') && (eg_ptr->query != '\n') ? eg_ptr->query : 0;
+    }
 
     /*
      * グローバル変数への代入をここで行っているので動かしたくない
      * 安全を確保できたら構造体から外すことも検討する
      */
     eg_ptr->name = decide_target_floor(player_ptr, eg_ptr);
-    if (*eg_ptr->s2 && (eg_ptr->f_ptr->flags.has_none_of({ FF::MOVE, FF::CAN_FLY }) || eg_ptr->f_ptr->flags.has_none_of({ FF::LOS, FF::TREE }) || eg_ptr->f_ptr->flags.has(FF::TOWN))) {
+    if (*eg_ptr->s2 && (eg_ptr->f_ptr->flags.has_none_of({ TerrainCharacteristics::MOVE, TerrainCharacteristics::CAN_FLY }) || eg_ptr->f_ptr->flags.has_none_of({ TerrainCharacteristics::LOS, TerrainCharacteristics::TREE }) || eg_ptr->f_ptr->flags.has(TerrainCharacteristics::TOWN))) {
         eg_ptr->s2 = _("の中", "in ");
     }
 
-    if (eg_ptr->f_ptr->flags.has(FF::STORE) || eg_ptr->f_ptr->flags.has(FF::QUEST_ENTER) || (eg_ptr->f_ptr->flags.has(FF::BLDG) && !player_ptr->current_floor_ptr->inside_arena) || eg_ptr->f_ptr->flags.has(FF::ENTRANCE))
+    if (eg_ptr->f_ptr->flags.has(TerrainCharacteristics::STORE) || eg_ptr->f_ptr->flags.has(TerrainCharacteristics::QUEST_ENTER) || (eg_ptr->f_ptr->flags.has(TerrainCharacteristics::BLDG) && !player_ptr->current_floor_ptr->inside_arena) || eg_ptr->f_ptr->flags.has(TerrainCharacteristics::ENTRANCE)) {
         eg_ptr->s2 = _("の入口", "");
+    }
 #ifdef JP
 #else
-    else if (eg_ptr->f_ptr->flags.has(FF::FLOOR) || eg_ptr->f_ptr->flags.has(FF::TOWN) || eg_ptr->f_ptr->flags.has(FF::SHALLOW) || eg_ptr->f_ptr->flags.has(FF::DEEP))
+    else if (eg_ptr->f_ptr->flags.has(TerrainCharacteristics::FLOOR) || eg_ptr->f_ptr->flags.has(TerrainCharacteristics::TOWN) || eg_ptr->f_ptr->flags.has(TerrainCharacteristics::SHALLOW) || eg_ptr->f_ptr->flags.has(TerrainCharacteristics::DEEP)) {
         eg_ptr->s3 = "";
-    else
+    } else {
         eg_ptr->s3 = (is_a_vowel(eg_ptr->name[0])) ? "an " : "a ";
+    }
 #endif
 
     describe_grid_monster_all(eg_ptr);
     prt(eg_ptr->out_val, 0, 0);
     move_cursor_relative(y, x);
     eg_ptr->query = inkey();
-    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n'))
+    if ((eg_ptr->query != '\r') && (eg_ptr->query != '\n')) {
         return eg_ptr->query;
+    }
 
     return 0;
 }

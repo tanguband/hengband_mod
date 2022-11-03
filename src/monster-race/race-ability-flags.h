@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-enum class RF_ABILITY {
+enum class MonsterAbilityType {
     SHRIEK = 0, /*!< モンスター能力: 叫ぶ / Shriek for help */
     XXX1 = 1, /*!< モンスター能力: 未使用 / XXX */
     DISPEL = 2, /*!< モンスター能力: 魔力消去 / Dispel magic */
@@ -99,5 +99,11 @@ enum class RF_ABILITY {
     S_HI_DRAGON = 93, /* Summon Ancient Dragon */
     S_AMBERITES = 94, /* Summon Amberites */
     S_UNIQUE = 95, /* Summon Unique Monster */
+    BO_VOID = 97, /*!< モンスター能力: ヴォイド・ボルト / Void Bolt */
+    BO_ABYSS = 98, /*!< モンスター能力: アビス・ボルト / Abyss Bolt */
+    BR_VOID = 99, /*!< モンスター能力: 虚無のブレス / Breathe Void */
+    BR_ABYSS = 100, /*!< モンスター能力: 深淵のブレス / Breathe Abyss */
+    BA_VOID = 101, /*!< モンスター能力: 虚無のボール / Void Ball */
+    BA_ABYSS = 102, /*!< モンスター能力: 深淵のボール / Abyss Ball */
     MAX,
 };

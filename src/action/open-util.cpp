@@ -6,6 +6,7 @@
 #include "action/open-util.h"
 #include "floor/geometry.h"
 #include "grid/trap.h"
+#include "object/tval-types.h"
 #include "perception/object-perception.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
@@ -19,16 +20,16 @@
  * @param trapped TRUEならばトラップが存在する箱のみ、FALSEならば空でない箱全てを対象にする
  * @return 箱が存在する場合そのオブジェクトID、存在しない場合0を返す。
  */
-OBJECT_IDX chest_check(floor_type *floor_ptr, POSITION y, POSITION x, bool trapped)
+OBJECT_IDX chest_check(FloorType *floor_ptr, POSITION y, POSITION x, bool trapped)
 {
-    grid_type *g_ptr = &floor_ptr->grid_array[y][x];
+    auto *g_ptr = &floor_ptr->grid_array[y][x];
     for (const auto this_o_idx : g_ptr->o_idx_list) {
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &floor_ptr->o_list[this_o_idx];
-        if ((o_ptr->tval == ItemKindType::CHEST)
-            && (((!trapped) && (o_ptr->pval)) || /* non empty */
-                ((trapped) && (o_ptr->pval > 0)))) /* trapped only */
+        if ((o_ptr->tval == ItemKindType::CHEST) && (((!trapped) && (o_ptr->pval)) || /* non empty */
+                                                        ((trapped) && (o_ptr->pval > 0)))) { /* trapped only */
             return this_o_idx;
+        }
     }
 
     return 0;
@@ -44,23 +45,26 @@ OBJECT_IDX chest_check(floor_type *floor_ptr, POSITION y, POSITION x, bool trapp
  * @details
  * If requested, count only trapped chests.
  */
-int count_chests(player_type *player_ptr, POSITION *y, POSITION *x, bool trapped)
+int count_chests(PlayerType *player_ptr, POSITION *y, POSITION *x, bool trapped)
 {
     int count = 0;
     for (DIRECTION d = 0; d < 9; d++) {
         POSITION yy = player_ptr->y + ddy_ddd[d];
         POSITION xx = player_ptr->x + ddx_ddd[d];
         OBJECT_IDX o_idx = chest_check(player_ptr->current_floor_ptr, yy, xx, false);
-        if (!o_idx)
+        if (!o_idx) {
             continue;
+        }
 
-        object_type *o_ptr;
+        ObjectType *o_ptr;
         o_ptr = &player_ptr->current_floor_ptr->o_list[o_idx];
-        if (o_ptr->pval == 0)
+        if (o_ptr->pval == 0) {
             continue;
+        }
 
-        if (trapped && (!o_ptr->is_known() || chest_traps[o_ptr->pval].none()))
+        if (trapped && (!o_ptr->is_known() || ((o_ptr->pval > 0) && chest_traps[o_ptr->pval].none()))) {
             continue;
+        }
 
         ++count;
         *y = yy;

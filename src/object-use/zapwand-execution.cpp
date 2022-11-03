@@ -12,20 +12,23 @@
 #include "object-enchant/special-object-flags.h"
 #include "object-use/item-use-checker.h"
 #include "object/object-info.h"
-#include "object/object-kind.h"
 #include "perception/object-perception.h"
+#include "player-base/player-class.h"
 #include "player-status/player-energy.h"
 #include "status/experience.h"
 #include "sv-definition/sv-wand-types.h"
+#include "system/baseitem-info-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
 #include "target/target-getter.h"
 #include "term/screen-processor.h"
+#include "timed-effect/player-confusion.h"
+#include "timed-effect/timed-effects.h"
 #include "util/bit-flags-calculator.h"
 #include "view/display-messages.h"
 #include "view/object-describer.h"
 
-ObjectZapWandEntity::ObjectZapWandEntity(player_type *player_ptr)
+ObjectZapWandEntity::ObjectZapWandEntity(PlayerType *player_ptr)
     : player_ptr(player_ptr)
 {
 }
@@ -59,13 +62,13 @@ void ObjectZapWandEntity::execute(INVENTORY_IDX item)
         return;
     }
 
-    auto lev = k_info[o_ptr->k_idx].level;
+    auto lev = baseitems_info[o_ptr->k_idx].level;
     if (lev > 50) {
         lev = 50 + (lev - 50) / 2;
     }
 
     auto chance = this->player_ptr->skill_dev;
-    if (this->player_ptr->confused) {
+    if (this->player_ptr->effects()->confusion()->is_confused()) {
         chance = chance / 2;
     }
 
@@ -74,7 +77,7 @@ void ObjectZapWandEntity::execute(INVENTORY_IDX item)
         chance = USE_DEVICE;
     }
 
-    if ((chance < USE_DEVICE) || (randint1(chance) < USE_DEVICE) || (this->player_ptr->pclass == PlayerClassType::BERSERKER)) {
+    if ((chance < USE_DEVICE) || (randint1(chance) < USE_DEVICE) || PlayerClass(this->player_ptr).equals(PlayerClassType::BERSERKER)) {
         if (flush_failure) {
             flush();
         }
@@ -135,5 +138,5 @@ bool ObjectZapWandEntity::check_can_zap() const
         return false;
     }
 
-    return ItemUseChecker(this->player_ptr).check_stun(_("朦朧としていて魔法棒を振れなかった！", "You were not able to zap it by the stun!"));
+    return ItemUseChecker(this->player_ptr).check_stun(_("朦朧としていて魔法棒を振れなかった！", "You are too stunned to zap it!"));
 }

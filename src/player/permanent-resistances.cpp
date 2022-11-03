@@ -1,4 +1,4 @@
-﻿#include "permanent-resistances.h"
+﻿#include "player/permanent-resistances.h"
 #include "inventory/inventory-slot-types.h"
 #include "mind/mind-elementalist.h"
 #include "mutation/mutation-flag-types.h"
@@ -20,32 +20,41 @@
  * @param flags 耐性フラグの配列
  * @todo 最終的にplayer-status系列と統合する
  */
-static void add_mutation_flags(player_type *player_ptr, TrFlags &flags)
+static void add_mutation_flags(PlayerType *player_ptr, TrFlags &flags)
 {
-    if (player_ptr->muta.none())
+    if (player_ptr->muta.none()) {
         return;
+    }
 
-    if (player_ptr->muta.has(MUTA::FLESH_ROT))
+    if (player_ptr->muta.has(PlayerMutationType::FLESH_ROT)) {
         flags.reset(TR_REGEN);
-    if (player_ptr->muta.has_any_of({ MUTA::XTRA_FAT, MUTA::XTRA_LEGS, MUTA::SHORT_LEG }))
+    }
+    if (player_ptr->muta.has_any_of({ PlayerMutationType::XTRA_FAT, PlayerMutationType::XTRA_LEGS, PlayerMutationType::SHORT_LEG })) {
         flags.set(TR_SPEED);
-    if (player_ptr->muta.has(MUTA::ELEC_TOUC))
+    }
+    if (player_ptr->muta.has(PlayerMutationType::ELEC_TOUC)) {
         flags.set(TR_SH_ELEC);
-    if (player_ptr->muta.has(MUTA::FIRE_BODY)) {
+    }
+    if (player_ptr->muta.has(PlayerMutationType::FIRE_BODY)) {
         flags.set(TR_SH_FIRE);
         flags.set(TR_LITE_1);
     }
 
-    if (player_ptr->muta.has(MUTA::WINGS))
+    if (player_ptr->muta.has(PlayerMutationType::WINGS)) {
         flags.set(TR_LEVITATION);
-    if (player_ptr->muta.has(MUTA::FEARLESS))
+    }
+    if (player_ptr->muta.has(PlayerMutationType::FEARLESS)) {
         flags.set(TR_RES_FEAR);
-    if (player_ptr->muta.has(MUTA::REGEN))
+    }
+    if (player_ptr->muta.has(PlayerMutationType::REGEN)) {
         flags.set(TR_REGEN);
-    if (player_ptr->muta.has(MUTA::ESP))
+    }
+    if (player_ptr->muta.has(PlayerMutationType::ESP)) {
         flags.set(TR_TELEPATHY);
-    if (player_ptr->muta.has(MUTA::MOTION))
+    }
+    if (player_ptr->muta.has(PlayerMutationType::MOTION)) {
         flags.set(TR_FREE_ACT);
+    }
 }
 
 /*!
@@ -54,23 +63,28 @@ static void add_mutation_flags(player_type *player_ptr, TrFlags &flags)
  * @param flags 耐性フラグの配列
  * @todo 最終的にplayer-status系列と統合する
  */
-static void add_personality_flags(player_type *player_ptr, TrFlags &flags)
+static void add_personality_flags(PlayerType *player_ptr, TrFlags &flags)
 {
-    if (player_ptr->ppersonality == PERSONALITY_SEXY)
+    if (player_ptr->ppersonality == PERSONALITY_SEXY) {
         flags.set(TR_AGGRAVATE);
-    if (player_ptr->ppersonality == PERSONALITY_CHARGEMAN)
+    }
+    if (player_ptr->ppersonality == PERSONALITY_CHARGEMAN) {
         flags.set(TR_RES_CONF);
+    }
 
-    if (player_ptr->ppersonality != PERSONALITY_MUNCHKIN)
+    if (player_ptr->ppersonality != PERSONALITY_MUNCHKIN) {
         return;
+    }
 
     flags.set(TR_RES_BLIND);
     flags.set(TR_RES_CONF);
     flags.set(TR_HOLD_EXP);
-    if (player_ptr->pclass != PlayerClassType::NINJA)
+    if (!PlayerClass(player_ptr).equals(PlayerClassType::NINJA)) {
         flags.set(TR_LITE_1);
-    if (player_ptr->lev > 9)
+    }
+    if (player_ptr->lev > 9) {
         flags.set(TR_SPEED);
+    }
 }
 
 /*!
@@ -82,7 +96,7 @@ static void add_personality_flags(player_type *player_ptr, TrFlags &flags)
  * Obtain the "flags" for the player as if he was an item
  * @todo 最終的にplayer-status系列と統合する
  */
-void player_flags(player_type *player_ptr, TrFlags &flags)
+void player_flags(PlayerType *player_ptr, TrFlags &flags)
 {
     flags.clear();
 
@@ -93,13 +107,14 @@ void player_flags(player_type *player_ptr, TrFlags &flags)
     add_personality_flags(player_ptr, flags);
 }
 
-void riding_flags(player_type *player_ptr, TrFlags &flags, TrFlags &negative_flags)
+void riding_flags(PlayerType *player_ptr, TrFlags &flags, TrFlags &negative_flags)
 {
     flags.clear();
     negative_flags.clear();
 
-    if (!player_ptr->riding)
+    if (!player_ptr->riding) {
         return;
+    }
 
     if (any_bits(has_levitation(player_ptr), FLAG_CAUSE_RIDING)) {
         flags.set(TR_LEVITATION);

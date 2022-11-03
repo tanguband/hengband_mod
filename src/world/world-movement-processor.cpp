@@ -2,7 +2,6 @@
 #include "cmd-io/cmd-save.h"
 #include "core/disturbance.h"
 #include "core/player-redraw-types.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "floor/floor-mode-changer.h"
 #include "game-option/birth-options.h"
@@ -13,31 +12,38 @@
 #include "main/sound-of-music.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags1.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/player-type-definition.h"
+#include "util/enum-range.h"
 #include "view/display-messages.h"
 #include "world/world.h"
-
 
 /*!
  * @brief プレイヤーの現在ダンジョンIDと階層に応じて、ダンジョン内ランクエの自動放棄を行う
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void check_random_quest_auto_failure(player_type *player_ptr)
+void check_random_quest_auto_failure(PlayerType *player_ptr)
 {
+    auto &quest_list = QuestList::get_instance();
     if (player_ptr->dungeon_idx != DUNGEON_ANGBAND) {
         return;
     }
-    for (auto i = MIN_RANDOM_QUEST; i < MAX_RANDOM_QUEST + 1; i++) {
-        auto q_ptr = &quest[i];
-        if ((q_ptr->type == QuestKindType::RANDOM) && (q_ptr->status == QuestStatusType::TAKEN) && (q_ptr->level < player_ptr->current_floor_ptr->dun_level)) {
-            q_ptr->status = QuestStatusType::FAILED;
-            q_ptr->complev = (byte)player_ptr->lev;
-            update_playtime();
-            q_ptr->comptime = w_ptr->play_time;
-            r_info[q_ptr->r_idx].flags1 &= ~(RF1_QUESTOR);
+    for (auto q_idx : EnumRange(QuestId::RANDOM_QUEST1, QuestId::RANDOM_QUEST10)) {
+        auto &q_ref = quest_list[q_idx];
+        auto is_taken_quest = (q_ref.type == QuestKindType::RANDOM);
+        is_taken_quest &= (q_ref.status == QuestStatusType::TAKEN);
+        is_taken_quest &= (q_ref.level < player_ptr->current_floor_ptr->dun_level);
+        if (!is_taken_quest) {
+            continue;
         }
+
+        q_ref.status = QuestStatusType::FAILED;
+        q_ref.complev = (byte)player_ptr->lev;
+        update_playtime();
+        q_ref.comptime = w_ptr->play_time;
+        monraces_info[q_ref.r_idx].flags1 &= ~(RF1_QUESTOR);
     }
 }
 
@@ -49,33 +55,38 @@ void check_random_quest_auto_failure(player_type *player_ptr)
  * Autosave BEFORE resetting the recall counter (rr9)
  * The player is yanked up/down as soon as he loads the autosaved game.
  */
-void execute_recall(player_type *player_ptr)
+void execute_recall(PlayerType *player_ptr)
 {
-    if (player_ptr->word_recall == 0)
+    if (player_ptr->word_recall == 0) {
         return;
+    }
 
-    if (autosave_l && (player_ptr->word_recall == 1) && !player_ptr->phase_out)
+    if (autosave_l && (player_ptr->word_recall == 1) && !player_ptr->phase_out) {
         do_cmd_save_game(player_ptr, true);
+    }
 
     player_ptr->word_recall--;
     player_ptr->redraw |= (PR_STATUS);
-    if (player_ptr->word_recall != 0)
+    if (player_ptr->word_recall != 0) {
         return;
+    }
 
     disturb(player_ptr, false, true);
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (floor_ptr->dun_level || player_ptr->current_floor_ptr->inside_quest || player_ptr->enter_dungeon) {
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (floor_ptr->dun_level || inside_quest(player_ptr->current_floor_ptr->quest_number) || player_ptr->enter_dungeon) {
         msg_print(_("上に引っ張りあげられる感じがする！", "You feel yourself yanked upwards!"));
-        if (player_ptr->dungeon_idx)
+        if (player_ptr->dungeon_idx) {
             player_ptr->recall_dungeon = player_ptr->dungeon_idx;
-        if (record_stair)
+        }
+        if (record_stair) {
             exe_write_diary(player_ptr, DIARY_RECALL, floor_ptr->dun_level, nullptr);
+        }
 
         floor_ptr->dun_level = 0;
         player_ptr->dungeon_idx = 0;
         leave_quest_check(player_ptr);
         leave_tower_check(player_ptr);
-        player_ptr->current_floor_ptr->inside_quest = 0;
+        player_ptr->current_floor_ptr->quest_number = QuestId::NONE;
         player_ptr->leaving = true;
         sound(SOUND_TPLEVEL);
         return;
@@ -83,19 +94,21 @@ void execute_recall(player_type *player_ptr)
 
     msg_print(_("下に引きずり降ろされる感じがする！", "You feel yourself yanked downwards!"));
     player_ptr->dungeon_idx = player_ptr->recall_dungeon;
-    if (record_stair)
+    if (record_stair) {
         exe_write_diary(player_ptr, DIARY_RECALL, floor_ptr->dun_level, nullptr);
+    }
 
     floor_ptr->dun_level = max_dlv[player_ptr->dungeon_idx];
-    if (floor_ptr->dun_level < 1)
+    if (floor_ptr->dun_level < 1) {
         floor_ptr->dun_level = 1;
+    }
     if (ironman_nightmare && !randint0(666) && (player_ptr->dungeon_idx == DUNGEON_ANGBAND)) {
         if (floor_ptr->dun_level < 50) {
             floor_ptr->dun_level *= 2;
         } else if (floor_ptr->dun_level < 99) {
             floor_ptr->dun_level = (floor_ptr->dun_level + 99) / 2;
         } else if (floor_ptr->dun_level > 100) {
-            floor_ptr->dun_level = d_info[player_ptr->dungeon_idx].maxdepth - 1;
+            floor_ptr->dun_level = dungeons_info[player_ptr->dungeon_idx].maxdepth - 1;
         }
     }
 
@@ -125,22 +138,25 @@ void execute_recall(player_type *player_ptr)
  * / Handle involuntary movement once every 10 game turns
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void execute_floor_reset(player_type *player_ptr)
+void execute_floor_reset(PlayerType *player_ptr)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (player_ptr->alter_reality == 0)
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (player_ptr->alter_reality == 0) {
         return;
+    }
 
-    if (autosave_l && (player_ptr->alter_reality == 1) && !player_ptr->phase_out)
+    if (autosave_l && (player_ptr->alter_reality == 1) && !player_ptr->phase_out) {
         do_cmd_save_game(player_ptr, true);
+    }
 
     player_ptr->alter_reality--;
     player_ptr->redraw |= (PR_STATUS);
-    if (player_ptr->alter_reality != 0)
+    if (player_ptr->alter_reality != 0) {
         return;
+    }
 
     disturb(player_ptr, false, true);
-    if (!quest_number(player_ptr, floor_ptr->dun_level) && floor_ptr->dun_level) {
+    if (!inside_quest(quest_number(player_ptr, floor_ptr->dun_level)) && floor_ptr->dun_level) {
         msg_print(_("世界が変わった！", "The world changes!"));
 
         /*

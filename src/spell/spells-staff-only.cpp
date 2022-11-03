@@ -1,10 +1,11 @@
 ﻿#include "spell/spells-staff-only.h"
+#include "effect/attribute-types.h"
 #include "effect/effect-characteristics.h"
 #include "effect/effect-processor.h"
 #include "hpmp/hp-mp-processor.h"
+#include "player-base/player-class.h"
 #include "player/player-damage.h"
 #include "spell-kind/spells-sight.h"
-#include "spell/spell-types.h"
 #include "status/bad-status-setter.h"
 #include "status/body-improvement.h"
 #include "system/player-type-definition.h"
@@ -16,7 +17,7 @@
  * @magic 魔法の効果である場合TRUE (杖と同じ効果の呪文はあったか？ 要調査)
  * @powerful 効果が増強される時TRUE (TRUEになるタイミングはあるか？ 要調査)
  */
-bool cleansing_nova(player_type *player_ptr, bool magic, bool powerful)
+bool cleansing_nova(PlayerType *player_ptr, bool magic, bool powerful)
 {
     bool ident = false;
     if (dispel_evil(player_ptr, powerful ? 225 : 150)) {
@@ -29,11 +30,11 @@ bool cleansing_nova(player_type *player_ptr, bool magic, bool powerful)
     }
 
     BadStatusSetter bss(player_ptr);
-    if (bss.poison(0)) {
+    if (bss.set_poison(0)) {
         ident = true;
     }
 
-    if (bss.afraidness(0)) {
+    if (bss.set_fear(0)) {
         ident = true;
     }
 
@@ -41,11 +42,11 @@ bool cleansing_nova(player_type *player_ptr, bool magic, bool powerful)
         ident = true;
     }
 
-    if (bss.stun(0)) {
+    if (bss.set_stun(0)) {
         ident = true;
     }
 
-    if (bss.cut(0)) {
+    if (bss.set_cut(0)) {
         ident = true;
     }
 
@@ -57,20 +58,15 @@ bool cleansing_nova(player_type *player_ptr, bool magic, bool powerful)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @powerful 効果が増強される時TRUE (TRUEになるタイミングはあるか？ 要調査)
  */
-bool unleash_mana_storm(player_type *player_ptr, bool powerful)
+bool unleash_mana_storm(PlayerType *player_ptr, bool powerful)
 {
     msg_print(_("強力な魔力が敵を引き裂いた！", "Mighty magics rend your enemies!"));
-    project(player_ptr, 0, (powerful ? 7 : 5), player_ptr->y, player_ptr->x, (randint1(200) + (powerful ? 500 : 300)) * 2, GF_MANA,
+    project(player_ptr, 0, (powerful ? 7 : 5), player_ptr->y, player_ptr->x, (randint1(200) + (powerful ? 500 : 300)) * 2, AttributeType::MANA,
         PROJECT_KILL | PROJECT_ITEM | PROJECT_GRID);
 
-    bool is_special_class = player_ptr->pclass != PlayerClassType::MAGE;
-    is_special_class &= player_ptr->pclass != PlayerClassType::HIGH_MAGE;
-    is_special_class &= player_ptr->pclass != PlayerClassType::SORCERER;
-    is_special_class &= player_ptr->pclass != PlayerClassType::MAGIC_EATER;
-    is_special_class &= player_ptr->pclass != PlayerClassType::BLUE_MAGE;
-    is_special_class &= player_ptr->pclass != PlayerClassType::ELEMENTALIST;
-    if (is_special_class)
+    if (!PlayerClass(player_ptr).is_wizard()) {
         (void)take_hit(player_ptr, DAMAGE_NOESCAPE, 50, _("コントロールし難い強力な魔力の解放", "unleashing magics too mighty to control"));
+    }
 
     return true;
 }

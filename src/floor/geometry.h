@@ -13,11 +13,11 @@
 #define TEMP_MAX 2298
 
 //!< 対象グリッドの一覧をまとめる構造体
-typedef struct pos_list {
-	POSITION_IDX n; //!< Array of grids for use by various functions (see grid.c")
-	POSITION y[TEMP_MAX];
-	POSITION x[TEMP_MAX];
-} pos_list;
+struct pos_list {
+    POSITION_IDX n; //!< Array of grids for use by various functions (see grid.c")
+    POSITION y[TEMP_MAX];
+    POSITION x[TEMP_MAX];
+};
 
 extern const POSITION ddd[9];
 extern const POSITION ddx[10];
@@ -28,11 +28,11 @@ extern const POSITION cdd[8];
 extern const POSITION ddx_cdd[8];
 extern const POSITION ddy_cdd[8];
 
-struct player_type;
-DIRECTION coords_to_dir(player_type *player_ptr, POSITION y, POSITION x);
+class PlayerType;
+DIRECTION coords_to_dir(PlayerType *player_ptr, POSITION y, POSITION x);
 POSITION distance(POSITION y1, POSITION x1, POSITION y2, POSITION x2);
 void mmove2(POSITION *y, POSITION *x, POSITION y1, POSITION x1, POSITION y2, POSITION x2);
-bool player_can_see_bold(player_type *player_ptr, POSITION y, POSITION x);
+bool player_can_see_bold(PlayerType *player_ptr, POSITION y, POSITION x);
 
 struct monster_type;
-bool is_seen(player_type *player_ptr, monster_type *m_ptr);
+bool is_seen(PlayerType *player_ptr, monster_type *m_ptr);

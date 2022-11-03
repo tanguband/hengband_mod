@@ -6,7 +6,7 @@
  * Arranged by iks 2021/04/23
  */
 
-#include "display-characteristic.h"
+#include "view/display-characteristic.h"
 #include "flavor/flavor-util.h"
 #include "inventory/inventory-slot-types.h"
 #include "object-enchant/special-object-flags.h"
@@ -79,6 +79,7 @@ static std::unordered_map<tr_type, tr_type> flag_to_lesser_flag = {
     { TR_RES_ELEC, TR_VUL_ELEC },
     { TR_RES_FIRE, TR_VUL_FIRE },
     { TR_RES_LITE, TR_VUL_LITE },
+    { TR_RES_CURSE, TR_VUL_CURSE },
 };
 
 /*!
@@ -102,7 +103,7 @@ static std::array<tr_type, 6> lite_flags = {
  * @param char_stat その行の特性の状況(参照渡し)
  * その行の表示色用の判定も行う
  */
-static void process_cursed_equipment_characteristics(player_type *player_ptr, uint16_t mode, char_stat &char_stat)
+static void process_cursed_equipment_characteristics(PlayerType *player_ptr, uint16_t mode, char_stat &char_stat)
 {
     int max_i = (mode & DP_WP) ? INVEN_BOW + 1 : INVEN_TOTAL;
     for (int i = INVEN_MAIN_HAND; i < max_i; i++) {
@@ -119,7 +120,7 @@ static void process_cursed_equipment_characteristics(player_type *player_ptr, ui
             }
         }
 
-        if (o_ptr->curse_flags.has(TRC::PERMA_CURSE)) {
+        if (o_ptr->curse_flags.has(CurseTraitType::PERMA_CURSE)) {
             if (is_known) {
                 char_stat.syms.emplace_back("*");
                 char_stat.has_imm = true;
@@ -127,7 +128,7 @@ static void process_cursed_equipment_characteristics(player_type *player_ptr, ui
             }
         }
 
-        if (o_ptr->curse_flags.has_any_of({ TRC::CURSED, TRC::HEAVY_CURSE, TRC::PERMA_CURSE })) {
+        if (o_ptr->curse_flags.has_any_of({ CurseTraitType::CURSED, CurseTraitType::HEAVY_CURSE, CurseTraitType::PERMA_CURSE })) {
             if (is_sensed) {
                 char_stat.syms.emplace_back("+");
                 char_stat.has_res = true;
@@ -151,7 +152,7 @@ static void process_cursed_equipment_characteristics(player_type *player_ptr, ui
  * @details
  * その行の表示色用の判定も行う
  */
-static void process_light_equipment_characteristics(player_type *player_ptr, all_player_flags *f, uint16_t mode, char_stat &char_stat)
+static void process_light_equipment_characteristics(PlayerType *player_ptr, all_player_flags *f, uint16_t mode, char_stat &char_stat)
 {
     int max_i = (mode & DP_WP) ? INVEN_BOW + 1 : INVEN_TOTAL;
     for (int i = INVEN_MAIN_HAND; i < max_i; i++) {
@@ -200,7 +201,7 @@ static void process_light_equipment_characteristics(player_type *player_ptr, all
  * @details
  * その行の表示色用の判定も行う
  */
-static void process_inventory_characteristic(player_type *player_ptr, tr_type flag, all_player_flags *f, uint16_t mode, char_stat &char_stat)
+static void process_inventory_characteristic(PlayerType *player_ptr, tr_type flag, all_player_flags *f, uint16_t mode, char_stat &char_stat)
 {
     int max_i = (mode & DP_WP) ? INVEN_BOW + 1 : INVEN_TOTAL;
     for (int i = INVEN_MAIN_HAND; i < max_i; i++) {
@@ -247,8 +248,9 @@ static void process_inventory_characteristic(player_type *player_ptr, tr_type fl
             char_stat.has_res = true;
         } else {
             char_stat.syms.emplace_back(".");
-            if (b_vul)
+            if (b_vul) {
                 char_stat.has_vul = true;
+            }
         }
     }
 }
@@ -263,37 +265,41 @@ static void process_inventory_characteristic(player_type *player_ptr, tr_type fl
  * @param f プレイヤーの特性情報構造体
  * @param mode 表示オプション
  */
-static void process_one_characteristic(player_type *player_ptr, TERM_LEN row, TERM_LEN col, std::string_view header, tr_type flag, all_player_flags *f, uint16_t mode)
+static void process_one_characteristic(PlayerType *player_ptr, TERM_LEN row, TERM_LEN col, std::string_view header, tr_type flag, all_player_flags *f, uint16_t mode)
 {
     char_stat char_stat;
 
-    if (f->riding_flags.has(flag))
+    if (f->riding_flags.has(flag)) {
         char_stat.has_rid = true;
+    }
     if (f->riding_negative_flags.has(flag)) {
         char_stat.has_rid = true;
         char_stat.has_vul = true;
     }
 
-    if (mode & DP_LITE)
+    if (mode & DP_LITE) {
         process_light_equipment_characteristics(player_ptr, f, mode, char_stat);
-    else if (mode & DP_CURSE)
+    } else if (mode & DP_CURSE) {
         process_cursed_equipment_characteristics(player_ptr, mode, char_stat);
-    else
+    } else {
         process_inventory_characteristic(player_ptr, flag, f, mode, char_stat);
+    }
 
-    if (char_stat.has_vul && !char_stat.has_imm && !char_stat.has_res && !char_stat.has_tim)
+    if (char_stat.has_vul && !char_stat.has_imm && !char_stat.has_res && !char_stat.has_tim) {
         char_stat.syms.emplace_back("v");
+    }
 
     auto row_clr = char_stat.has_rid ? TERM_L_GREEN : TERM_WHITE;
     if (!char_stat.has_imm) {
-        if (char_stat.has_res && char_stat.has_tim)
+        if (char_stat.has_res && char_stat.has_tim) {
             row_clr = char_stat.has_vul ? TERM_YELLOW : row_clr;
-        else if (char_stat.has_res || char_stat.has_tim)
+        } else if (char_stat.has_res || char_stat.has_tim) {
             row_clr = char_stat.has_vul ? TERM_ORANGE : row_clr;
-        else if (char_stat.has_vul)
+        } else if (char_stat.has_vul) {
             row_clr = TERM_RED;
-        else
+        } else {
             row_clr = TERM_L_DARK;
+        }
     }
 
     c_put_str(row_clr, header.data(), row, col);
@@ -301,13 +307,16 @@ static void process_one_characteristic(player_type *player_ptr, TERM_LEN row, TE
 
     for (auto s : char_stat.syms) {
         auto clr = row_clr;
-        if (s == "#")
+        if (s == "#") {
             clr = char_stat.has_vul && !char_stat.has_imm ? TERM_ORANGE : TERM_YELLOW;
-        if (s == "-" && !char_stat.has_imm)
+        }
+        if (s == "-" && !char_stat.has_imm) {
             clr = TERM_ORANGE;
-        if (s == "." && (!char_stat.has_imm && !char_stat.has_vul))
+        }
+        if (s == "." && (!char_stat.has_imm && !char_stat.has_vul)) {
             clr = TERM_L_DARK;
-        c_put_str(clr, s.c_str(), row, col++);
+        }
+        c_put_str(clr, s.data(), row, col++);
     }
 }
 
@@ -318,7 +327,7 @@ static void process_one_characteristic(player_type *player_ptr, TERM_LEN row, TE
  * @param f 特性フラグへの参照ポインタ
  */
 static void display_basic_resistance_info(
-    player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+    PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 12;
     TERM_LEN col = 1;
@@ -344,7 +353,7 @@ static void display_basic_resistance_info(
  * @param f 特性フラグへの参照ポインタ
  */
 static void display_advanced_resistance_info(
-    player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+    PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 12;
     TERM_LEN col = 26;
@@ -369,7 +378,7 @@ static void display_advanced_resistance_info(
  * @param f 特性フラグへの参照ポインタ
  */
 static void display_other_resistance_info(
-    player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+    PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 12;
     TERM_LEN col = 51;
@@ -393,7 +402,7 @@ static void display_other_resistance_info(
  * @param player_ptr プレイヤーへの参照ポインタ
  * @todo 将来的には装備系とまとめたいが、乗馬による特性変化や一時能力変化等の扱いがあるので据え置き。
  */
- all_player_flags get_player_state_flags(player_type *player_ptr)
+all_player_flags get_player_state_flags(PlayerType *player_ptr)
 {
     all_player_flags f;
     player_flags(player_ptr, f.player_flags);
@@ -412,7 +421,7 @@ static void display_other_resistance_info(
  * @param display_player_equippy 表示へのコールバック
  * Special display, part 1
  */
-void display_player_flag_info_1(player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16))
+void display_player_flag_info_1(PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16))
 {
     all_player_flags f = get_player_state_flags(player_ptr);
 
@@ -427,7 +436,7 @@ void display_player_flag_info_1(player_type *player_ptr, void (*display_player_e
  * @param display_player_equippy 表示へのコールバック
  * @param f 特性フラグへの参照ポインタ
  */
-static void display_slay_info(player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+static void display_slay_info(PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 3;
     TERM_LEN col = 1;
@@ -452,7 +461,7 @@ static void display_slay_info(player_type *player_ptr, void (*display_player_equ
  * @param display_player_equippy 表示へのコールバック
  * @param f 特性フラグへの参照ポインタ
  */
-static void display_brand_info(player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+static void display_brand_info(PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 3;
     TERM_LEN col = 1;
@@ -481,7 +490,7 @@ static void display_brand_info(player_type *player_ptr, void (*display_player_eq
  * @param f 特性フラグへの参照ポインタ
  */
 static void display_tval_misc_info(
-    player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+    PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 3;
     TERM_LEN col = 49;
@@ -511,7 +520,7 @@ static void display_tval_misc_info(
  * @param display_player_equippy 表示へのコールバック
  * @param f 特性フラグへの参照ポインタ
  */
-static void display_esc_info(player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+static void display_esc_info(PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 3;
     TERM_LEN col = 21;
@@ -532,7 +541,6 @@ static void display_esc_info(player_type *player_ptr, void (*display_player_equi
     process_one_characteristic(player_ptr, row++, col, _("ユニークESP:", "ESP Unique :"), TR_ESP_UNIQUE, f, 0);
 }
 
-
 /*!
  * @brief ESP/能力維持の特性フラグを表示する
  * @param player_ptr プレイヤーへの参照ポインタ
@@ -540,7 +548,7 @@ static void display_esc_info(player_type *player_ptr, void (*display_player_equi
  * @param f 特性フラグへの参照ポインタ
  */
 static void display_stustain_aura_info(
-    player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+    PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 3;
     TERM_LEN col = 21;
@@ -558,6 +566,10 @@ static void display_stustain_aura_info(
     process_one_characteristic(player_ptr, row++, col, _("電気オーラ:", "Aura Elec :"), TR_SH_ELEC, f, 0);
     process_one_characteristic(player_ptr, row++, col, _("冷気オーラ:", "Aura Cold :"), TR_SH_COLD, f, 0);
     process_one_characteristic(player_ptr, row++, col, _("射撃無効  :", "Invl Arrow:"), TR_INVULN_ARROW, f, 0);
+    row++;
+    process_one_characteristic(player_ptr, row++, col, _("自傷火炎  :", "Self Fire :"), TR_SELF_FIRE, f, 0);
+    process_one_characteristic(player_ptr, row++, col, _("自傷電気  :", "Self Elec :"), TR_SELF_ELEC, f, 0);
+    process_one_characteristic(player_ptr, row++, col, _("自傷冷気  :", "Self Cold :"), TR_SELF_COLD, f, 0);
 }
 
 /*!
@@ -566,7 +578,7 @@ static void display_stustain_aura_info(
  * @param display_player_equippy 表示へのコールバック
  * @param f 特性フラグへの参照ポインタ
  */
-static void display_curse_info(player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
+static void display_curse_info(PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16), all_player_flags *f)
 {
     TERM_LEN row = 3;
     TERM_LEN col = 49;
@@ -577,6 +589,7 @@ static void display_curse_info(player_type *player_ptr, void (*display_player_eq
     process_one_characteristic(player_ptr, row++, col, _("反感        :", "Aggravate   :"), TR_AGGRAVATE, f, 0);
     process_one_characteristic(player_ptr, row++, col, _("弱い呪い増殖:", "Add Curse   :"), TR_ADD_L_CURSE, f, 0);
     process_one_characteristic(player_ptr, row++, col, _("強い呪い増殖:", "AddHeavyCur.:"), TR_ADD_H_CURSE, f, 0);
+    process_one_characteristic(player_ptr, row++, col, _("執拗呪詛    :", "PersistCurse:"), TR_PERSISTENT_CURSE, f, 0);
     process_one_characteristic(player_ptr, row++, col, _("経験値減少  :", "Drain Exp   :"), TR_DRAIN_EXP, f, 0);
     process_one_characteristic(player_ptr, row++, col, _("体力吸収    :", "Drain HP    :"), TR_DRAIN_HP, f, 0);
     process_one_characteristic(player_ptr, row++, col, _("魔力吸収    :", "Drain Mana  :"), TR_DRAIN_MANA, f, 0);
@@ -596,7 +609,7 @@ static void display_curse_info(player_type *player_ptr, void (*display_player_eq
  * @param player_ptr プレイヤーへの参照ポインタ
  * Special display, part 2
  */
-void display_player_flag_info_2(player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16))
+void display_player_flag_info_2(PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16))
 {
     /* Extract flags and store */
     all_player_flags f = get_player_state_flags(player_ptr);
@@ -611,7 +624,7 @@ void display_player_flag_info_2(player_type *player_ptr, void (*display_player_e
  * @param player_ptr プレイヤーへの参照ポインタ
  * Special display, part 3
  */
-void display_player_flag_info_3(player_type *player_ptr, void (*display_player_equippy)(player_type *, TERM_LEN, TERM_LEN, BIT_FLAGS16))
+void display_player_flag_info_3(PlayerType *player_ptr, void (*display_player_equippy)(PlayerType *, TERM_LEN, TERM_LEN, BIT_FLAGS16))
 {
     /* Extract flags and store */
     all_player_flags f = get_player_state_flags(player_ptr);

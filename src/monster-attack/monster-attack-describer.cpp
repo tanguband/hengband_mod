@@ -8,12 +8,13 @@
 #include "main/sound-definitions-table.h"
 #include "main/sound-of-music.h"
 #include "monster-attack/insults-moans.h"
-#include "monster-attack/monster-attack-util.h"
+#include "monster-attack/monster-attack-player.h"
+#include "monster-attack/monster-attack-table.h"
 #include "monster-race/race-indice-types.h"
 #include "system/angband.h"
 #include "system/monster-type-definition.h"
 
-static void show_jaian_song(monap_type *monap_ptr)
+static void show_jaian_song(MonsterAttackPlayer *monap_ptr)
 {
 #ifdef JP
     switch (randint1(15)) {
@@ -64,101 +65,102 @@ static void show_jaian_song(monap_type *monap_ptr)
 #endif
 }
 
-static void monster_attack_show(monap_type *monap_ptr)
+static void monster_attack_show(MonsterAttackPlayer *monap_ptr)
 {
 #ifdef JP
     monap_ptr->abbreviate = -1;
 #endif
-    if (monap_ptr->m_ptr->r_idx == MON_JAIAN) {
+    if (monap_ptr->m_ptr->r_idx == MonsterRaceId::JAIAN) {
         show_jaian_song(monap_ptr);
     } else {
-        if (one_in_(3))
+        if (one_in_(3)) {
             monap_ptr->act = _("は♪僕らは楽しい家族♪と歌っている。", "sings 'We are a happy family.'");
-        else
+        } else {
             monap_ptr->act = _("は♪アイ ラブ ユー、ユー ラブ ミー♪と歌っている。", "sings 'I love you, you love me.'");
+        }
     }
 
     sound(SOUND_SHOW);
 }
 
-void describe_monster_attack_method(monap_type *monap_ptr)
+void describe_monster_attack_method(MonsterAttackPlayer *monap_ptr)
 {
     switch (monap_ptr->method) {
-    case RBM_HIT: {
+    case RaceBlowMethodType::HIT: {
         monap_ptr->act = _("殴られた。", "hits you.");
         monap_ptr->do_cut = monap_ptr->do_stun = 1;
         monap_ptr->touched = true;
         sound(SOUND_HIT);
         break;
     }
-    case RBM_TOUCH: {
+    case RaceBlowMethodType::TOUCH: {
         monap_ptr->act = _("触られた。", "touches you.");
         monap_ptr->touched = true;
         sound(SOUND_TOUCH);
         break;
     }
-    case RBM_PUNCH: {
+    case RaceBlowMethodType::PUNCH: {
         monap_ptr->act = _("パンチされた。", "punches you.");
         monap_ptr->touched = true;
         monap_ptr->do_stun = 1;
         sound(SOUND_HIT);
         break;
     }
-    case RBM_KICK: {
+    case RaceBlowMethodType::KICK: {
         monap_ptr->act = _("蹴られた。", "kicks you.");
         monap_ptr->touched = true;
         monap_ptr->do_stun = 1;
         sound(SOUND_HIT);
         break;
     }
-    case RBM_CLAW: {
+    case RaceBlowMethodType::CLAW: {
         monap_ptr->act = _("ひっかかれた。", "claws you.");
         monap_ptr->touched = true;
         monap_ptr->do_cut = 1;
         sound(SOUND_CLAW);
         break;
     }
-    case RBM_BITE: {
+    case RaceBlowMethodType::BITE: {
         monap_ptr->act = _("噛まれた。", "bites you.");
         monap_ptr->do_cut = 1;
         monap_ptr->touched = true;
         sound(SOUND_BITE);
         break;
     }
-    case RBM_STING: {
+    case RaceBlowMethodType::STING: {
         monap_ptr->act = _("刺された。", "stings you.");
         monap_ptr->touched = true;
         sound(SOUND_STING);
         break;
     }
-    case RBM_SLASH: {
+    case RaceBlowMethodType::SLASH: {
         monap_ptr->act = _("斬られた。", "slashes you.");
         monap_ptr->touched = true;
         monap_ptr->do_cut = 1;
         sound(SOUND_CLAW);
         break;
     }
-    case RBM_BUTT: {
+    case RaceBlowMethodType::BUTT: {
         monap_ptr->act = _("角で突かれた。", "butts you.");
         monap_ptr->do_stun = 1;
         monap_ptr->touched = true;
         sound(SOUND_HIT);
         break;
     }
-    case RBM_CRUSH: {
+    case RaceBlowMethodType::CRUSH: {
         monap_ptr->act = _("体当たりされた。", "crushes you.");
         monap_ptr->do_stun = 1;
         monap_ptr->touched = true;
         sound(SOUND_CRUSH);
         break;
     }
-    case RBM_ENGULF: {
+    case RaceBlowMethodType::ENGULF: {
         monap_ptr->act = _("飲み込まれた。", "engulfs you.");
         monap_ptr->touched = true;
         sound(SOUND_CRUSH);
         break;
     }
-    case RBM_CHARGE: {
+    case RaceBlowMethodType::CHARGE: {
 #ifdef JP
         monap_ptr->abbreviate = -1;
 #endif
@@ -169,7 +171,7 @@ void describe_monster_attack_method(monap_type *monap_ptr)
         sound(SOUND_BUY);
         break;
     }
-    case RBM_CRAWL: {
+    case RaceBlowMethodType::CRAWL: {
 #ifdef JP
         monap_ptr->abbreviate = -1;
 #endif
@@ -178,17 +180,17 @@ void describe_monster_attack_method(monap_type *monap_ptr)
         sound(SOUND_SLIME);
         break;
     }
-    case RBM_DROOL: {
+    case RaceBlowMethodType::DROOL: {
         monap_ptr->act = _("よだれをたらされた。", "drools on you.");
         sound(SOUND_SLIME);
         break;
     }
-    case RBM_SPIT: {
+    case RaceBlowMethodType::SPIT: {
         monap_ptr->act = _("唾を吐かれた。", "spits on you.");
         sound(SOUND_SLIME);
         break;
     }
-    case RBM_EXPLODE: {
+    case RaceBlowMethodType::EXPLODE: {
 #ifdef JP
         monap_ptr->abbreviate = -1;
 #endif
@@ -196,41 +198,41 @@ void describe_monster_attack_method(monap_type *monap_ptr)
         monap_ptr->explode = true;
         break;
     }
-    case RBM_GAZE: {
+    case RaceBlowMethodType::GAZE: {
         monap_ptr->act = _("にらまれた。", "gazes at you.");
         break;
     }
-    case RBM_WAIL: {
+    case RaceBlowMethodType::WAIL: {
         monap_ptr->act = _("泣き叫ばれた。", "wails at you.");
         sound(SOUND_WAIL);
         break;
     }
-    case RBM_SPORE: {
+    case RaceBlowMethodType::SPORE: {
         monap_ptr->act = _("胞子を飛ばされた。", "releases spores at you.");
         sound(SOUND_SLIME);
         break;
     }
-    case RBM_XXX4: {
+    case RaceBlowMethodType::XXX4: {
 #ifdef JP
         monap_ptr->abbreviate = -1;
 #endif
         monap_ptr->act = _("が XXX4 を発射した。", "projects XXX4's at you.");
         break;
     }
-    case RBM_BEG: {
+    case RaceBlowMethodType::BEG: {
         monap_ptr->act = _("金をせがまれた。", "begs you for money.");
         sound(SOUND_MOAN);
         break;
     }
-    case RBM_INSULT: {
+    case RaceBlowMethodType::INSULT: {
 #ifdef JP
         monap_ptr->abbreviate = -1;
 #endif
-        monap_ptr->act = desc_insult[randint0(monap_ptr->m_ptr->r_idx == MON_DEBBY ? 10 : 8)];
+        monap_ptr->act = desc_insult[randint0(monap_ptr->m_ptr->r_idx == MonsterRaceId::DEBBY ? 10 : 8)];
         sound(SOUND_MOAN);
         break;
     }
-    case RBM_MOAN: {
+    case RaceBlowMethodType::MOAN: {
 #ifdef JP
         monap_ptr->abbreviate = -1;
 #endif
@@ -238,14 +240,14 @@ void describe_monster_attack_method(monap_type *monap_ptr)
         sound(SOUND_MOAN);
         break;
     }
-    case RBM_SHOW: {
+    case RaceBlowMethodType::SHOW: {
         monster_attack_show(monap_ptr);
         break;
     }
 
-    case RBM_NONE:
-    case RBM_SHOOT:
-    case NB_RBM_TYPE:
+    case RaceBlowMethodType::NONE:
+    case RaceBlowMethodType::SHOOT:
+    case RaceBlowMethodType::MAX:
         break;
     }
 }

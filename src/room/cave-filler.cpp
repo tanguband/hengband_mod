@@ -6,19 +6,20 @@
 
 #include "room/cave-filler.h"
 #include "dungeon/dungeon-flag-types.h"
-#include "dungeon/dungeon.h"
 #include "floor//geometry.h"
 #include "floor/cave.h"
 #include "grid/feature.h"
 #include "grid/grid.h"
 #include "room/lake-types.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/grid-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "util/point-2d.h"
 #include <queue>
 
-typedef struct fill_data_type {
+struct fill_data_type {
     POSITION xmin;
     POSITION ymin;
     POSITION xmax;
@@ -40,7 +41,7 @@ typedef struct fill_data_type {
 
     /* number of filled squares */
     int amount;
-} fill_data_type;
+};
 
 static fill_data_type fill_data;
 
@@ -48,31 +49,36 @@ static fill_data_type fill_data;
  * Store routine for the fractal floor generator
  * this routine probably should be an inline function or a macro.
  */
-static void store_height(floor_type *floor_ptr, POSITION x, POSITION y, FEAT_IDX val)
+static void store_height(FloorType *floor_ptr, POSITION x, POSITION y, FEAT_IDX val)
 {
-    if (((x == fill_data.xmin) || (y == fill_data.ymin) || (x == fill_data.xmax) || (y == fill_data.ymax)) && (val <= fill_data.c1))
+    if (((x == fill_data.xmin) || (y == fill_data.ymin) || (x == fill_data.xmax) || (y == fill_data.ymax)) && (val <= fill_data.c1)) {
         val = fill_data.c1 + 1;
+    }
 
     floor_ptr->grid_array[y][x].feat = val;
     return;
 }
 
-void generate_hmap(floor_type *floor_ptr, POSITION y0, POSITION x0, POSITION xsiz, POSITION ysiz, int grd, int roug, int cutoff)
+void generate_hmap(FloorType *floor_ptr, POSITION y0, POSITION x0, POSITION xsiz, POSITION ysiz, int grd, int roug, int cutoff)
 {
     POSITION xsize = xsiz;
     POSITION ysize = ysiz;
 
-    if (xsize > 254)
+    if (xsize > 254) {
         xsize = 254;
+    }
 
-    if (xsize < 4)
+    if (xsize < 4) {
         xsize = 4;
+    }
 
-    if (ysize > 254)
+    if (ysize > 254) {
         ysize = 254;
+    }
 
-    if (ysize < 4)
+    if (ysize < 4) {
         ysize = 4;
+    }
 
     POSITION xhsize = xsize / 2;
     POSITION yhsize = ysize / 2;
@@ -117,8 +123,9 @@ void generate_hmap(floor_type *floor_ptr, POSITION y0, POSITION x0, POSITION xsi
             for (POSITION j = 0; j <= yysize; j += ystep) {
                 POSITION ii = i / 256 + fill_data.xmin;
                 POSITION jj = j / 256 + fill_data.ymin;
-                if (floor_ptr->grid_array[jj][ii].feat != -1)
+                if (floor_ptr->grid_array[jj][ii].feat != -1) {
                     continue;
+                }
 
                 if (xhstep2 > grd) {
                     store_height(floor_ptr, ii, jj, randint1(maxsize));
@@ -126,9 +133,7 @@ void generate_hmap(floor_type *floor_ptr, POSITION y0, POSITION x0, POSITION xsi
                 }
 
                 store_height(floor_ptr, ii, jj,
-                    (floor_ptr->grid_array[jj][fill_data.xmin + (i - xhstep) / 256].feat + floor_ptr->grid_array[jj][fill_data.xmin + (i + xhstep) / 256].feat)
-                            / 2
-                        + (randint1(xstep2) - xhstep2) * roug / 16);
+                    (floor_ptr->grid_array[jj][fill_data.xmin + (i - xhstep) / 256].feat + floor_ptr->grid_array[jj][fill_data.xmin + (i + xhstep) / 256].feat) / 2 + (randint1(xstep2) - xhstep2) * roug / 16);
             }
         }
 
@@ -136,8 +141,9 @@ void generate_hmap(floor_type *floor_ptr, POSITION y0, POSITION x0, POSITION xsi
             for (POSITION i = 0; i <= xxsize; i += xstep) {
                 POSITION ii = i / 256 + fill_data.xmin;
                 POSITION jj = j / 256 + fill_data.ymin;
-                if (floor_ptr->grid_array[jj][ii].feat != -1)
+                if (floor_ptr->grid_array[jj][ii].feat != -1) {
                     continue;
+                }
 
                 if (xhstep2 > grd) {
                     store_height(floor_ptr, ii, jj, randint1(maxsize));
@@ -145,9 +151,7 @@ void generate_hmap(floor_type *floor_ptr, POSITION y0, POSITION x0, POSITION xsi
                 }
 
                 store_height(floor_ptr, ii, jj,
-                    (floor_ptr->grid_array[fill_data.ymin + (j - yhstep) / 256][ii].feat + floor_ptr->grid_array[fill_data.ymin + (j + yhstep) / 256][ii].feat)
-                            / 2
-                        + (randint1(ystep2) - yhstep2) * roug / 16);
+                    (floor_ptr->grid_array[fill_data.ymin + (j - yhstep) / 256][ii].feat + floor_ptr->grid_array[fill_data.ymin + (j + yhstep) / 256][ii].feat) / 2 + (randint1(ystep2) - yhstep2) * roug / 16);
             }
         }
 
@@ -155,8 +159,9 @@ void generate_hmap(floor_type *floor_ptr, POSITION y0, POSITION x0, POSITION xsi
             for (POSITION j = yhstep; j <= yysize - yhstep; j += ystep) {
                 POSITION ii = i / 256 + fill_data.xmin;
                 POSITION jj = j / 256 + fill_data.ymin;
-                if (floor_ptr->grid_array[jj][ii].feat != -1)
+                if (floor_ptr->grid_array[jj][ii].feat != -1) {
                     continue;
+                }
 
                 if (xhstep2 > grd) {
                     store_height(floor_ptr, ii, jj, randint1(maxsize));
@@ -168,21 +173,19 @@ void generate_hmap(floor_type *floor_ptr, POSITION y0, POSITION x0, POSITION xsi
                 POSITION ym = fill_data.ymin + (j - yhstep) / 256;
                 POSITION yp = fill_data.ymin + (j + yhstep) / 256;
                 store_height(floor_ptr, ii, jj,
-                    (floor_ptr->grid_array[ym][xm].feat + floor_ptr->grid_array[yp][xm].feat + floor_ptr->grid_array[ym][xp].feat
-                        + floor_ptr->grid_array[yp][xp].feat)
-                            / 4
-                        + (randint1(xstep2) - xhstep2) * (diagsize / 16) / 256 * roug);
+                    (floor_ptr->grid_array[ym][xm].feat + floor_ptr->grid_array[yp][xm].feat + floor_ptr->grid_array[ym][xp].feat + floor_ptr->grid_array[yp][xp].feat) / 4 + (randint1(xstep2) - xhstep2) * (diagsize / 16) / 256 * roug);
             }
         }
     }
 }
 
-static bool hack_isnt_wall(player_type *player_ptr, POSITION y, POSITION x, int c1, int c2, int c3, FEAT_IDX feat1, FEAT_IDX feat2, FEAT_IDX feat3,
+static bool hack_isnt_wall(PlayerType *player_ptr, POSITION y, POSITION x, int c1, int c2, int c3, FEAT_IDX feat1, FEAT_IDX feat2, FEAT_IDX feat3,
     BIT_FLAGS info1, BIT_FLAGS info2, BIT_FLAGS info3)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
-    if (floor_ptr->grid_array[y][x].info & CAVE_ICKY)
+    auto *floor_ptr = player_ptr->current_floor_ptr;
+    if (floor_ptr->grid_array[y][x].info & CAVE_ICKY) {
         return false;
+    }
 
     floor_ptr->grid_array[y][x].info |= (CAVE_ICKY);
     if (floor_ptr->grid_array[y][x].feat <= c1) {
@@ -228,9 +231,9 @@ static bool hack_isnt_wall(player_type *player_ptr, POSITION y, POSITION x, int 
  * Quick and nasty fill routine used to find the connected region
  * of floor in the middle of the grids
  */
-static void cave_fill(player_type *player_ptr, const POSITION y, const POSITION x)
+static void cave_fill(PlayerType *player_ptr, const POSITION y, const POSITION x)
 {
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
 
     // 幅優先探索用のキュー。
     std::queue<Pos2D> que;
@@ -254,8 +257,9 @@ static void cave_fill(player_type *player_ptr, const POSITION y, const POSITION 
             }
 
             if (!hack_isnt_wall(player_ptr, y_to, x_to, fill_data.c1, fill_data.c2, fill_data.c3, fill_data.feat1, fill_data.feat2, fill_data.feat3,
-                    fill_data.info1, fill_data.info2, fill_data.info3))
+                    fill_data.info1, fill_data.info2, fill_data.info3)) {
                 continue;
+            }
 
             que.emplace(y_to, x_to);
 
@@ -264,7 +268,7 @@ static void cave_fill(player_type *player_ptr, const POSITION y, const POSITION 
     }
 }
 
-bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITION xsize, POSITION ysize, int cutoff, bool light, bool room)
+bool generate_fracave(PlayerType *player_ptr, POSITION y0, POSITION x0, POSITION xsize, POSITION ysize, int cutoff, bool light, bool room)
 {
     POSITION xhsize = xsize / 2;
     POSITION yhsize = ysize / 2;
@@ -278,7 +282,7 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
     fill_data.info2 = CAVE_FLOOR;
     fill_data.info3 = CAVE_FLOOR;
     fill_data.amount = 0;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     cave_fill(player_ptr, (byte)y0, (byte)x0);
     if (fill_data.amount < 10) {
         for (POSITION x = 0; x <= xsize; ++x) {
@@ -295,8 +299,9 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
         auto *g_ptr1 = &floor_ptr->grid_array[y0 - yhsize][i + x0 - xhsize];
         if (g_ptr1->is_icky() && (room)) {
             place_bold(player_ptr, y0 - yhsize, x0 + i - xhsize, GB_OUTER);
-            if (light)
+            if (light) {
                 floor_ptr->grid_array[y0 - yhsize][x0 + i - xhsize].info |= (CAVE_GLOW);
+            }
 
             g_ptr1->info |= (CAVE_ROOM);
             place_bold(player_ptr, y0 - yhsize, x0 + i - xhsize, GB_OUTER);
@@ -307,8 +312,9 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
         auto *g_ptr2 = &floor_ptr->grid_array[ysize + y0 - yhsize][i + x0 - xhsize];
         if (g_ptr2->is_icky() && (room)) {
             place_bold(player_ptr, y0 + ysize - yhsize, x0 + i - xhsize, GB_OUTER);
-            if (light)
+            if (light) {
                 g_ptr2->info |= (CAVE_GLOW);
+            }
 
             g_ptr2->info |= (CAVE_ROOM);
             place_bold(player_ptr, y0 + ysize - yhsize, x0 + i - xhsize, GB_OUTER);
@@ -324,8 +330,9 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
         auto *g_ptr1 = &floor_ptr->grid_array[i + y0 - yhsize][x0 - xhsize];
         if (g_ptr1->is_icky() && room) {
             place_bold(player_ptr, y0 + i - yhsize, x0 - xhsize, GB_OUTER);
-            if (light)
+            if (light) {
                 g_ptr1->info |= (CAVE_GLOW);
+            }
 
             g_ptr1->info |= (CAVE_ROOM);
             place_bold(player_ptr, y0 + i - yhsize, x0 - xhsize, GB_OUTER);
@@ -336,8 +343,9 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
         auto *g_ptr2 = &floor_ptr->grid_array[i + y0 - yhsize][xsize + x0 - xhsize];
         if (g_ptr2->is_icky() && room) {
             place_bold(player_ptr, y0 + i - yhsize, x0 + xsize - xhsize, GB_OUTER);
-            if (light)
+            if (light) {
                 g_ptr2->info |= (CAVE_GLOW);
+            }
 
             g_ptr2->info |= (CAVE_ROOM);
             place_bold(player_ptr, y0 + i - yhsize, x0 + xsize - xhsize, GB_OUTER);
@@ -354,11 +362,13 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
             auto *g_ptr1 = &floor_ptr->grid_array[y0 + y - yhsize][x0 + x - xhsize];
             if (g_ptr1->is_floor() && g_ptr1->is_icky()) {
                 g_ptr1->info &= ~CAVE_ICKY;
-                if (light)
+                if (light) {
                     g_ptr1->info |= (CAVE_GLOW);
+                }
 
-                if (room)
+                if (room) {
                     g_ptr1->info |= (CAVE_ROOM);
+                }
 
                 continue;
             }
@@ -366,8 +376,9 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
             auto *g_ptr2 = &floor_ptr->grid_array[y0 + y - yhsize][x0 + x - xhsize];
             if (g_ptr2->is_outer() && g_ptr2->is_icky()) {
                 g_ptr2->info &= ~(CAVE_ICKY);
-                if (light)
+                if (light) {
                     g_ptr2->info |= (CAVE_GLOW);
+                }
 
                 if (room) {
                     g_ptr2->info |= (CAVE_ROOM);
@@ -387,7 +398,7 @@ bool generate_fracave(player_type *player_ptr, POSITION y0, POSITION x0, POSITIO
     return true;
 }
 
-bool generate_lake(player_type *player_ptr, POSITION y0, POSITION x0, POSITION xsize, POSITION ysize, int c1, int c2, int c3, int type)
+bool generate_lake(PlayerType *player_ptr, POSITION y0, POSITION x0, POSITION xsize, POSITION ysize, int c1, int c2, int c3, int type)
 {
     FEAT_IDX feat1, feat2, feat3;
     POSITION xhsize = xsize / 2;
@@ -443,7 +454,7 @@ bool generate_lake(player_type *player_ptr, POSITION y0, POSITION x0, POSITION x
     fill_data.info3 = 0;
     fill_data.amount = 0;
 
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     cave_fill(player_ptr, (byte)y0, (byte)x0);
     if (fill_data.amount < 10) {
         for (POSITION x = 0; x <= xsize; ++x) {
@@ -473,13 +484,15 @@ bool generate_lake(player_type *player_ptr, POSITION y0, POSITION x0, POSITION x
     for (POSITION x = 1; x < xsize; ++x) {
         for (POSITION y = 1; y < ysize; ++y) {
             auto *g_ptr = &floor_ptr->grid_array[y0 + y - yhsize][x0 + x - xhsize];
-            if (!g_ptr->is_icky() || g_ptr->is_outer())
+            if (!g_ptr->is_icky() || g_ptr->is_outer()) {
                 place_bold(player_ptr, y0 + y - yhsize, x0 + x - xhsize, GB_EXTRA);
+            }
 
             floor_ptr->grid_array[y0 + y - yhsize][x0 + x - xhsize].info &= ~(CAVE_ICKY | CAVE_ROOM);
-            if (cave_has_flag_bold(floor_ptr, y0 + y - yhsize, x0 + x - xhsize, FF::LAVA)) {
-                if (d_info[floor_ptr->dungeon_idx].flags.has_not(DF::DARKNESS))
+            if (cave_has_flag_bold(floor_ptr, y0 + y - yhsize, x0 + x - xhsize, TerrainCharacteristics::LAVA)) {
+                if (dungeons_info[floor_ptr->dungeon_idx].flags.has_not(DungeonFeatureType::DARKNESS)) {
                     floor_ptr->grid_array[y0 + y - yhsize][x0 + x - xhsize].info |= CAVE_GLOW;
+                }
             }
         }
     }

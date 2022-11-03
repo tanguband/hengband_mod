@@ -37,13 +37,14 @@
 /*!
  * @brief Auto-destroy marked item
  */
-static void autopick_delayed_alter_aux(player_type *player_ptr, INVENTORY_IDX item)
+static void autopick_delayed_alter_aux(PlayerType *player_ptr, INVENTORY_IDX item)
 {
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     o_ptr = ref_item(player_ptr, item);
 
-    if (o_ptr->k_idx == 0 || !(o_ptr->marked & OM_AUTODESTROY))
+    if (o_ptr->k_idx == 0 || !(o_ptr->marked & OM_AUTODESTROY)) {
         return;
+    }
 
     GAME_TEXT o_name[MAX_NLEN];
     describe_flavor(player_ptr, o_name, o_ptr, 0);
@@ -59,14 +60,15 @@ static void autopick_delayed_alter_aux(player_type *player_ptr, INVENTORY_IDX it
 
 /*!
  * @brief Auto-destroy marked items in inventry and on floor
- * @details  
+ * @details
  * Scan inventry in reverse order to prevent
  * skipping after inven_item_optimize()
  */
-void autopick_delayed_alter(player_type *player_ptr)
+void autopick_delayed_alter(PlayerType *player_ptr)
 {
-    for (INVENTORY_IDX item = INVEN_TOTAL - 1; item >= 0; item--)
+    for (INVENTORY_IDX item = INVEN_TOTAL - 1; item >= 0; item--) {
         autopick_delayed_alter_aux(player_ptr, item);
+    }
 
     auto &grid = player_ptr->current_floor_ptr->grid_array[player_ptr->y][player_ptr->x];
     for (auto it = grid.o_idx_list.begin(); it != grid.o_idx_list.end();) {
@@ -84,24 +86,25 @@ void autopick_delayed_alter(player_type *player_ptr)
  * Auto-destroyer works only on inventory or on floor stack only when
  * requested.
  */
-void autopick_alter_item(player_type *player_ptr, INVENTORY_IDX item, bool destroy)
+void autopick_alter_item(PlayerType *player_ptr, INVENTORY_IDX item, bool destroy)
 {
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     o_ptr = ref_item(player_ptr, item);
     int idx = find_autopick_list(player_ptr, o_ptr);
     auto_inscribe_item(player_ptr, o_ptr, idx);
-    if (destroy && item <= INVEN_PACK)
+    if (destroy && item <= INVEN_PACK) {
         auto_destroy_item(player_ptr, o_ptr, idx);
+    }
 }
 
 /*!
  * @brief Automatically pickup/destroy items in this grid.
  */
-void autopick_pickup_items(player_type *player_ptr, grid_type *g_ptr)
+void autopick_pickup_items(PlayerType *player_ptr, grid_type *g_ptr)
 {
     for (auto it = g_ptr->o_idx_list.begin(); it != g_ptr->o_idx_list.end();) {
         OBJECT_IDX this_o_idx = *it++;
-        object_type *o_ptr = &player_ptr->current_floor_ptr->o_list[this_o_idx];
+        auto *o_ptr = &player_ptr->current_floor_ptr->o_list[this_o_idx];
         int idx = find_autopick_list(player_ptr, o_ptr);
         auto_inscribe_item(player_ptr, o_ptr, idx);
         if ((idx < 0) || (autopick_list[idx].action & (DO_AUTOPICK | DO_QUERY_AUTOPICK)) == 0) {

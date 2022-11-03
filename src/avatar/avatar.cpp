@@ -53,20 +53,22 @@ concptr virtue[MAX_VIRTUE] = {
  * @return 比較の真偽値を返す
  * @todo 引数名を直しておく
  */
-bool compare_virtue(player_type *player_ptr, int type, int num, int tekitou)
+bool compare_virtue(PlayerType *player_ptr, int type, int num, int tekitou)
 {
     int vir = virtue_number(player_ptr, type) ? player_ptr->virtues[virtue_number(player_ptr, type) - 1] : 0;
     switch (tekitou) {
     case VIRTUE_LARGE:
-        if (vir > num)
+        if (vir > num) {
             return true;
-        else
+        } else {
             return false;
+        }
     case VIRTUE_SMALL:
-        if (vir < num)
+        if (vir < num) {
             return true;
-        else
+        } else {
             return false;
+        }
     default:
         return false;
     }
@@ -77,11 +79,13 @@ bool compare_virtue(player_type *player_ptr, int type, int num, int tekitou)
  * @param type 確認したい徳のID
  * @return スロットがあるならばスロットのID(0～7)+1、ない場合は0を返す。
  */
-int virtue_number(player_type *player_ptr, int type)
+int virtue_number(PlayerType *player_ptr, int type)
 {
-    for (int i = 0; i < 8; i++)
-        if (player_ptr->vir_types[i] == type)
+    for (int i = 0; i < 8; i++) {
+        if (player_ptr->vir_types[i] == type) {
             return i + 1;
+        }
+    }
 
     return 0;
 }
@@ -90,7 +94,7 @@ int virtue_number(player_type *player_ptr, int type)
  * @brief プレイヤーの職業や種族に依存しないランダムな徳を取得する / Aux function
  * @param which 確認したい徳のID
  */
-static void get_random_virtue(player_type *player_ptr, int which)
+static void get_random_virtue(PlayerType *player_ptr, int which)
 {
     int type = 0;
     while (!(type) || virtue_number(player_ptr, type)) {
@@ -153,29 +157,33 @@ static void get_random_virtue(player_type *player_ptr, int which)
  * @param realm 魔法領域のID
  * @return 対応する徳のID
  */
-static enum virtue_idx get_realm_virtues(player_type *player_ptr, int16_t realm)
+static enum virtue_idx get_realm_virtues(PlayerType *player_ptr, int16_t realm)
 {
     switch (realm) {
     case REALM_LIFE:
-        if (virtue_number(player_ptr, V_VITALITY))
+        if (virtue_number(player_ptr, V_VITALITY)) {
             return V_TEMPERANCE;
-        else
+        } else {
             return V_VITALITY;
+        }
     case REALM_SORCERY:
-        if (virtue_number(player_ptr, V_KNOWLEDGE))
+        if (virtue_number(player_ptr, V_KNOWLEDGE)) {
             return V_ENCHANT;
-        else
+        } else {
             return V_KNOWLEDGE;
+        }
     case REALM_NATURE:
-        if (virtue_number(player_ptr, V_NATURE))
+        if (virtue_number(player_ptr, V_NATURE)) {
             return V_HARMONY;
-        else
+        } else {
             return V_NATURE;
+        }
     case REALM_CHAOS:
-        if (virtue_number(player_ptr, V_CHANCE))
+        if (virtue_number(player_ptr, V_CHANCE)) {
             return V_INDIVIDUALISM;
-        else
+        } else {
             return V_CHANCE;
+        }
     case REALM_DEATH:
         return V_UNLIFE;
     case REALM_TRUMP:
@@ -183,25 +191,29 @@ static enum virtue_idx get_realm_virtues(player_type *player_ptr, int16_t realm)
     case REALM_ARCANE:
         return V_NONE;
     case REALM_CRAFT:
-        if (virtue_number(player_ptr, V_ENCHANT))
+        if (virtue_number(player_ptr, V_ENCHANT)) {
             return V_INDIVIDUALISM;
-        else
+        } else {
             return V_ENCHANT;
+        }
     case REALM_DAEMON:
-        if (virtue_number(player_ptr, V_JUSTICE))
+        if (virtue_number(player_ptr, V_JUSTICE)) {
             return V_FAITH;
-        else
+        } else {
             return V_JUSTICE;
+        }
     case REALM_CRUSADE:
-        if (virtue_number(player_ptr, V_JUSTICE))
+        if (virtue_number(player_ptr, V_JUSTICE)) {
             return V_HONOUR;
-        else
+        } else {
             return V_JUSTICE;
+        }
     case REALM_HEX:
-        if (virtue_number(player_ptr, V_COMPASSION))
+        if (virtue_number(player_ptr, V_COMPASSION)) {
             return V_JUSTICE;
-        else
+        } else {
             return V_COMPASSION;
+        }
     default:
         return V_NONE;
     };
@@ -211,7 +223,7 @@ static enum virtue_idx get_realm_virtues(player_type *player_ptr, int16_t realm)
  * @brief 作成中のプレイヤーキャラクターに徳8種類を与える。 / Select virtues & reset values for a new character
  * @details 職業に応じて1～4種が固定、種族に応じて1種類が与えられ、後は重複なくランダムに選択される。
  */
-void initialize_virtues(player_type *player_ptr)
+void initialize_virtues(PlayerType *player_ptr)
 {
     int i = 0, j = 0;
     int16_t tmp_vir;
@@ -413,26 +425,33 @@ void initialize_virtues(player_type *player_ptr)
     /* Get a virtue for realms */
     if (player_ptr->realm1) {
         tmp_vir = get_realm_virtues(player_ptr, player_ptr->realm1);
-        if (tmp_vir)
+        if (tmp_vir) {
             player_ptr->vir_types[i++] = tmp_vir;
+        }
     }
 
     if (player_ptr->realm2) {
         tmp_vir = get_realm_virtues(player_ptr, player_ptr->realm2);
-        if (tmp_vir)
+        if (tmp_vir) {
             player_ptr->vir_types[i++] = tmp_vir;
+        }
     }
 
     /* Eliminate doubles */
-    for (i = 0; i < 8; i++)
-        for (j = i + 1; j < 8; j++)
-            if ((player_ptr->vir_types[j] != 0) && (player_ptr->vir_types[j] == player_ptr->vir_types[i]))
+    for (i = 0; i < 8; i++) {
+        for (j = i + 1; j < 8; j++) {
+            if ((player_ptr->vir_types[j] != 0) && (player_ptr->vir_types[j] == player_ptr->vir_types[i])) {
                 player_ptr->vir_types[j] = 0;
+            }
+        }
+    }
 
     /* Fill in the blanks */
-    for (i = 0; i < 8; i++)
-        if (player_ptr->vir_types[i] == 0)
+    for (i = 0; i < 8; i++) {
+        if (player_ptr->vir_types[i] == 0) {
             get_random_virtue(player_ptr, i);
+        }
+    }
 }
 
 /*!
@@ -441,11 +460,12 @@ void initialize_virtues(player_type *player_ptr)
  * @param virtue 徳のID
  * @param amount 加減量
  */
-void chg_virtue(player_type *player_ptr, int virtue_id, int amount)
+void chg_virtue(PlayerType *player_ptr, int virtue_id, int amount)
 {
     for (int i = 0; i < 8; i++) {
-        if (player_ptr->vir_types[i] != virtue_id)
+        if (player_ptr->vir_types[i] != virtue_id) {
             continue;
+        }
 
         if (amount > 0) {
             if ((amount + player_ptr->virtues[i] > 50) && one_in_(2)) {
@@ -463,10 +483,11 @@ void chg_virtue(player_type *player_ptr, int virtue_id, int amount)
                 return;
             }
 
-            if (amount + player_ptr->virtues[i] > 125)
+            if (amount + player_ptr->virtues[i] > 125) {
                 player_ptr->virtues[i] = 125;
-            else
+            } else {
                 player_ptr->virtues[i] = player_ptr->virtues[i] + amount;
+            }
         } else {
             if ((amount + player_ptr->virtues[i] < -50) && one_in_(2)) {
                 player_ptr->virtues[i] = std::min<short>(player_ptr->virtues[i], -50);
@@ -483,10 +504,11 @@ void chg_virtue(player_type *player_ptr, int virtue_id, int amount)
                 return;
             }
 
-            if (amount + player_ptr->virtues[i] < -125)
+            if (amount + player_ptr->virtues[i] < -125) {
                 player_ptr->virtues[i] = -125;
-            else
+            } else {
                 player_ptr->virtues[i] = player_ptr->virtues[i] + amount;
+            }
         }
 
         player_ptr->update |= PU_BONUS;
@@ -499,58 +521,62 @@ void chg_virtue(player_type *player_ptr, int virtue_id, int amount)
  * @param virtue 徳のID
  * @param amount セットしたい値
  */
-void set_virtue(player_type *player_ptr, int virtue_id, int amount)
+void set_virtue(PlayerType *player_ptr, int virtue_id, int amount)
 {
-    for (int i = 0; i < 8; i++)
+    for (int i = 0; i < 8; i++) {
         if (player_ptr->vir_types[i] == virtue_id) {
             player_ptr->virtues[i] = (int16_t)amount;
             return;
         }
+    }
 }
 
 /*!
  * @brief 徳のダンプ表示を行う
  * @param out_file ファイルポインタ
  */
-void dump_virtues(player_type *player_ptr, FILE *out_file)
+void dump_virtues(PlayerType *player_ptr, FILE *out_file)
 {
-    if (!out_file)
+    if (!out_file) {
         return;
+    }
 
     for (int v_nr = 0; v_nr < 8; v_nr++) {
         GAME_TEXT vir_name[20];
         int tester = player_ptr->virtues[v_nr];
         strcpy(vir_name, virtue[(player_ptr->vir_types[v_nr]) - 1]);
         concptr vir_val = show_actual_value ? format(" (%d)", tester) : "";
-        if (player_ptr->vir_types[v_nr] == 0 || player_ptr->vir_types[v_nr] > MAX_VIRTUE)
+        if (player_ptr->vir_types[v_nr] == 0 || player_ptr->vir_types[v_nr] > MAX_VIRTUE) {
             fprintf(out_file, _("おっと。%sの情報なし。", "Oops. No info about %s."), vir_name);
+        }
 
-        else if (tester < -100)
+        else if (tester < -100) {
             fprintf(out_file, _("[%s]の対極%s", "You are the polar opposite of %s.%s"), vir_name, vir_val);
-        else if (tester < -80)
+        } else if (tester < -80) {
             fprintf(out_file, _("[%s]の大敵%s", "You are an arch-enemy of %s.%s"), vir_name, vir_val);
-        else if (tester < -60)
+        } else if (tester < -60) {
             fprintf(out_file, _("[%s]の強敵%s", "You are a bitter enemy of %s.%s"), vir_name, vir_val);
-        else if (tester < -40)
+        } else if (tester < -40) {
             fprintf(out_file, _("[%s]の敵%s", "You are an enemy of %s.%s"), vir_name, vir_val);
-        else if (tester < -20)
+        } else if (tester < -20) {
             fprintf(out_file, _("[%s]の罪者%s", "You have sinned against %s.%s"), vir_name, vir_val);
-        else if (tester < 0)
+        } else if (tester < 0) {
             fprintf(out_file, _("[%s]の迷道者%s", "You have strayed from the path of %s.%s"), vir_name, vir_val);
-        else if (tester == 0)
+        } else if (tester == 0) {
             fprintf(out_file, _("[%s]の中立者%s", "You are neutral to %s.%s"), vir_name, vir_val);
-        else if (tester < 20)
+        } else if (tester < 20) {
             fprintf(out_file, _("[%s]の小徳者%s", "You are somewhat virtuous in %s.%s"), vir_name, vir_val);
-        else if (tester < 40)
+        } else if (tester < 40) {
             fprintf(out_file, _("[%s]の中徳者%s", "You are virtuous in %s.%s"), vir_name, vir_val);
-        else if (tester < 60)
+        } else if (tester < 60) {
             fprintf(out_file, _("[%s]の高徳者%s", "You are very virtuous in %s.%s"), vir_name, vir_val);
-        else if (tester < 80)
+        } else if (tester < 80) {
             fprintf(out_file, _("[%s]の覇者%s", "You are a champion of %s.%s"), vir_name, vir_val);
-        else if (tester < 100)
+        } else if (tester < 100) {
             fprintf(out_file, _("[%s]の偉大な覇者%s", "You are a great champion of %s.%s"), vir_name, vir_val);
-        else
+        } else {
             fprintf(out_file, _("[%s]の具現者%s", "You are the living embodiment of %s.%s"), vir_name, vir_val);
+        }
 
         fprintf(out_file, "\n");
     }

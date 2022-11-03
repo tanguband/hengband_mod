@@ -6,12 +6,14 @@
 
 #include "spell-kind/spells-random.h"
 #include "avatar/avatar.h"
+#include "effect/attribute-types.h"
 #include "effect/effect-characteristics.h"
 #include "effect/effect-processor.h"
 #include "hpmp/hp-mp-processor.h"
 #include "monster-floor/monster-summon.h"
 #include "monster-floor/place-monster-types.h"
 #include "mutation/mutation-investor-remover.h"
+#include "player-base/player-class.h"
 #include "player/player-damage.h"
 #include "spell-kind/earthquake.h"
 #include "spell-kind/spells-equipment.h"
@@ -23,7 +25,6 @@
 #include "spell-kind/spells-sight.h"
 #include "spell-kind/spells-specific-bolt.h"
 #include "spell-kind/spells-teleport.h"
-#include "spell/spell-types.h"
 #include "spell/spells-diceroll.h"
 #include "spell/spells-status.h"
 #include "spell/spells-summon.h"
@@ -40,25 +41,30 @@
  * @brief 混沌招来処理
  * @return 作用が実際にあった場合TRUEを返す
  */
-void call_chaos(player_type *player_ptr)
+void call_chaos(PlayerType *player_ptr)
 {
-    int hurt_types[31] = { GF_ELEC, GF_POIS, GF_ACID, GF_COLD, GF_FIRE, GF_MISSILE, GF_ARROW, GF_PLASMA, GF_HOLY_FIRE, GF_WATER, GF_LITE, GF_DARK, GF_FORCE,
-        GF_INERTIAL, GF_MANA, GF_METEOR, GF_ICE, GF_CHAOS, GF_NETHER, GF_DISENCHANT, GF_SHARDS, GF_SOUND, GF_NEXUS, GF_CONFUSION, GF_TIME, GF_GRAVITY,
-        GF_ROCKET, GF_NUKE, GF_HELL_FIRE, GF_DISINTEGRATE, GF_PSY_SPEAR };
+    AttributeType hurt_types[32] = { AttributeType::ELEC, AttributeType::POIS, AttributeType::ACID, AttributeType::COLD, AttributeType::FIRE,
+        AttributeType::MISSILE, AttributeType::PLASMA, AttributeType::HOLY_FIRE, AttributeType::WATER, AttributeType::LITE,
+        AttributeType::DARK, AttributeType::FORCE, AttributeType::INERTIAL, AttributeType::MANA, AttributeType::METEOR, AttributeType::ICE,
+        AttributeType::CHAOS, AttributeType::NETHER, AttributeType::DISENCHANT, AttributeType::SHARDS, AttributeType::SOUND, AttributeType::NEXUS,
+        AttributeType::CONFUSION, AttributeType::TIME, AttributeType::GRAVITY, AttributeType::ROCKET, AttributeType::NUKE, AttributeType::HELL_FIRE,
+        AttributeType::DISINTEGRATE, AttributeType::PSY_SPEAR, AttributeType::VOID_MAGIC, AttributeType::ABYSS };
 
-    int chaos_type = hurt_types[randint0(31)];
+    AttributeType chaos_type = hurt_types[randint0(32)];
     bool line_chaos = false;
-    if (one_in_(4))
+    if (one_in_(4)) {
         line_chaos = true;
+    }
 
     int dir;
     if (one_in_(6)) {
         for (int dummy = 1; dummy < 10; dummy++) {
             if (dummy - 5) {
-                if (line_chaos)
+                if (line_chaos) {
                     fire_beam(player_ptr, chaos_type, dummy, 150);
-                else
+                } else {
                     fire_ball(player_ptr, chaos_type, dummy, 150, 2);
+                }
             }
         }
 
@@ -70,12 +76,14 @@ void call_chaos(player_type *player_ptr)
         return;
     }
 
-    if (!get_aim_dir(player_ptr, &dir))
+    if (!get_aim_dir(player_ptr, &dir)) {
         return;
-    if (line_chaos)
+    }
+    if (line_chaos) {
         fire_beam(player_ptr, chaos_type, dir, 250);
-    else
+    } else {
         fire_ball(player_ptr, chaos_type, dir, 250, 3 + (player_ptr->lev / 35));
+    }
 }
 
 /*!
@@ -90,11 +98,11 @@ void call_chaos(player_type *player_ptr)
  * or the player gets paralyzed.
  * </pre>
  */
-bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
+bool activate_ty_curse(PlayerType *player_ptr, bool stop_ty, int *count)
 {
     BIT_FLAGS flg = (PROJECT_GRID | PROJECT_ITEM | PROJECT_KILL | PROJECT_JUMP);
     bool is_first_curse = true;
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     while (is_first_curse || (one_in_(3) && !stop_ty)) {
         is_first_curse = false;
         switch (randint1(34)) {
@@ -103,19 +111,21 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
             if (!(*count)) {
                 msg_print(_("地面が揺れた...", "The ground trembles..."));
                 earthquake(player_ptr, player_ptr->y, player_ptr->x, 5 + randint0(10), 0);
-                if (!one_in_(6))
+                if (!one_in_(6)) {
                     break;
+                }
             }
             /* Fall through */
         case 30:
         case 31:
             if (!(*count)) {
-                HIT_POINT dam = damroll(10, 10);
+                int dam = damroll(10, 10);
                 msg_print(_("純粋な魔力の次元への扉が開いた！", "A portal opens to a plane of raw mana!"));
-                project(player_ptr, 0, 8, player_ptr->y, player_ptr->x, dam, GF_MANA, flg);
+                project(player_ptr, 0, 8, player_ptr->y, player_ptr->x, dam, AttributeType::MANA, flg);
                 take_hit(player_ptr, DAMAGE_NOESCAPE, dam, _("純粋な魔力の解放", "released pure mana"));
-                if (!one_in_(6))
+                if (!one_in_(6)) {
                     break;
+                }
             }
             /* Fall through */
         case 32:
@@ -123,22 +133,25 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
             if (!(*count)) {
                 msg_print(_("周囲の空間が歪んだ！", "Space warps about you!"));
                 teleport_player(player_ptr, damroll(10, 10), TELEPORT_PASSIVE);
-                if (randint0(13))
+                if (randint0(13)) {
                     (*count) += activate_hi_summon(player_ptr, player_ptr->y, player_ptr->x, false);
-                if (!one_in_(6))
+                }
+                if (!one_in_(6)) {
                     break;
+                }
             }
             /* Fall through */
         case 34:
             msg_print(_("エネルギーのうねりを感じた！", "You feel a surge of energy!"));
             wall_breaker(player_ptr);
             if (!randint0(7)) {
-                project(player_ptr, 0, 7, player_ptr->y, player_ptr->x, 50, GF_KILL_WALL, flg);
+                project(player_ptr, 0, 7, player_ptr->y, player_ptr->x, 50, AttributeType::KILL_WALL, flg);
                 take_hit(player_ptr, DAMAGE_NOESCAPE, 50, _("エネルギーのうねり", "surge of energy"));
             }
 
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         case 1:
         case 2:
@@ -146,15 +159,17 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
         case 16:
         case 17:
             aggravate_monsters(player_ptr, 0);
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         case 4:
         case 5:
         case 6:
             (*count) += activate_hi_summon(player_ptr, player_ptr->y, player_ptr->x, false);
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         case 7:
         case 8:
@@ -162,16 +177,18 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
         case 18:
             (*count) += summon_specific(
                 player_ptr, 0, player_ptr->y, player_ptr->x, floor_ptr->dun_level, SUMMON_NONE, (PM_ALLOW_GROUP | PM_ALLOW_UNIQUE | PM_NO_PET));
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         case 10:
         case 11:
         case 12:
             msg_print(_("経験値が体から吸い取られた気がする！", "You feel your experience draining away..."));
             lose_exp(player_ptr, player_ptr->exp / 16);
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         case 13:
         case 14:
@@ -180,7 +197,7 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
         case 20: {
             auto is_statue = stop_ty;
             is_statue |= player_ptr->free_act && (randint1(125) < player_ptr->skill_sav);
-            is_statue |= player_ptr->pclass == PlayerClassType::BERSERKER;
+            is_statue |= PlayerClass(player_ptr).equals(PlayerClassType::BERSERKER);
             if (!is_statue) {
                 msg_print(_("彫像になった気分だ！", "You feel like a statue!"));
                 TIME_EFFECT turns = player_ptr->free_act ? randint1(3) : randint1(13);
@@ -197,14 +214,16 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
         case 22:
         case 23:
             (void)do_dec_stat(player_ptr, randint0(6));
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         case 24:
             msg_print(_("ほえ？私は誰？ここで何してる？", "Huh? Who am I? What am I doing here?"));
             lose_all_info(player_ptr);
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         case 25:
             if ((floor_ptr->dun_level > 65) && !stop_ty) {
@@ -213,14 +232,15 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
                 break;
             }
 
-            if (!one_in_(6))
+            if (!one_in_(6)) {
                 break;
+            }
             /* Fall through */
         default:
             for (int i = 0; i < A_MAX; i++) {
                 do {
                     (void)do_dec_stat(player_ptr, i);
-                } while(one_in_(2));
+                } while (one_in_(2));
             }
         }
     }
@@ -233,15 +253,16 @@ bool activate_ty_curse(player_type *player_ptr, bool stop_ty, int *count)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param spell ランダムな効果を選択するための基準ID
  */
-void wild_magic(player_type *player_ptr, int spell)
+void wild_magic(PlayerType *player_ptr, int spell)
 {
     int type = SUMMON_MOLD + randint0(6);
-    if (type < SUMMON_MOLD)
+    if (type < SUMMON_MOLD) {
         type = SUMMON_MOLD;
-    else if (type > SUMMON_MIMIC)
+    } else if (type > SUMMON_MIMIC) {
         type = SUMMON_MIMIC;
+    }
 
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     switch (randint1(spell) + randint1(8) + 1) {
     case 1:
     case 2:
@@ -305,7 +326,7 @@ void wild_magic(player_type *player_ptr, int spell)
         lose_all_info(player_ptr);
         break;
     case 32:
-        fire_ball(player_ptr, GF_CHAOS, 0, spell + 5, 1 + (spell / 10));
+        fire_ball(player_ptr, AttributeType::CHAOS, 0, spell + 5, 1 + (spell / 10));
         break;
     case 33:
         wall_stone(player_ptr);
@@ -344,18 +365,20 @@ void wild_magic(player_type *player_ptr, int spell)
  * while keeping the results quite random.  It also allows some potent\n
  * effects only at high level.
  */
-void cast_wonder(player_type *player_ptr, DIRECTION dir)
+void cast_wonder(PlayerType *player_ptr, DIRECTION dir)
 {
     PLAYER_LEVEL plev = player_ptr->lev;
     int die = randint1(100) + plev / 5;
     int vir = virtue_number(player_ptr, V_CHANCE);
     if (vir) {
         if (player_ptr->virtues[vir - 1] > 0) {
-            while (randint1(400) < player_ptr->virtues[vir - 1])
+            while (randint1(400) < player_ptr->virtues[vir - 1]) {
                 die++;
+            }
         } else {
-            while (randint1(400) < (0 - player_ptr->virtues[vir - 1]))
+            while (randint1(400) < (0 - player_ptr->virtues[vir - 1])) {
                 die--;
+            }
         }
     }
 
@@ -388,7 +411,7 @@ void cast_wonder(player_type *player_ptr, DIRECTION dir)
     }
 
     if (die < 36) {
-        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr) - 10, GF_MISSILE, dir, damroll(3 + ((plev - 1) / 5), 4));
+        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr) - 10, AttributeType::MISSILE, dir, damroll(3 + ((plev - 1) / 5), 4));
         return;
     }
 
@@ -398,7 +421,7 @@ void cast_wonder(player_type *player_ptr, DIRECTION dir)
     }
 
     if (die < 46) {
-        fire_ball(player_ptr, GF_POIS, dir, 20 + (plev / 2), 3);
+        fire_ball(player_ptr, AttributeType::POIS, dir, 20 + (plev / 2), 3);
         return;
     }
 
@@ -408,22 +431,22 @@ void cast_wonder(player_type *player_ptr, DIRECTION dir)
     }
 
     if (die < 56) {
-        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr) - 10, GF_ELEC, dir, damroll(3 + ((plev - 5) / 4), 8));
+        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr) - 10, AttributeType::ELEC, dir, damroll(3 + ((plev - 5) / 4), 8));
         return;
     }
 
     if (die < 61) {
-        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr) - 10, GF_COLD, dir, damroll(5 + ((plev - 5) / 4), 8));
+        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr) - 10, AttributeType::COLD, dir, damroll(5 + ((plev - 5) / 4), 8));
         return;
     }
 
     if (die < 66) {
-        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr), GF_ACID, dir, damroll(6 + ((plev - 5) / 4), 8));
+        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr), AttributeType::ACID, dir, damroll(6 + ((plev - 5) / 4), 8));
         return;
     }
 
     if (die < 71) {
-        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr), GF_FIRE, dir, damroll(8 + ((plev - 5) / 4), 8));
+        fire_bolt_or_beam(player_ptr, beam_chance(player_ptr), AttributeType::FIRE, dir, damroll(8 + ((plev - 5) / 4), 8));
         return;
     }
 
@@ -433,22 +456,22 @@ void cast_wonder(player_type *player_ptr, DIRECTION dir)
     }
 
     if (die < 81) {
-        fire_ball(player_ptr, GF_ELEC, dir, 30 + plev / 2, 2);
+        fire_ball(player_ptr, AttributeType::ELEC, dir, 30 + plev / 2, 2);
         return;
     }
 
     if (die < 86) {
-        fire_ball(player_ptr, GF_ACID, dir, 40 + plev, 2);
+        fire_ball(player_ptr, AttributeType::ACID, dir, 40 + plev, 2);
         return;
     }
 
     if (die < 91) {
-        fire_ball(player_ptr, GF_ICE, dir, 70 + plev, 3);
+        fire_ball(player_ptr, AttributeType::ICE, dir, 70 + plev, 3);
         return;
     }
 
     if (die < 96) {
-        fire_ball(player_ptr, GF_FIRE, dir, 80 + plev, 3);
+        fire_ball(player_ptr, AttributeType::FIRE, dir, 80 + plev, 3);
         return;
     }
 

@@ -3,6 +3,7 @@
 #include "core/player-update-types.h"
 #include "core/stuff-handler.h"
 #include "core/window-redrawer.h"
+#include "effect/attribute-types.h"
 #include "effect/effect-characteristics.h"
 #include "effect/effect-processor.h"
 #include "floor/cave.h"
@@ -13,6 +14,7 @@
 #include "io/input-key-acceptor.h"
 #include "locale/english.h"
 #include "lore/lore-store.h"
+#include "monster-race/monster-kind-mask.h"
 #include "monster-race/monster-race.h"
 #include "monster-race/race-flags3.h"
 #include "monster/monster-describer.h"
@@ -22,7 +24,6 @@
 #include "monster/monster-status-setter.h"
 #include "monster/monster-status.h"
 #include "monster/smart-learn-types.h"
-#include "spell/spell-types.h"
 #include "system/floor-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
@@ -44,34 +45,38 @@
  * this is done in two passes. -- JDL
  * </pre>
  */
-bool project_all_los(player_type *player_ptr, EFFECT_ID typ, HIT_POINT dam)
+bool project_all_los(PlayerType *player_ptr, AttributeType typ, int dam)
 {
     for (MONSTER_IDX i = 1; i < player_ptr->current_floor_ptr->m_max; i++) {
-        monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
-        if (!monster_is_valid(m_ptr))
+        auto *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
+        if (!m_ptr->is_valid()) {
             continue;
+        }
 
         POSITION y = m_ptr->fy;
         POSITION x = m_ptr->fx;
-        if (!player_has_los_bold(player_ptr, y, x) || !projectable(player_ptr, player_ptr->y, player_ptr->x, y, x))
+        if (!player_has_los_bold(player_ptr, y, x) || !projectable(player_ptr, player_ptr->y, player_ptr->x, y, x)) {
             continue;
+        }
 
-        m_ptr->mflag.set(MFLAG::LOS);
+        m_ptr->mflag.set(MonsterTemporaryFlagType::LOS);
     }
 
     BIT_FLAGS flg = PROJECT_JUMP | PROJECT_KILL | PROJECT_HIDE;
     bool obvious = false;
     for (MONSTER_IDX i = 1; i < player_ptr->current_floor_ptr->m_max; i++) {
-        monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
-        if (m_ptr->mflag.has_not(MFLAG::LOS))
+        auto *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
+        if (m_ptr->mflag.has_not(MonsterTemporaryFlagType::LOS)) {
             continue;
+        }
 
-        m_ptr->mflag.reset(MFLAG::LOS);
+        m_ptr->mflag.reset(MonsterTemporaryFlagType::LOS);
         POSITION y = m_ptr->fy;
         POSITION x = m_ptr->fx;
 
-        if (project(player_ptr, 0, 0, y, x, dam, typ, flg).notice)
+        if (project(player_ptr, 0, 0, y, x, dam, typ, flg).notice) {
             obvious = true;
+        }
     }
 
     return obvious;
@@ -82,9 +87,9 @@ bool project_all_los(player_type *player_ptr, EFFECT_ID typ, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool speed_monsters(player_type *player_ptr)
+bool speed_monsters(PlayerType *player_ptr)
 {
-    return (project_all_los(player_ptr, GF_OLD_SPEED, player_ptr->lev));
+    return project_all_los(player_ptr, AttributeType::OLD_SPEED, player_ptr->lev);
 }
 
 /*!
@@ -92,9 +97,9 @@ bool speed_monsters(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool slow_monsters(player_type *player_ptr, int power)
+bool slow_monsters(PlayerType *player_ptr, int power)
 {
-    return (project_all_los(player_ptr, GF_OLD_SLOW, power));
+    return project_all_los(player_ptr, AttributeType::OLD_SLOW, power);
 }
 
 /*!
@@ -102,9 +107,9 @@ bool slow_monsters(player_type *player_ptr, int power)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool sleep_monsters(player_type *player_ptr, int power)
+bool sleep_monsters(PlayerType *player_ptr, int power)
 {
-    return (project_all_los(player_ptr, GF_OLD_SLEEP, power));
+    return project_all_los(player_ptr, AttributeType::OLD_SLEEP, power);
 }
 
 /*!
@@ -112,20 +117,21 @@ bool sleep_monsters(player_type *player_ptr, int power)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool banish_evil(player_type *player_ptr, int dist)
+bool banish_evil(PlayerType *player_ptr, int dist)
 {
-    return (project_all_los(player_ptr, GF_AWAY_EVIL, dist));
+    return project_all_los(player_ptr, AttributeType::AWAY_EVIL, dist);
 }
 
 /*!
  * @brief 視界内のアンデッド・モンスターを恐怖させる処理 / Turn undead
  * @return 効力があった場合TRUEを返す
  */
-bool turn_undead(player_type *player_ptr)
+bool turn_undead(PlayerType *player_ptr)
 {
-    bool tester = (project_all_los(player_ptr, GF_TURN_UNDEAD, player_ptr->lev));
-    if (tester)
+    bool tester = (project_all_los(player_ptr, AttributeType::TURN_UNDEAD, player_ptr->lev));
+    if (tester) {
         chg_virtue(player_ptr, V_UNLIFE, -1);
+    }
     return tester;
 }
 
@@ -134,11 +140,12 @@ bool turn_undead(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool dispel_undead(player_type *player_ptr, HIT_POINT dam)
+bool dispel_undead(PlayerType *player_ptr, int dam)
 {
-    bool tester = (project_all_los(player_ptr, GF_DISP_UNDEAD, dam));
-    if (tester)
+    bool tester = (project_all_los(player_ptr, AttributeType::DISP_UNDEAD, dam));
+    if (tester) {
         chg_virtue(player_ptr, V_UNLIFE, -2);
+    }
     return tester;
 }
 
@@ -147,9 +154,9 @@ bool dispel_undead(player_type *player_ptr, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool dispel_evil(player_type *player_ptr, HIT_POINT dam)
+bool dispel_evil(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_DISP_EVIL, dam));
+    return project_all_los(player_ptr, AttributeType::DISP_EVIL, dam);
 }
 
 /*!
@@ -157,9 +164,9 @@ bool dispel_evil(player_type *player_ptr, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool dispel_good(player_type *player_ptr, HIT_POINT dam)
+bool dispel_good(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_DISP_GOOD, dam));
+    return project_all_los(player_ptr, AttributeType::DISP_GOOD, dam);
 }
 
 /*!
@@ -167,9 +174,9 @@ bool dispel_good(player_type *player_ptr, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool dispel_monsters(player_type *player_ptr, HIT_POINT dam)
+bool dispel_monsters(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_DISP_ALL, dam));
+    return project_all_los(player_ptr, AttributeType::DISP_ALL, dam);
 }
 
 /*!
@@ -177,9 +184,9 @@ bool dispel_monsters(player_type *player_ptr, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool dispel_living(player_type *player_ptr, HIT_POINT dam)
+bool dispel_living(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_DISP_LIVING, dam));
+    return project_all_los(player_ptr, AttributeType::DISP_LIVING, dam);
 }
 
 /*!
@@ -187,9 +194,9 @@ bool dispel_living(player_type *player_ptr, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool dispel_demons(player_type *player_ptr, HIT_POINT dam)
+bool dispel_demons(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_DISP_DEMON, dam));
+    return project_all_los(player_ptr, AttributeType::DISP_DEMON, dam);
 }
 
 /*!
@@ -197,9 +204,9 @@ bool dispel_demons(player_type *player_ptr, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 効力があった場合TRUEを返す
  */
-bool crusade(player_type *player_ptr)
+bool crusade(PlayerType *player_ptr)
 {
-    return (project_all_los(player_ptr, GF_CRUSADE, player_ptr->lev * 4));
+    return project_all_los(player_ptr, AttributeType::CRUSADE, player_ptr->lev * 4);
 }
 
 /*!
@@ -207,41 +214,46 @@ bool crusade(player_type *player_ptr)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param who 怒らせる原因を起こしたモンスター(0ならばプレイヤー)
  */
-void aggravate_monsters(player_type *player_ptr, MONSTER_IDX who)
+void aggravate_monsters(PlayerType *player_ptr, MONSTER_IDX who)
 {
     bool sleep = false;
     bool speed = false;
     for (MONSTER_IDX i = 1; i < player_ptr->current_floor_ptr->m_max; i++) {
-        monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
-        if (!monster_is_valid(m_ptr))
+        auto *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
+        if (!m_ptr->is_valid()) {
             continue;
-        if (i == who)
+        }
+        if (i == who) {
             continue;
+        }
 
         if (m_ptr->cdis < MAX_SIGHT * 2) {
-            if (monster_csleep_remaining(m_ptr)) {
+            if (m_ptr->is_asleep()) {
                 (void)set_monster_csleep(player_ptr, i, 0);
                 sleep = true;
             }
 
-            if (!is_pet(m_ptr))
-                m_ptr->mflag2.set(MFLAG2::NOPET);
+            if (!m_ptr->is_pet()) {
+                m_ptr->mflag2.set(MonsterConstantFlagType::NOPET);
+            }
         }
 
         if (player_has_los_bold(player_ptr, m_ptr->fy, m_ptr->fx)) {
-            if (!is_pet(m_ptr)) {
-                (void)set_monster_fast(player_ptr, i, monster_fast_remaining(m_ptr) + 100);
+            if (!m_ptr->is_pet()) {
+                (void)set_monster_fast(player_ptr, i, m_ptr->get_remaining_acceleration() + 100);
                 speed = true;
             }
         }
     }
 
-    if (speed)
+    if (speed) {
         msg_print(_("付近で何かが突如興奮したような感じを受けた！", "You feel a sudden stirring nearby!"));
-    else if (sleep)
+    } else if (sleep) {
         msg_print(_("何かが突如興奮したような騒々しい音が遠くに聞こえた！", "You hear a sudden stirring in the distance!"));
-    if (player_ptr->riding)
+    }
+    if (player_ptr->riding) {
         player_ptr->update |= PU_BONUS;
+    }
 }
 
 /*!
@@ -250,9 +262,9 @@ void aggravate_monsters(player_type *player_ptr, MONSTER_IDX who)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool confuse_monsters(player_type *player_ptr, HIT_POINT dam)
+bool confuse_monsters(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_OLD_CONF, dam));
+    return project_all_los(player_ptr, AttributeType::OLD_CONF, dam);
 }
 
 /*!
@@ -261,9 +273,9 @@ bool confuse_monsters(player_type *player_ptr, HIT_POINT dam)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool charm_monsters(player_type *player_ptr, HIT_POINT dam)
+bool charm_monsters(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_CHARM, dam));
+    return project_all_los(player_ptr, AttributeType::CHARM, dam);
 }
 
 /*!
@@ -272,9 +284,9 @@ bool charm_monsters(player_type *player_ptr, HIT_POINT dam)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool charm_animals(player_type *player_ptr, HIT_POINT dam)
+bool charm_animals(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_CONTROL_ANIMAL, dam));
+    return project_all_los(player_ptr, AttributeType::CONTROL_ANIMAL, dam);
 }
 
 /*!
@@ -283,9 +295,9 @@ bool charm_animals(player_type *player_ptr, HIT_POINT dam)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool stun_monsters(player_type *player_ptr, HIT_POINT dam)
+bool stun_monsters(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_STUN, dam));
+    return project_all_los(player_ptr, AttributeType::STUN, dam);
 }
 
 /*!
@@ -294,9 +306,9 @@ bool stun_monsters(player_type *player_ptr, HIT_POINT dam)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool stasis_monsters(player_type *player_ptr, HIT_POINT dam)
+bool stasis_monsters(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_STASIS, dam));
+    return project_all_los(player_ptr, AttributeType::STASIS, dam);
 }
 
 /*!
@@ -305,9 +317,9 @@ bool stasis_monsters(player_type *player_ptr, HIT_POINT dam)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool mindblast_monsters(player_type *player_ptr, HIT_POINT dam)
+bool mindblast_monsters(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_PSI, dam));
+    return project_all_los(player_ptr, AttributeType::PSI, dam);
 }
 
 /*!
@@ -316,9 +328,9 @@ bool mindblast_monsters(player_type *player_ptr, HIT_POINT dam)
  * @param dist 効力（距離）
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool banish_monsters(player_type *player_ptr, int dist)
+bool banish_monsters(PlayerType *player_ptr, int dist)
 {
-    return (project_all_los(player_ptr, GF_AWAY_ALL, dist));
+    return project_all_los(player_ptr, AttributeType::AWAY_ALL, dist);
 }
 
 /*!
@@ -327,9 +339,9 @@ bool banish_monsters(player_type *player_ptr, int dist)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool turn_evil(player_type *player_ptr, HIT_POINT dam)
+bool turn_evil(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_TURN_EVIL, dam));
+    return project_all_los(player_ptr, AttributeType::TURN_EVIL, dam);
 }
 
 /*!
@@ -338,9 +350,9 @@ bool turn_evil(player_type *player_ptr, HIT_POINT dam)
  * @param dam 効力
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool turn_monsters(player_type *player_ptr, HIT_POINT dam)
+bool turn_monsters(PlayerType *player_ptr, int dam)
 {
-    return (project_all_los(player_ptr, GF_TURN_ALL, dam));
+    return project_all_los(player_ptr, AttributeType::TURN_ALL, dam);
 }
 
 /*!
@@ -348,9 +360,9 @@ bool turn_monsters(player_type *player_ptr, HIT_POINT dam)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @return 作用が実際にあった場合TRUEを返す
  */
-bool deathray_monsters(player_type *player_ptr)
+bool deathray_monsters(PlayerType *player_ptr)
 {
-    return (project_all_los(player_ptr, GF_DEATH_RAY, player_ptr->lev * 200));
+    return project_all_los(player_ptr, AttributeType::DEATH_RAY, player_ptr->lev * 200);
 }
 
 /*!
@@ -359,11 +371,12 @@ bool deathray_monsters(player_type *player_ptr)
  * @param m_ptr モンスター情報への参照ポインタ
  * @param r_ptr モンスター種族への参照ポインタ
  */
-void probed_monster_info(char *buf, player_type *player_ptr, monster_type *m_ptr, monster_race *r_ptr)
+void probed_monster_info(char *buf, PlayerType *player_ptr, monster_type *m_ptr, monster_race *r_ptr)
 {
-    if (!is_original_ap(m_ptr)) {
-        if (m_ptr->mflag2.has(MFLAG2::KAGE))
-            m_ptr->mflag2.reset(MFLAG2::KAGE);
+    if (!m_ptr->is_original_ap()) {
+        if (m_ptr->mflag2.has(MonsterConstantFlagType::KAGE)) {
+            m_ptr->mflag2.reset(MonsterConstantFlagType::KAGE);
+        }
 
         m_ptr->ap_r_idx = m_ptr->r_idx;
         lite_spot(player_ptr, m_ptr->fy, m_ptr->fx);
@@ -372,49 +385,48 @@ void probed_monster_info(char *buf, player_type *player_ptr, monster_type *m_ptr
     GAME_TEXT m_name[MAX_NLEN];
     monster_desc(player_ptr, m_name, m_ptr, MD_IGNORE_HALLU | MD_INDEF_HIDDEN);
 
-    SPEED speed = m_ptr->mspeed - 110;
-    if (monster_fast_remaining(m_ptr))
-        speed += 10;
-    if (monster_slow_remaining(m_ptr))
-        speed -= 10;
-    if (ironman_nightmare)
-        speed += 5;
-
     concptr align;
-    if ((r_ptr->flags3 & (RF3_EVIL | RF3_GOOD)) == (RF3_EVIL | RF3_GOOD))
+    if (r_ptr->kind_flags.has_all_of(alignment_mask)) {
         align = _("善悪", "good&evil");
-    else if (r_ptr->flags3 & RF3_EVIL)
+    } else if (r_ptr->kind_flags.has(MonsterKindType::EVIL)) {
         align = _("邪悪", "evil");
-    else if (r_ptr->flags3 & RF3_GOOD)
+    } else if (r_ptr->kind_flags.has(MonsterKindType::GOOD)) {
         align = _("善良", "good");
-    else if ((m_ptr->sub_align & (SUB_ALIGN_EVIL | SUB_ALIGN_GOOD)) == (SUB_ALIGN_EVIL | SUB_ALIGN_GOOD))
+    } else if ((m_ptr->sub_align & (SUB_ALIGN_EVIL | SUB_ALIGN_GOOD)) == (SUB_ALIGN_EVIL | SUB_ALIGN_GOOD)) {
         align = _("中立(善悪)", "neutral(good&evil)");
-    else if (m_ptr->sub_align & SUB_ALIGN_EVIL)
+    } else if (m_ptr->sub_align & SUB_ALIGN_EVIL) {
         align = _("中立(邪悪)", "neutral(evil)");
-    else if (m_ptr->sub_align & SUB_ALIGN_GOOD)
+    } else if (m_ptr->sub_align & SUB_ALIGN_GOOD) {
         align = _("中立(善良)", "neutral(good)");
-    else
+    } else {
         align = _("中立", "neutral");
+    }
 
+    const auto speed = m_ptr->get_temporary_speed() - STANDARD_SPEED;
     sprintf(buf, _("%s ... 属性:%s HP:%d/%d AC:%d 速度:%s%d 経験:", "%s ... align:%s HP:%d/%d AC:%d speed:%s%d exp:"), m_name, align, (int)m_ptr->hp,
         (int)m_ptr->maxhp, r_ptr->ac, (speed > 0) ? "+" : "", speed);
 
-    if (r_ptr->next_r_idx) {
+    if (MonsterRace(r_ptr->next_r_idx).is_valid()) {
         strcat(buf, format("%d/%d ", m_ptr->exp, r_ptr->next_exp));
     } else {
         strcat(buf, "xxx ");
     }
 
-    if (monster_csleep_remaining(m_ptr))
+    if (m_ptr->is_asleep()) {
         strcat(buf, _("睡眠 ", "sleeping "));
-    if (monster_stunned_remaining(m_ptr))
+    }
+    if (m_ptr->is_stunned()) {
         strcat(buf, _("朦朧 ", "stunned "));
-    if (monster_fear_remaining(m_ptr))
+    }
+    if (m_ptr->is_fearful()) {
         strcat(buf, _("恐怖 ", "scared "));
-    if (monster_confused_remaining(m_ptr))
+    }
+    if (m_ptr->is_confused()) {
         strcat(buf, _("混乱 ", "confused "));
-    if (monster_invulner_remaining(m_ptr))
+    }
+    if (m_ptr->is_invulnerable()) {
         strcat(buf, _("無敵 ", "invulnerable "));
+    }
     buf[strlen(buf) - 1] = '\0';
 }
 
@@ -422,27 +434,31 @@ void probed_monster_info(char *buf, player_type *player_ptr, monster_type *m_ptr
  * @brief 周辺モンスターを調査する / Probe nearby monsters
  * @return 効力があった場合TRUEを返す
  */
-bool probing(player_type *player_ptr)
+bool probing(PlayerType *player_ptr)
 {
-    bool cu = Term->scr->cu;
-    bool cv = Term->scr->cv;
-    Term->scr->cu = 0;
-    Term->scr->cv = 1;
+    bool cu = game_term->scr->cu;
+    bool cv = game_term->scr->cv;
+    game_term->scr->cu = 0;
+    game_term->scr->cv = 1;
 
     bool probe = false;
     char buf[256];
     for (int i = 1; i < player_ptr->current_floor_ptr->m_max; i++) {
-        monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
-        monster_race *r_ptr = &r_info[m_ptr->r_idx];
-        if (!monster_is_valid(m_ptr))
+        auto *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
+        auto *r_ptr = &monraces_info[m_ptr->r_idx];
+        if (!m_ptr->is_valid()) {
             continue;
-        if (!player_has_los_bold(player_ptr, m_ptr->fy, m_ptr->fx))
+        }
+        if (!player_has_los_bold(player_ptr, m_ptr->fy, m_ptr->fx)) {
             continue;
-        if (!m_ptr->ml)
+        }
+        if (!m_ptr->ml) {
             continue;
+        }
 
-        if (!probe)
+        if (!probe) {
             msg_print(_("調査中...", "Probing..."));
+        }
         msg_print(nullptr);
 
         probed_monster_info(buf, player_ptr, m_ptr, r_ptr);
@@ -455,7 +471,7 @@ bool probing(player_type *player_ptr)
         inkey();
         term_erase(0, 0, 255);
         if (lore_do_probe(player_ptr, m_ptr->r_idx)) {
-            strcpy(buf, (r_ptr->name.c_str()));
+            strcpy(buf, (r_ptr->name.data()));
 #ifdef JP
             msg_format("%sについてさらに詳しくなった気がする。", buf);
 #else
@@ -468,8 +484,8 @@ bool probing(player_type *player_ptr)
         probe = true;
     }
 
-    Term->scr->cu = cu;
-    Term->scr->cv = cv;
+    game_term->scr->cu = cu;
+    game_term->scr->cv = cv;
     term_fresh();
 
     if (probe) {
@@ -477,5 +493,5 @@ bool probing(player_type *player_ptr)
         msg_print(_("これで全部です。", "That's all."));
     }
 
-    return (probe);
+    return probe;
 }

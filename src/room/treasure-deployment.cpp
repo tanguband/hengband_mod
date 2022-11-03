@@ -20,20 +20,22 @@
 /*
  * Routine that fills the empty areas of a room with treasure and monsters.
  */
-void fill_treasure(player_type *player_ptr, POSITION x1, POSITION x2, POSITION y1, POSITION y2, int difficulty)
+void fill_treasure(PlayerType *player_ptr, POSITION x1, POSITION x2, POSITION y1, POSITION y2, int difficulty)
 {
     POSITION cx = (x1 + x2) / 2;
     POSITION cy = (y1 + y2) / 2;
     POSITION size = abs(x2 - x1) + abs(y2 - y1);
-    floor_type *floor_ptr = player_ptr->current_floor_ptr;
+    auto *floor_ptr = player_ptr->current_floor_ptr;
     for (POSITION x = x1; x <= x2; x++) {
         for (POSITION y = y1; y <= y2; y++) {
             int32_t value = ((((int32_t)(distance(cx, cy, x, y))) * 100) / size) + randint1(10) - difficulty;
-            if ((randint1(100) - difficulty * 3) > 50)
+            if ((randint1(100) - difficulty * 3) > 50) {
                 value = 20;
+            }
 
-            if (!floor_ptr->grid_array[y][x].is_floor() && (!cave_has_flag_bold(floor_ptr, y, x, FF::PLACE) || !cave_has_flag_bold(floor_ptr, y, x, FF::DROP)))
+            if (!floor_ptr->grid_array[y][x].is_floor() && (!cave_has_flag_bold(floor_ptr, y, x, TerrainCharacteristics::PLACE) || !cave_has_flag_bold(floor_ptr, y, x, TerrainCharacteristics::DROP))) {
                 continue;
+            }
 
             if (value < 0) {
                 floor_ptr->monster_level = floor_ptr->base_level + 40;

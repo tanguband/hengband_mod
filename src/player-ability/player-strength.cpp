@@ -14,7 +14,7 @@
 #include "system/player-type-definition.h"
 #include "util/bit-flags-calculator.h"
 
-PlayerStrength::PlayerStrength(player_type *player_ptr)
+PlayerStrength::PlayerStrength(PlayerType *player_ptr)
     : PlayerBasicStatistics(player_ptr)
 {
 }
@@ -31,22 +31,12 @@ void PlayerStrength::set_locals()
 /*!
  * @brief 腕力補正計算 - 種族
  * @return 腕力補正値
- * @details
- * * 種族による腕力修正値。
- * * エントは別途レベル26,41,46到達ごとに加算(+1)
  */
-int16_t PlayerStrength::race_value()
+int16_t PlayerStrength::race_bonus()
 {
-    int16_t result = PlayerBasicStatistics::race_value();
+    int16_t result = PlayerBasicStatistics::race_bonus();
 
-    if (PlayerRace(this->player_ptr).equals(PlayerRaceType::ENT)) {
-        if (this->player_ptr->lev > 25)
-            result++;
-        if (this->player_ptr->lev > 40)
-            result++;
-        if (this->player_ptr->lev > 45)
-            result++;
-    }
+    result += PlayerRace(this->player_ptr).additional_strength();
 
     return result;
 }
@@ -60,7 +50,7 @@ int16_t PlayerStrength::race_value()
  * * 呪術の肉体強化で加算(+4)
  * * ネオ・つよしスペシャル中で加算(+4)
  */
-int16_t PlayerStrength::time_effect_value()
+int16_t PlayerStrength::time_effect_bonus()
 {
     int16_t result = 0;
 
@@ -90,18 +80,18 @@ int16_t PlayerStrength::time_effect_value()
  * * 白虎の構えで加算(+2)
  * * 朱雀の構えで減算(-2)
  */
-int16_t PlayerStrength::battleform_value()
+int16_t PlayerStrength::stance_bonus()
 {
     int16_t result = 0;
 
     PlayerClass pc(player_ptr);
-    if (pc.samurai_stance_is(SamuraiStance::KOUKIJIN)) {
+    if (pc.samurai_stance_is(SamuraiStanceType::KOUKIJIN)) {
         result += 5;
     }
 
-    if (pc.monk_stance_is(MonkStance::BYAKKO)) {
+    if (pc.monk_stance_is(MonkStanceType::BYAKKO)) {
         result += 2;
-    } else if (pc.monk_stance_is(MonkStance::SUZAKU)) {
+    } else if (pc.monk_stance_is(MonkStanceType::SUZAKU)) {
         result -= 2;
     }
 
@@ -116,16 +106,16 @@ int16_t PlayerStrength::battleform_value()
  * * 変異MUT3_HYPER_STRで加算(+4)
  * * 変異MUT3_PUNYで減算(-4)
  */
-int16_t PlayerStrength::mutation_value()
+int16_t PlayerStrength::mutation_bonus()
 {
     int16_t result = 0;
 
     if (this->player_ptr->muta.any()) {
-        if (this->player_ptr->muta.has(MUTA::HYPER_STR)) {
+        if (this->player_ptr->muta.has(PlayerMutationType::HYPER_STR)) {
             result += 4;
         }
 
-        if (this->player_ptr->muta.has(MUTA::PUNY)) {
+        if (this->player_ptr->muta.has(PlayerMutationType::PUNY)) {
             result -= 4;
         }
     }

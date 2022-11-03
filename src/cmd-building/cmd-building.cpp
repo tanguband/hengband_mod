@@ -28,7 +28,6 @@
 #include "floor/floor-events.h"
 #include "floor/floor-mode-changer.h"
 #include "floor/wild.h"
-#include "grid/feature.h"
 #include "io/input-key-acceptor.h"
 #include "io/input-key-requester.h"
 #include "main/music-definitions-table.h"
@@ -63,6 +62,7 @@
 #include "system/grid-type-definition.h"
 #include "system/object-type-definition.h"
 #include "system/player-type-definition.h"
+#include "system/terrain-type-definition.h"
 #include "term/screen-processor.h"
 #include "util/bit-flags-calculator.h"
 #include "util/int-char-converter.h"
@@ -80,7 +80,7 @@ bool reinit_wilderness = false;
  * @brief 町に関するヘルプを表示する / Display town history
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-static void town_history(player_type *player_ptr)
+static void town_history(PlayerType *player_ptr)
 {
     screen_save();
     (void)show_file(player_ptr, true, _("jbldg.txt", "bldg.txt"), nullptr, 0, 0);
@@ -93,16 +93,17 @@ static void town_history(player_type *player_ptr)
  * @param bldg 施設構造体の参照ポインタ
  * @param i 実行したい施設のサービステーブルの添字
  */
-static void bldg_process_command(player_type *player_ptr, building_type *bldg, int i)
+static void bldg_process_command(PlayerType *player_ptr, building_type *bldg, int i)
 {
     msg_flag = false;
     msg_erase();
 
     PRICE bcost;
-    if (is_owner(player_ptr, bldg))
+    if (is_owner(player_ptr, bldg)) {
         bcost = bldg->member_costs[i];
-    else
+    } else {
         bcost = bldg->other_costs[i];
+    }
 
     /* action restrictions */
     if (((bldg->action_restr[i] == 1) && !is_member(player_ptr, bldg)) || ((bldg->action_restr[i] == 2) && !is_owner(player_ptr, bldg))) {
@@ -111,9 +112,7 @@ static void bldg_process_command(player_type *player_ptr, building_type *bldg, i
     }
 
     auto bact = bldg->actions[i];
-    if ((bact != BACT_RECHARGE)
-        && (((bldg->member_costs[i] > player_ptr->au) && is_owner(player_ptr, bldg))
-            || ((bldg->other_costs[i] > player_ptr->au) && !is_owner(player_ptr, bldg)))) {
+    if ((bact != BACT_RECHARGE) && (((bldg->member_costs[i] > player_ptr->au) && is_owner(player_ptr, bldg)) || ((bldg->other_costs[i] > player_ptr->au) && !is_owner(player_ptr, bldg)))) {
         msg_print(_("お金が足りません！", "You do not have the gold!"));
         return;
     }
@@ -166,10 +165,10 @@ static void bldg_process_command(player_type *player_ptr, building_type *bldg, i
         bcost = compare_weapons(player_ptr, bcost);
         break;
     case BACT_ENCHANT_WEAPON:
-        enchant_item(player_ptr, bcost, 1, 1, 0, FuncItemTester(&object_type::allow_enchant_melee_weapon));
+        enchant_item(player_ptr, bcost, 1, 1, 0, FuncItemTester(&ObjectType::allow_enchant_melee_weapon));
         break;
     case BACT_ENCHANT_ARMOR:
-        enchant_item(player_ptr, bcost, 0, 0, 1, FuncItemTester(&object_type::is_armour));
+        enchant_item(player_ptr, bcost, 0, 0, 1, FuncItemTester(&ObjectType::is_armour));
         break;
     case BACT_RECHARGE:
         building_recharge(player_ptr);
@@ -178,8 +177,9 @@ static void bldg_process_command(player_type *player_ptr, building_type *bldg, i
         building_recharge_all(player_ptr);
         break;
     case BACT_IDENTS:
-        if (!get_check(_("持ち物を全て鑑定してよろしいですか？", "Do you pay to identify all your possession? ")))
+        if (!get_check(_("持ち物を全て鑑定してよろしいですか？", "Do you pay to identify all your possession? "))) {
             break;
+        }
         identify_pack(player_ptr);
         msg_print(_(" 持ち物全てが鑑定されました。", "Your possessions have been identified."));
         paid = true;
@@ -197,15 +197,16 @@ static void bldg_process_command(player_type *player_ptr, building_type *bldg, i
         paid = restore_all_status(player_ptr);
         break;
     case BACT_ENCHANT_ARROWS:
-        enchant_item(player_ptr, bcost, 1, 1, 0, FuncItemTester(&object_type::is_ammo));
+        enchant_item(player_ptr, bcost, 1, 1, 0, FuncItemTester(&ObjectType::is_ammo));
         break;
     case BACT_ENCHANT_BOW:
         enchant_item(player_ptr, bcost, 1, 1, 0, TvalItemTester(ItemKindType::BOW));
         break;
 
     case BACT_RECALL:
-        if (recall_player(player_ptr, 1))
+        if (recall_player(player_ptr, 1)) {
             paid = true;
+        }
         break;
 
     case BACT_TELEPORT_LEVEL:
@@ -217,11 +218,12 @@ static void bldg_process_command(player_type *player_ptr, building_type *bldg, i
         auto muta = player_ptr->muta;
         if (player_ptr->ppersonality == PERSONALITY_LUCKY) {
             // ラッキーマンの白オーラは突然変異治療の対象外
-            muta.reset(MUTA::GOOD_LUCK);
+            muta.reset(PlayerMutationType::GOOD_LUCK);
         }
         if (muta.any()) {
-            while (!lose_mutation(player_ptr, 0))
+            while (!lose_mutation(player_ptr, 0)) {
                 ;
+            }
             paid = true;
             break;
         }
@@ -289,28 +291,30 @@ static void bldg_process_command(player_type *player_ptr, building_type *bldg, i
         break;
     }
 
-    if (paid)
+    if (paid) {
         player_ptr->au -= bcost;
+    }
 }
 
 /*!
  * @brief 施設入り口にプレイヤーが乗った際の処理 / Do building commands
  * @param プレイヤーへの参照ポインタ
  */
-void do_cmd_building(player_type *player_ptr)
+void do_cmd_building(PlayerType *player_ptr)
 {
-    if (player_ptr->wild_mode)
+    if (player_ptr->wild_mode) {
         return;
+    }
 
     PlayerEnergy energy(player_ptr);
     energy.set_player_turn_energy(100);
 
-    if (!cave_has_flag_bold(player_ptr->current_floor_ptr, player_ptr->y, player_ptr->x, FF::BLDG)) {
+    if (!cave_has_flag_bold(player_ptr->current_floor_ptr, player_ptr->y, player_ptr->x, TerrainCharacteristics::BLDG)) {
         msg_print(_("ここには建物はない。", "You see no building here."));
         return;
     }
 
-    int which = f_info[player_ptr->current_floor_ptr->grid_array[player_ptr->y][player_ptr->x].feat].subtype;
+    int which = terrains_info[player_ptr->current_floor_ptr->grid_array[player_ptr->y][player_ptr->x].feat].subtype;
 
     building_type *bldg;
     bldg = &building[which];
@@ -380,8 +384,9 @@ void do_cmd_building(player_type *player_ptr)
             }
         }
 
-        if (validcmd)
+        if (validcmd) {
             bldg_process_command(player_ptr, bldg, i);
+        }
 
         handle_stuff(player_ptr);
     }
@@ -391,8 +396,9 @@ void do_cmd_building(player_type *player_ptr)
     msg_flag = false;
     msg_erase();
 
-    if (reinit_wilderness)
+    if (reinit_wilderness) {
         player_ptr->leaving = true;
+    }
 
     w_ptr->character_icky_depth--;
     term_clear();

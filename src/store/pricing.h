@@ -4,6 +4,7 @@
 
 #define LOW_PRICE_THRESHOLD 10L
 
-struct object_type;;
-struct player_type;
-PRICE price_item(player_type *player_ptr, object_type *o_ptr, int greed, bool flip);
+enum class StoreSaleType;
+class ObjectType;
+class PlayerType;
+PRICE price_item(PlayerType *player_ptr, ObjectType *o_ptr, int greed, bool flip, StoreSaleType store_num);

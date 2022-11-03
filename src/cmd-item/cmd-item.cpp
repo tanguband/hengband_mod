@@ -37,8 +37,8 @@
 #include "mind/snipe-types.h"
 #include "object-activation/activation-switcher.h"
 #include "object-hook/hook-magic.h"
-#include "object-use/quaff-execution.h"
-#include "object-use/read-execution.h"
+#include "object-use/quaff/quaff-execution.h"
+#include "object-use/read/read-execution.h"
 #include "object-use/use-execution.h"
 #include "object-use/zaprod-execution.h"
 #include "object-use/zapwand-execution.h"
@@ -66,18 +66,20 @@
 #include "util/bit-flags-calculator.h"
 #include "util/int-char-converter.h"
 #include "util/quarks.h"
+#include "util/string-processor.h"
 #include "view/display-inventory.h"
 #include "view/display-messages.h"
 
 /*!
  * @brief 持ち物一覧を表示するコマンドのメインルーチン / Display inventory_list
  */
-void do_cmd_inven(player_type *player_ptr)
+void do_cmd_inven(PlayerType *player_ptr)
 {
     char out_val[160];
     command_wrk = false;
-    if (easy_floor)
+    if (easy_floor) {
         command_wrk = USE_INVEN;
+    }
 
     screen_save();
     (void)show_inventory(player_ptr, 0, USE_FULL, AllMatchItemTester());
@@ -107,18 +109,19 @@ void do_cmd_inven(player_type *player_ptr)
 /*!
  * @brief アイテムを落とすコマンドのメインルーチン / Drop an item
  */
-void do_cmd_drop(player_type *player_ptr)
+void do_cmd_drop(PlayerType *player_ptr)
 {
     OBJECT_IDX item;
     int amt = 1;
-    object_type *o_ptr;
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU });
+    ObjectType *o_ptr;
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU });
 
     concptr q = _("どのアイテムを落としますか? ", "Drop which item? ");
     concptr s = _("落とせるアイテムを持っていない。", "You have nothing to drop.");
     o_ptr = choose_object(player_ptr, &item, q, s, (USE_EQUIP | USE_INVEN | IGNORE_BOTHHAND_SLOT));
-    if (!o_ptr)
+    if (!o_ptr) {
         return;
+    }
 
     if ((item >= INVEN_MAIN_HAND) && o_ptr->is_cursed()) {
         msg_print(_("ふーむ、どうやら呪われているようだ。", "Hmmm, it seems to be cursed."));
@@ -127,8 +130,9 @@ void do_cmd_drop(player_type *player_ptr)
 
     if (o_ptr->number > 1) {
         amt = get_quantity(nullptr, o_ptr->number);
-        if (amt <= 0)
+        if (amt <= 0) {
             return;
+        }
     }
 
     PlayerEnergy(player_ptr).set_player_turn_energy(50);
@@ -144,16 +148,17 @@ void do_cmd_drop(player_type *player_ptr)
 /*!
  * @brief アイテムを調査するコマンドのメインルーチン / Observe an item which has been *identify*-ed
  */
-void do_cmd_observe(player_type *player_ptr)
+void do_cmd_observe(PlayerType *player_ptr)
 {
     OBJECT_IDX item;
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     GAME_TEXT o_name[MAX_NLEN];
     concptr q = _("どのアイテムを調べますか? ", "Examine which item? ");
     concptr s = _("調べられるアイテムがない。", "You have nothing to examine.");
     o_ptr = choose_object(player_ptr, &item, q, s, (USE_EQUIP | USE_INVEN | USE_FLOOR | IGNORE_BOTHHAND_SLOT));
-    if (!o_ptr)
+    if (!o_ptr) {
         return;
+    }
 
     if (!o_ptr->is_fully_known()) {
         msg_print(_("このアイテムについて特に知っていることはない。", "You have no special knowledge about that item."));
@@ -162,23 +167,25 @@ void do_cmd_observe(player_type *player_ptr)
 
     describe_flavor(player_ptr, o_name, o_ptr, 0);
     msg_format(_("%sを調べている...", "Examining %s..."), o_name);
-    if (!screen_object(player_ptr, o_ptr, SCROBJ_FORCE_DETAIL))
+    if (!screen_object(player_ptr, o_ptr, SCROBJ_FORCE_DETAIL)) {
         msg_print(_("特に変わったところはないようだ。", "You see nothing special."));
+    }
 }
 
 /*!
  * @brief アイテムの銘を消すコマンドのメインルーチン
  * Remove the inscription from an object XXX Mention item (when done)?
  */
-void do_cmd_uninscribe(player_type *player_ptr)
+void do_cmd_uninscribe(PlayerType *player_ptr)
 {
     OBJECT_IDX item;
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     concptr q = _("どのアイテムの銘を消しますか? ", "Un-inscribe which item? ");
     concptr s = _("銘を消せるアイテムがない。", "You have nothing to un-inscribe.");
     o_ptr = choose_object(player_ptr, &item, q, s, (USE_EQUIP | USE_INVEN | USE_FLOOR | IGNORE_BOTHHAND_SLOT));
-    if (!o_ptr)
+    if (!o_ptr) {
         return;
+    }
 
     if (!o_ptr->inscription) {
         msg_print(_("このアイテムには消すべき銘がない。", "That item had no inscription to remove."));
@@ -196,26 +203,28 @@ void do_cmd_uninscribe(player_type *player_ptr)
  * @brief アイテムの銘を刻むコマンドのメインルーチン
  * Inscribe an object with a comment
  */
-void do_cmd_inscribe(player_type *player_ptr)
+void do_cmd_inscribe(PlayerType *player_ptr)
 {
     OBJECT_IDX item;
-    object_type *o_ptr;
+    ObjectType *o_ptr;
     GAME_TEXT o_name[MAX_NLEN];
-    char out_val[80];
+    char out_val[MAX_INSCRIPTION + 1] = "";
     concptr q = _("どのアイテムに銘を刻みますか? ", "Inscribe which item? ");
     concptr s = _("銘を刻めるアイテムがない。", "You have nothing to inscribe.");
     o_ptr = choose_object(player_ptr, &item, q, s, (USE_EQUIP | USE_INVEN | USE_FLOOR | IGNORE_BOTHHAND_SLOT));
-    if (!o_ptr)
+    if (!o_ptr) {
         return;
+    }
 
     describe_flavor(player_ptr, o_name, o_ptr, OD_OMIT_INSCRIPTION);
     msg_format(_("%sに銘を刻む。", "Inscribing %s."), o_name);
     msg_print(nullptr);
     strcpy(out_val, "");
-    if (o_ptr->inscription)
-        strcpy(out_val, quark_str(o_ptr->inscription));
+    if (o_ptr->inscription) {
+        angband_strcpy(out_val, quark_str(o_ptr->inscription), MAX_INSCRIPTION);
+    }
 
-    if (get_string(_("銘: ", "Inscription: "), out_val, 80)) {
+    if (get_string(_("銘: ", "Inscription: "), out_val, MAX_INSCRIPTION)) {
         o_ptr->inscription = quark_add(out_val);
         set_bits(player_ptr->update, PU_COMBINE);
         set_bits(player_ptr->window_flags, PW_INVEN | PW_EQUIP | PW_FLOOR_ITEM_LIST);
@@ -229,21 +238,23 @@ void do_cmd_inscribe(player_type *player_ptr)
  * @details
  * XXX - Add actions for other item types
  */
-void do_cmd_use(player_type *player_ptr)
+void do_cmd_use(PlayerType *player_ptr)
 {
     OBJECT_IDX item;
-    object_type *o_ptr;
-    if (player_ptr->wild_mode || cmd_limit_arena(player_ptr))
+    ObjectType *o_ptr;
+    if (player_ptr->wild_mode || cmd_limit_arena(player_ptr)) {
         return;
+    }
 
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU, SamuraiStance::KOUKIJIN });
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU, SamuraiStanceType::KOUKIJIN });
 
     concptr q = _("どれを使いますか？", "Use which item? ");
     concptr s = _("使えるものがありません。", "You have nothing to use.");
     o_ptr = choose_object(
         player_ptr, &item, q, s, (USE_INVEN | USE_EQUIP | USE_FLOOR | IGNORE_BOTHHAND_SLOT), FuncItemTester(item_tester_hook_use, player_ptr));
-    if (!o_ptr)
+    if (!o_ptr) {
         return;
+    }
 
     switch (o_ptr->tval) {
     case ItemKindType::SPIKE:
@@ -265,8 +276,9 @@ void do_cmd_use(player_type *player_ptr)
         ObjectQuaffEntity(player_ptr).execute(item);
         break;
     case ItemKindType::SCROLL:
-        if (cmd_limit_blind(player_ptr) || cmd_limit_confused(player_ptr))
+        if (cmd_limit_blind(player_ptr) || cmd_limit_confused(player_ptr)) {
             return;
+        }
 
         ObjectReadEntity(player_ptr, item).execute(true);
         break;
@@ -285,18 +297,20 @@ void do_cmd_use(player_type *player_ptr)
  * @brief 装備を発動するコマンドのメインルーチン /
  * @param player_ptr プレイヤーへの参照ポインタ
  */
-void do_cmd_activate(player_type *player_ptr)
+void do_cmd_activate(PlayerType *player_ptr)
 {
     OBJECT_IDX item;
-    if (player_ptr->wild_mode || cmd_limit_arena(player_ptr))
+    if (player_ptr->wild_mode || cmd_limit_arena(player_ptr)) {
         return;
+    }
 
-    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStance::MUSOU, SamuraiStance::KOUKIJIN });
+    PlayerClass(player_ptr).break_samurai_stance({ SamuraiStanceType::MUSOU, SamuraiStanceType::KOUKIJIN });
 
     concptr q = _("どのアイテムを始動させますか? ", "Activate which item? ");
     concptr s = _("始動できるアイテムを装備していない。", "You have nothing to activate.");
-    if (!choose_object(player_ptr, &item, q, s, (USE_EQUIP | IGNORE_BOTHHAND_SLOT), FuncItemTester(&object_type::is_activatable)))
+    if (!choose_object(player_ptr, &item, q, s, (USE_EQUIP | IGNORE_BOTHHAND_SLOT), FuncItemTester(&ObjectType::is_activatable))) {
         return;
+    }
 
     exe_activate(player_ptr, item);
 }

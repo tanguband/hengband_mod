@@ -3,7 +3,6 @@
 #include "artifact/fixed-art-types.h"
 #include "avatar/avatar.h"
 #include "cmd-building/cmd-building.h"
-#include "dungeon/dungeon.h"
 #include "dungeon/quest.h"
 #include "flavor/flavor-describer.h"
 #include "floor/floor-town.h"
@@ -36,6 +35,7 @@
 #include "store/store.h"
 #include "system/angband-version.h"
 #include "system/building-type-definition.h"
+#include "system/dungeon-info.h"
 #include "system/floor-type-definition.h"
 #include "system/monster-race-definition.h"
 #include "system/monster-type-definition.h"
@@ -44,6 +44,7 @@
 #include "util/enum-converter.h"
 #include "util/int-char-converter.h"
 #include "util/sort.h"
+#include "util/string-processor.h"
 #include "view/display-messages.h"
 #include "world/world.h"
 
@@ -54,20 +55,23 @@
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_pet(player_type *player_ptr, FILE *fff)
+static void dump_aux_pet(PlayerType *player_ptr, FILE *fff)
 {
     bool pet = false;
     bool pet_settings = false;
     for (int i = player_ptr->current_floor_ptr->m_max - 1; i >= 1; i--) {
-        monster_type *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
+        auto *m_ptr = &player_ptr->current_floor_ptr->m_list[i];
 
-        if (!monster_is_valid(m_ptr))
+        if (!m_ptr->is_valid()) {
             continue;
-        if (!is_pet(m_ptr))
+        }
+        if (!m_ptr->is_pet()) {
             continue;
+        }
         pet_settings = true;
-        if (!m_ptr->nickname && (player_ptr->riding != i))
+        if (!m_ptr->nickname && (player_ptr->riding != i)) {
             continue;
+        }
         if (!pet) {
             fprintf(fff, _("\n\n  [主なペット]\n\n", "\n\n  [Leading Pets]\n\n"));
             pet = true;
@@ -78,8 +82,9 @@ static void dump_aux_pet(player_type *player_ptr, FILE *fff)
         fprintf(fff, "%s\n", pet_name);
     }
 
-    if (!pet_settings)
+    if (!pet_settings) {
         return;
+    }
 
     fprintf(fff, _("\n\n  [ペットへの命令]\n", "\n\n  [Command for Pets]\n"));
 
@@ -109,19 +114,22 @@ static void dump_aux_pet(player_type *player_ptr, FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_quest(player_type *player_ptr, FILE *fff)
+static void dump_aux_quest(PlayerType *player_ptr, FILE *fff)
 {
     fprintf(fff, _("\n\n  [クエスト情報]\n", "\n\n  [Quest Information]\n"));
-    std::vector<QUEST_IDX> quest_num(max_q_idx);
 
-    std::iota(quest_num.begin(), quest_num.end(), static_cast<QUEST_IDX>(0));
+    const auto &quest_list = QuestList::get_instance();
+    std::vector<QuestId> quest_numbers;
+    for (const auto &[q_idx, q_ref] : quest_list) {
+        quest_numbers.push_back(q_idx);
+    }
     int dummy;
-    ang_sort(player_ptr, quest_num.data(), &dummy, quest_num.size(), ang_sort_comp_quest_num, ang_sort_swap_quest_num);
+    ang_sort(player_ptr, quest_numbers.data(), &dummy, quest_numbers.size(), ang_sort_comp_quest_num, ang_sort_swap_quest_num);
 
     fputc('\n', fff);
-    do_cmd_knowledge_quests_completed(player_ptr, fff, quest_num.data());
+    do_cmd_knowledge_quests_completed(player_ptr, fff, quest_numbers);
     fputc('\n', fff);
-    do_cmd_knowledge_quests_failed(player_ptr, fff, quest_num.data());
+    do_cmd_knowledge_quests_failed(player_ptr, fff, quest_numbers);
     fputc('\n', fff);
 }
 
@@ -130,10 +138,11 @@ static void dump_aux_quest(player_type *player_ptr, FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_last_message(player_type *player_ptr, FILE *fff)
+static void dump_aux_last_message(PlayerType *player_ptr, FILE *fff)
 {
-    if (!player_ptr->is_dead)
+    if (!player_ptr->is_dead) {
         return;
+    }
 
     if (!w_ptr->total_winner) {
         fprintf(fff, _("\n  [死ぬ直前のメッセージ]\n\n", "\n  [Last Messages]\n\n"));
@@ -159,20 +168,24 @@ static void dump_aux_last_message(player_type *player_ptr, FILE *fff)
 static void dump_aux_recall(FILE *fff)
 {
     fprintf(fff, _("\n  [帰還場所]\n\n", "\n  [Recall Depth]\n\n"));
-    for (const auto &d_ref : d_info) {
+    for (const auto &d_ref : dungeons_info) {
         bool seiha = false;
 
-        if (d_ref.idx == 0 || !d_ref.maxdepth)
+        if (d_ref.idx == 0 || !d_ref.maxdepth) {
             continue;
-        if (!max_dlv[d_ref.idx])
+        }
+        if (!max_dlv[d_ref.idx]) {
             continue;
-        if (d_ref.final_guardian) {
-            if (!r_info[d_ref.final_guardian].max_num)
+        }
+        if (MonsterRace(d_ref.final_guardian).is_valid()) {
+            if (!monraces_info[d_ref.final_guardian].max_num) {
                 seiha = true;
-        } else if (max_dlv[d_ref.idx] == d_ref.maxdepth)
+            }
+        } else if (max_dlv[d_ref.idx] == d_ref.maxdepth) {
             seiha = true;
+        }
 
-        fprintf(fff, _("   %c%-12s: %3d 階\n", "   %c%-16s: level %3d\n"), seiha ? '!' : ' ', d_ref.name.c_str(), (int)max_dlv[d_ref.idx]);
+        fprintf(fff, _("   %c%-12s: %3d 階\n", "   %c%-16s: level %3d\n"), seiha ? '!' : ' ', d_ref.name.data(), (int)max_dlv[d_ref.idx]);
     }
 }
 
@@ -183,48 +196,57 @@ static void dump_aux_recall(FILE *fff)
 static void dump_aux_options(FILE *fff)
 {
     fprintf(fff, _("\n  [オプション設定]\n", "\n  [Option Settings]\n"));
-    if (preserve_mode)
+    if (preserve_mode) {
         fprintf(fff, _("\n 保存モード:         ON", "\n Preserve Mode:      ON"));
-    else
+    } else {
         fprintf(fff, _("\n 保存モード:         OFF", "\n Preserve Mode:      OFF"));
+    }
 
-    if (ironman_small_levels)
+    if (ironman_small_levels) {
         fprintf(fff, _("\n 小さいダンジョン:   ALWAYS", "\n Small Levels:       ALWAYS"));
-    else if (always_small_levels)
+    } else if (always_small_levels) {
         fprintf(fff, _("\n 小さいダンジョン:   ON", "\n Small Levels:       ON"));
-    else if (small_levels)
+    } else if (small_levels) {
         fprintf(fff, _("\n 小さいダンジョン:   ENABLED", "\n Small Levels:       ENABLED"));
-    else
+    } else {
         fprintf(fff, _("\n 小さいダンジョン:   OFF", "\n Small Levels:       OFF"));
+    }
 
-    if (vanilla_town)
+    if (vanilla_town) {
         fprintf(fff, _("\n 元祖の町のみ:       ON", "\n Vanilla Town:       ON"));
-    else if (lite_town)
+    } else if (lite_town) {
         fprintf(fff, _("\n 小規模な町:         ON", "\n Lite Town:          ON"));
+    }
 
-    if (ironman_shops)
+    if (ironman_shops) {
         fprintf(fff, _("\n 店なし:             ON", "\n No Shops:           ON"));
+    }
 
-    if (ironman_downward)
+    if (ironman_downward) {
         fprintf(fff, _("\n 階段を上がれない:   ON", "\n Diving Only:        ON"));
+    }
 
-    if (ironman_rooms)
+    if (ironman_rooms) {
         fprintf(fff, _("\n 普通でない部屋:     ON", "\n Unusual Rooms:      ON"));
+    }
 
-    if (ironman_nightmare)
+    if (ironman_nightmare) {
         fprintf(fff, _("\n 悪夢モード:         ON", "\n Nightmare Mode:     ON"));
+    }
 
-    if (ironman_empty_levels)
+    if (ironman_empty_levels) {
         fprintf(fff, _("\n アリーナ:           ALWAYS", "\n Arena Levels:       ALWAYS"));
-    else if (empty_levels)
+    } else if (empty_levels) {
         fprintf(fff, _("\n アリーナ:           ENABLED", "\n Arena Levels:       ENABLED"));
-    else
+    } else {
         fprintf(fff, _("\n アリーナ:           OFF", "\n Arena Levels:       OFF"));
+    }
 
     fputc('\n', fff);
 
-    if (w_ptr->noscore)
+    if (w_ptr->noscore) {
         fprintf(fff, _("\n 何か不正なことをしてしまっています。\n", "\n You have done something illegal.\n"));
+    }
 
     fputc('\n', fff);
 }
@@ -234,10 +256,11 @@ static void dump_aux_options(FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_arena(player_type *player_ptr, FILE *fff)
+static void dump_aux_arena(PlayerType *player_ptr, FILE *fff)
 {
-    if (lite_town || vanilla_town)
+    if (lite_town || vanilla_town) {
         return;
+    }
 
     if (player_ptr->arena_number < 0) {
         if (player_ptr->arena_number <= ARENA_DEFEATED_OLD_VER) {
@@ -245,9 +268,9 @@ static void dump_aux_arena(player_type *player_ptr, FILE *fff)
         } else {
 #ifdef JP
             fprintf(
-                fff, "\n 闘技場: %d回戦で%sの前に敗北\n", -player_ptr->arena_number, r_info[arena_info[-1 - player_ptr->arena_number].r_idx].name.c_str());
+                fff, "\n 闘技場: %d回戦で%sの前に敗北\n", -player_ptr->arena_number, monraces_info[arena_info[-1 - player_ptr->arena_number].r_idx].name.data());
 #else
-            fprintf(fff, "\n Arena: Defeated by %s in the %d%s fight\n", r_info[arena_info[-1 - player_ptr->arena_number].r_idx].name.c_str(),
+            fprintf(fff, "\n Arena: Defeated by %s in the %d%s fight\n", monraces_info[arena_info[-1 - player_ptr->arena_number].r_idx].name.data(),
                 -player_ptr->arena_number, get_ordinal_number_suffix(-player_ptr->arena_number));
 #endif
         }
@@ -281,22 +304,23 @@ static void dump_aux_arena(player_type *player_ptr, FILE *fff)
  * @brief 撃破モンスターの情報をファイルにダンプする
  * @param fff ファイルポインタ
  */
-static void dump_aux_monsters(player_type *player_ptr, FILE *fff)
+static void dump_aux_monsters(PlayerType *player_ptr, FILE *fff)
 {
     fprintf(fff, _("\n  [倒したモンスター]\n\n", "\n  [Defeated Monsters]\n\n"));
 
     /* Allocate the "who" array */
     uint16_t why = 2;
-    std::vector<MONRACE_IDX> who;
+    std::vector<MonsterRaceId> who;
 
     /* Count monster kills */
     auto norm_total = 0;
-    for (const auto &r_ref : r_info) {
+    for (const auto &[r_idx, r_ref] : monraces_info) {
         /* Ignore unused index */
-        if (r_ref.idx == 0 || r_ref.name.empty())
+        if (!MonsterRace(r_ref.idx).is_valid() || r_ref.name.empty()) {
             continue;
+        }
 
-        if (r_ref.flags1 & RF1_UNIQUE) {
+        if (r_ref.kind_flags.has(MonsterKindType::UNIQUE)) {
             bool dead = (r_ref.max_num == 0);
             if (dead) {
                 norm_total++;
@@ -344,14 +368,19 @@ static void dump_aux_monsters(player_type *player_ptr, FILE *fff)
 
     char buf[80];
     for (auto it = who.rbegin(); it != who.rend() && std::distance(who.rbegin(), it) < 10; it++) {
-        monster_race *r_ptr = &r_info[*it];
-        if (r_ptr->defeat_level && r_ptr->defeat_time)
+        auto *r_ptr = &monraces_info[*it];
+        if (r_ptr->defeat_level && r_ptr->defeat_time) {
             sprintf(buf, _(" - レベル%2d - %d:%02d:%02d", " - level %2d - %d:%02d:%02d"), r_ptr->defeat_level, r_ptr->defeat_time / (60 * 60),
                 (r_ptr->defeat_time / 60) % 60, r_ptr->defeat_time % 60);
-        else
+        } else {
             buf[0] = '\0';
+        }
 
-        fprintf(fff, _("  %-40s (レベル%3d)%s\n", "  %-40s (level %3d)%s\n"), r_ptr->name.c_str(), (int)r_ptr->level, buf);
+        auto name = str_separate(r_ptr->name, 40);
+        fprintf(fff, _("  %-40s (レベル%3d)%s\n", "  %-40s (level %3d)%s\n"), name.front().data(), (int)r_ptr->level, buf);
+        for (auto i = 1U; i < name.size(); ++i) {
+            fprintf(fff, "  %s\n", name[i].data());
+        }
     }
 }
 
@@ -360,21 +389,25 @@ static void dump_aux_monsters(player_type *player_ptr, FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_race_history(player_type *player_ptr, FILE *fff)
+static void dump_aux_race_history(PlayerType *player_ptr, FILE *fff)
 {
-    if (!player_ptr->old_race1 && !player_ptr->old_race2)
+    if (!player_ptr->old_race1 && !player_ptr->old_race2) {
         return;
+    }
 
     fprintf(fff, _("\n\n あなたは%sとして生まれた。", "\n\n You were born as %s."), race_info[enum2i(player_ptr->start_race)].title);
     for (int i = 0; i < MAX_RACES; i++) {
-        if (enum2i(player_ptr->start_race) == i)
+        if (enum2i(player_ptr->start_race) == i) {
             continue;
+        }
         if (i < 32) {
-            if (!(player_ptr->old_race1 & 1UL << i))
+            if (!(player_ptr->old_race1 & 1UL << i)) {
                 continue;
+            }
         } else {
-            if (!(player_ptr->old_race2 & 1UL << (i - 32)))
+            if (!(player_ptr->old_race2 & 1UL << (i - 32))) {
                 continue;
+            }
         }
 
         fprintf(fff, _("\n あなたはかつて%sだった。", "\n You were a %s before."), race_info[i].title);
@@ -388,15 +421,17 @@ static void dump_aux_race_history(player_type *player_ptr, FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_realm_history(player_type *player_ptr, FILE *fff)
+static void dump_aux_realm_history(PlayerType *player_ptr, FILE *fff)
 {
-    if (player_ptr->old_realm == 0)
+    if (player_ptr->old_realm == 0) {
         return;
+    }
 
     fputc('\n', fff);
     for (int i = 0; i < MAX_MAGIC; i++) {
-        if (!(player_ptr->old_realm & 1UL << i))
+        if (!(player_ptr->old_realm & 1UL << i)) {
             continue;
+        }
         fprintf(fff, _("\n あなたはかつて%s魔法を使えた。", "\n You were able to use %s magic before."), realm_names[i + 1]);
     }
 
@@ -408,34 +443,37 @@ static void dump_aux_realm_history(player_type *player_ptr, FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_virtues(player_type *player_ptr, FILE *fff)
+static void dump_aux_virtues(PlayerType *player_ptr, FILE *fff)
 {
     fprintf(fff, _("\n\n  [自分に関する情報]\n\n", "\n\n  [HP-rate & Max stat & Virtues]\n\n"));
 
     int percent = (int)(((long)player_ptr->player_hp[PY_MAX_LEVEL - 1] * 200L) / (2 * player_ptr->hitdie + ((PY_MAX_LEVEL - 1 + 3) * (player_ptr->hitdie + 1))));
 
 #ifdef JP
-    if (player_ptr->knowledge & KNOW_HPRATE)
+    if (player_ptr->knowledge & KNOW_HPRATE) {
         fprintf(fff, "現在の体力ランク : %d/100\n\n", percent);
-    else
+    } else {
         fprintf(fff, "現在の体力ランク : ???\n\n");
+    }
     fprintf(fff, "能力の最大値\n");
 #else
-    if (player_ptr->knowledge & KNOW_HPRATE)
+    if (player_ptr->knowledge & KNOW_HPRATE) {
         fprintf(fff, "Your current Life Rating is %d/100.\n\n", percent);
-    else
+    } else {
         fprintf(fff, "Your current Life Rating is ???.\n\n");
+    }
     fprintf(fff, "Limits of maximum stats\n");
 #endif
     for (int v_nr = 0; v_nr < A_MAX; v_nr++) {
-        if ((player_ptr->knowledge & KNOW_STAT) || player_ptr->stat_max[v_nr] == player_ptr->stat_max_max[v_nr])
+        if ((player_ptr->knowledge & KNOW_STAT) || player_ptr->stat_max[v_nr] == player_ptr->stat_max_max[v_nr]) {
             fprintf(fff, "%s 18/%d\n", stat_names[v_nr], player_ptr->stat_max_max[v_nr] - 18);
-        else
+        } else {
             fprintf(fff, "%s ???\n", stat_names[v_nr]);
+        }
     }
 
     std::string alg = PlayerAlignment(player_ptr).get_alignment_description();
-    fprintf(fff, _("\n属性 : %s\n", "\nYour alignment : %s\n"), alg.c_str());
+    fprintf(fff, _("\n属性 : %s\n", "\nYour alignment : %s\n"), alg.data());
     fprintf(fff, "\n");
     dump_virtues(player_ptr, fff);
 }
@@ -445,7 +483,7 @@ static void dump_aux_virtues(player_type *player_ptr, FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_mutations(player_type *player_ptr, FILE *fff)
+static void dump_aux_mutations(PlayerType *player_ptr, FILE *fff)
 {
     if (player_ptr->muta.any()) {
         fprintf(fff, _("\n\n  [突然変異]\n\n", "\n\n  [Mutations]\n\n"));
@@ -458,15 +496,16 @@ static void dump_aux_mutations(player_type *player_ptr, FILE *fff)
  * @param player_ptr プレイヤーへの参照ポインタ
  * @param fff ファイルポインタ
  */
-static void dump_aux_equipment_inventory(player_type *player_ptr, FILE *fff)
+static void dump_aux_equipment_inventory(PlayerType *player_ptr, FILE *fff)
 {
     GAME_TEXT o_name[MAX_NLEN];
     if (player_ptr->equip_cnt) {
         fprintf(fff, _("  [キャラクタの装備]\n\n", "  [Character Equipment]\n\n"));
         for (int i = INVEN_MAIN_HAND; i < INVEN_TOTAL; i++) {
             describe_flavor(player_ptr, o_name, &player_ptr->inventory_list[i], 0);
-            if ((((i == INVEN_MAIN_HAND) && can_attack_with_sub_hand(player_ptr)) || ((i == INVEN_SUB_HAND) && can_attack_with_main_hand(player_ptr))) && has_two_handed_weapons(player_ptr))
+            if ((((i == INVEN_MAIN_HAND) && can_attack_with_sub_hand(player_ptr)) || ((i == INVEN_SUB_HAND) && can_attack_with_main_hand(player_ptr))) && has_two_handed_weapons(player_ptr)) {
                 strcpy(o_name, _("(武器を両手持ち)", "(wielding with two-hands)"));
+            }
 
             fprintf(fff, "%c) %s\n", index_to_label(i), o_name);
         }
@@ -477,8 +516,9 @@ static void dump_aux_equipment_inventory(player_type *player_ptr, FILE *fff)
     fprintf(fff, _("  [キャラクタの持ち物]\n\n", "  [Character Inventory]\n\n"));
 
     for (int i = 0; i < INVEN_PACK; i++) {
-        if (!player_ptr->inventory_list[i].k_idx)
+        if (!player_ptr->inventory_list[i].k_idx) {
             break;
+        }
         describe_flavor(player_ptr, o_name, &player_ptr->inventory_list[i], 0);
         fprintf(fff, "%c) %s\n", index_to_label(i), o_name);
     }
@@ -490,7 +530,7 @@ static void dump_aux_equipment_inventory(player_type *player_ptr, FILE *fff)
  * @brief 我が家と博物館のオブジェクト情報をファイルにダンプする
  * @param fff ファイルポインタ
  */
-static void dump_aux_home_museum(player_type *player_ptr, FILE *fff)
+static void dump_aux_home_museum(PlayerType *player_ptr, FILE *fff)
 {
     store_type *store_ptr;
     store_ptr = &town_info[1].store[enum2i(StoreSaleType::HOME)];
@@ -501,8 +541,9 @@ static void dump_aux_home_museum(player_type *player_ptr, FILE *fff)
 
         TERM_LEN x = 1;
         for (int i = 0; i < store_ptr->stock_num; i++) {
-            if ((i % 12) == 0)
+            if ((i % 12) == 0) {
                 fprintf(fff, _("\n ( %d ページ )\n", "\n ( page %d )\n"), x++);
+            }
             describe_flavor(player_ptr, o_name, &store_ptr->stock[i], 0);
             fprintf(fff, "%c) %s\n", I2A(i % 12), o_name);
         }
@@ -512,24 +553,19 @@ static void dump_aux_home_museum(player_type *player_ptr, FILE *fff)
 
     store_ptr = &town_info[1].store[enum2i(StoreSaleType::MUSEUM)];
 
-    if (store_ptr->stock_num == 0)
+    if (store_ptr->stock_num == 0) {
         return;
+    }
 
     fprintf(fff, _("  [博物館のアイテム]\n", "  [Museum]\n"));
 
     TERM_LEN x = 1;
     for (int i = 0; i < store_ptr->stock_num; i++) {
-#ifdef JP
-        if ((i % 12) == 0)
-            fprintf(fff, "\n ( %d ページ )\n", x++);
+        if ((i % 12) == 0) {
+            fprintf(fff, _("\n ( %d ページ )\n", "\n ( page %d )\n"), x++);
+        }
         describe_flavor(player_ptr, o_name, &store_ptr->stock[i], 0);
         fprintf(fff, "%c) %s\n", I2A(i % 12), o_name);
-#else
-        if ((i % 12) == 0)
-            fprintf(fff, "\n ( page %d )\n", x++);
-        describe_flavor(player_ptr, o_name, &st_ptr->stock[i], 0);
-        fprintf(fff, "%c) %s\n", I2A(i % 12), o_name);
-#endif
     }
 
     fprintf(fff, "\n\n");
@@ -541,8 +577,9 @@ static void dump_aux_home_museum(player_type *player_ptr, FILE *fff)
  */
 static concptr get_check_sum(void)
 {
-    return format("%02x%02x%02x%02x%02x%02x%02x%02x%02x", f_head.checksum, k_head.checksum, a_head.checksum, e_head.checksum, r_head.checksum, d_head.checksum,
-        m_head.checksum, s_head.checksum, v_head.checksum);
+    return format("%02x%02x%02x%02x%02x%02x%02x%02x%02x", terrains_header.checksum, baseitems_header.checksum,
+        artifacts_header.checksum, egos_header.checksum, monraces_header.checksum, dungeons_header.checksum,
+        class_magics_header.checksum, class_skills_header.checksum, vaults_header.checksum);
 }
 
 /*!
@@ -552,13 +589,13 @@ static concptr get_check_sum(void)
  * @param fff ファイルポインタ
  * @return エラーコード
  */
-void make_character_dump(player_type *player_ptr, FILE *fff, display_player_pf display_player)
+void make_character_dump(PlayerType *player_ptr, FILE *fff)
 {
     char title[127];
     put_version(title);
     fprintf(fff, _("  [%s キャラクタ情報]\n\n", "  [%s Character Dump]\n\n"), title);
 
-    dump_aux_player_status(player_ptr, fff, display_player);
+    dump_aux_player_status(player_ptr, fff);
     dump_aux_last_message(player_ptr, fff);
     dump_aux_options(fff);
     dump_aux_recall(fff);
